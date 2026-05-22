@@ -1,0 +1,53 @@
+{% extends "staff/base.html" %}
+
+{% block title %}New Contact | CRM{% endblock title %}
+
+{% block content %}
+<div class="d-flex align-items-center gap-3 mb-4">
+  <a href="{% url 'crm:dashboard' %}" class="btn btn-sm btn-outline-dark">&larr; CRM</a>
+  <h1 class="h4 mb-0">New Contact</h1>
+</div>
+
+<div style="max-width:600px;">
+  <div class="card">
+    <div class="card-body">
+      {% if error %}
+        <div class="alert alert-danger">{{ error }}</div>
+      {% endif %}
+      <form method="post">
+        {% csrf_token %}
+        <div class="mb-3">
+          <label class="form-label">Display name <span class="text-danger">*</span></label>
+          <input type="text" name="display_name" class="form-control" value="{{ data.display_name|default:'' }}" required autofocus />
+        </div>
+        <div class="row g-3 mb-3">
+          <div class="col-12 col-sm-6">
+            <label class="form-label">Email</label>
+            <input type="email" name="email" class="form-control" value="{{ data.email|default:'' }}" />
+          </div>
+          <div class="col-12 col-sm-6">
+            <label class="form-label">Phone</label>
+            <input type="tel" name="phone" class="form-control" value="{{ data.phone|default:'' }}" />
+          </div>
+        </div>
+        <div class="mb-3">
+          <label class="form-label">Status</label>
+          <select name="relationship_status" class="form-select">
+            {% for value, label in status_choices %}
+              <option value="{{ value }}" {% if data.relationship_status == value %}selected{% endif %}>{{ label }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="mb-4">
+          <label class="form-label">Notes</label>
+          <textarea name="notes" class="form-control" rows="3">{{ data.notes|default:'' }}</textarea>
+        </div>
+        <div class="d-flex gap-2">
+          <button type="submit" class="btn btn-brand">Create contact</button>
+          <a href="{% url 'crm:dashboard' %}" class="btn btn-outline-dark">Cancel</a>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock content %}

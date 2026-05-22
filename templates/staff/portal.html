@@ -1,0 +1,174 @@
+{% extends "staff/base.html" %}
+
+{% block title %}Staff Portal | Popcorn-N-Such{% endblock title %}
+
+{% block content %}
+<div class="d-flex align-items-center justify-content-between mb-4">
+  <div>
+    <span class="eyebrow">Internal</span>
+    <h1 class="h3 mb-0">Staff Portal</h1>
+  </div>
+  <div class="portal-top-actions">
+    <a class="portal-3d-btn-top" href="{% url 'reports:dashboard' %}">Reports</a>
+    <a class="portal-3d-btn-top" href="{% url 'notifications:center' %}">Alerts</a>
+  </div>
+</div>
+
+<style>
+  .portal-top-actions {
+    display: flex;
+    gap: .5rem;
+  }
+  .portal-link-list {
+    display: grid;
+    gap: .55rem;
+  }
+  .portal-3d-btn,
+  .portal-3d-btn-top {
+    display: inline-flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: .62rem .78rem;
+    border: 1px solid rgba(31, 31, 31, .25);
+    border-radius: .7rem;
+    background: linear-gradient(180deg, #fff, #f7f2e8);
+    box-shadow: 0 4px 0 rgba(31, 31, 31, .18), 0 10px 18px rgba(31, 31, 31, .08);
+    color: var(--kettle-black);
+    text-decoration: none;
+    font-size: .88rem;
+    font-weight: 700;
+    letter-spacing: .01em;
+    transition: transform .08s ease, box-shadow .08s ease, background .12s ease;
+  }
+  .portal-3d-btn {
+    width: 100%;
+    font-size: .88rem;
+    letter-spacing: .01em;
+  }
+  .portal-3d-btn-top {
+    width: auto;
+    min-width: 116px;
+    justify-content: center;
+    gap: .35rem;
+    font-size: .82rem;
+    padding: .48rem .72rem;
+    letter-spacing: .01em;
+  }
+  .portal-3d-btn:hover,
+  .portal-3d-btn-top:hover {
+    background: linear-gradient(180deg, #fff9ef, #f4ead6);
+    transform: translateY(-1px);
+    color: var(--kettle-black);
+  }
+  .portal-3d-btn:active,
+  .portal-3d-btn-top:active {
+    transform: translateY(3px);
+    box-shadow: 0 1px 0 rgba(31, 31, 31, .2), 0 4px 10px rgba(31, 31, 31, .1);
+  }
+  .portal-3d-btn::after,
+  .portal-3d-btn-top::after {
+    content: "→";
+    opacity: .8;
+  }
+</style>
+
+<div class="row g-3">
+
+  <div class="col-12 col-md-6 col-xl-4">
+    <div class="hero-card p-4 h-100">
+      <p class="eyebrow mb-2">Operations</p>
+      <h2 class="h6 fw-bold mb-3">Orders &amp; Fulfillment</h2>
+      <div class="portal-link-list">
+        <a href="{% url 'orders:staff-list' %}" class="portal-3d-btn">All Orders</a>
+        <a href="{% url 'dashboards:fulfillment' %}" class="portal-3d-btn">Fulfillment Dashboard</a>
+        <a href="{% url 'purchase_orders:reorder-suggestions' %}" class="portal-3d-btn">Reorder Suggestions</a>
+        <a href="{% url 'shipping:label-create' %}" class="portal-3d-btn">Generate Shipping Label</a>
+        <a href="{% url 'shipping:label-list' %}" class="portal-3d-btn">Label &amp; Tracking Monitor</a>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-12 col-md-6 col-xl-4">
+    <div class="hero-card p-4 h-100">
+      <p class="eyebrow mb-2">Site Operations</p>
+      <h2 class="h6 fw-bold mb-3">Configuration &amp; Access</h2>
+      <div class="portal-link-list">
+        <a href="{% url 'site-config-list' %}" class="portal-3d-btn">Site Configuration</a>
+        <a href="{% url 'dashboards:operational-settings' %}" class="portal-3d-btn">Operational Settings</a>
+        <a href="{% url 'dashboards:how-to' %}" class="portal-3d-btn">Staff How-To</a>
+        {% if can_create_users %}
+        <a href="{% url 'accounts:admin-user-create' %}" class="portal-3d-btn">Create User</a>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <div class="col-12 col-md-6 col-xl-4">
+    <div class="hero-card p-4 h-100">
+      <p class="eyebrow mb-2">Catalog</p>
+      <h2 class="h6 fw-bold mb-3">Products &amp; Inventory</h2>
+      <div class="d-flex flex-wrap gap-2 mb-3">
+        <span class="badge text-bg-warning">Low SKUs: {{ low_stock_skus }}</span>
+        <span class="badge text-bg-danger">Out SKUs: {{ out_of_stock_skus }}</span>
+        <span class="badge text-bg-warning">Low Products: {{ low_stock_products }}</span>
+        <span class="badge text-bg-danger">Out Products: {{ out_of_stock_products }}</span>
+      </div>
+      <div class="portal-link-list">
+        <a href="{% url 'products:admin-list' %}" class="portal-3d-btn">Products</a>
+        <a href="{% url 'products:sku-management' %}" class="portal-3d-btn">SKU Management</a>
+        <a href="{% url 'suppliers:list' %}" class="portal-3d-btn">Suppliers</a>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-12 col-md-6 col-xl-4">
+    <div class="hero-card p-4 h-100">
+      <p class="eyebrow mb-2">CRM</p>
+      <h2 class="h6 fw-bold mb-3">Contacts &amp; Organizations</h2>
+      <div class="portal-link-list">
+        <a href="{% url 'crm:dashboard' %}" class="portal-3d-btn">CRM Dashboard</a>
+        <a href="{% url 'crm:contact-create' %}" class="portal-3d-btn">Add Contact</a>
+        <a href="{% url 'crm-list' %}" class="portal-3d-btn">Organizations</a>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-12 col-md-6 col-xl-4">
+    <div class="hero-card p-4 h-100">
+      <p class="eyebrow mb-2">Fundraising</p>
+      <h2 class="h6 fw-bold mb-3">Campaigns &amp; Teams</h2>
+      <div class="portal-link-list">
+        <a href="{% url 'fundraisers:staff-campaign-queue' %}" class="portal-3d-btn">Fundraiser Requests</a>
+        <a href="{% url 'fundraisers:staff-campaign-queue' %}" class="portal-3d-btn">Campaign Queue</a>
+        <a href="{% url 'teams:staff-list' %}" class="portal-3d-btn">Teams</a>
+        <a href="{% url 'sellers:staff-list' %}" class="portal-3d-btn">Seller Stores</a>
+        <a href="{% url 'leaderboards:all-campaigns' %}" class="portal-3d-btn">Leaderboards</a>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-12 col-md-6 col-xl-4">
+    <div class="hero-card p-4 h-100">
+      <p class="eyebrow mb-2">Dashboards</p>
+      <h2 class="h6 fw-bold mb-3">Analytics &amp; Reports</h2>
+      <div class="portal-link-list">
+        <a href="{% url 'dashboards:owner' %}" class="portal-3d-btn">Owner Dashboard</a>
+        <a href="{% url 'dashboards:fulfillment' %}" class="portal-3d-btn">Fulfillment Dashboard</a>
+        <a href="{% url 'reports:dashboard' %}" class="portal-3d-btn">Reports</a>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-12 col-md-6 col-xl-4">
+    <div class="hero-card p-4 h-100">
+      <p class="eyebrow mb-2">Notifications</p>
+      <h2 class="h6 fw-bold mb-3">Alerts &amp; Messages</h2>
+      <div class="portal-link-list">
+        <a href="{% url 'notifications:center' %}" class="portal-3d-btn">Notification Center</a>
+        <a href="{% url 'notifications:preferences' %}" class="portal-3d-btn">Alert Preferences</a>
+      </div>
+    </div>
+  </div>
+
+</div>
+{% endblock content %}

@@ -1,0 +1,136 @@
+{% extends "base/base.html" %}
+
+{% block title %}SKU CSV Import{% endblock title %}
+
+{% block content %}
+<section class="py-5">
+  <div class="container">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+      <h1 class="mb-0">SKU CSV Import</h1>
+      <a class="btn btn-outline-dark" href="{% url 'products:sku-management' %}">Back to SKU Management</a>
+    </div>
+
+    <div class="hero-card p-4 mb-4">
+      <h2 class="h5">1. Upload and Preview</h2>
+      <form method="post" enctype="multipart/form-data" class="d-flex gap-2 align-items-center flex-wrap">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="preview" />
+        {{ upload_form.csv_file }}
+        <button class="btn btn-brand" type="submit">Preview CSV</button>
+      </form>
+      {% if upload_form.errors %}
+        <div class="alert alert-danger mt-3 mb-0">{{ upload_form.errors }}</div>
+      {% endif %}
+    </div>
+
+    {% if preview_batch %}
+      <div class="hero-card p-4 mb-4">
+        <h2 class="h5">2. Preview Results for Batch #{{ preview_batch.id }}</h2>
+        <p class="mb-2">Rows: {{ preview_batch.total_rows }} | Valid: {{ preview_batch.valid_rows }} | Invalid: {{ preview_batch.invalid_rows }}</p>
+
+        {% if row_errors %}
+          <div class="alert alert-danger">
+            <strong>Fix these row errors before commit:</strong>
+            <ul class="mb-0 mt-2">
+              {% for row_error in row_errors %}
+                <li>Row {{ row_error.row_number }} ({{ row_error.sku|default:"no sku" }}): {{ row_error.error_message }}</li>
+              {% endfor %}
+            </ul>
+          </div>
+        {% endif %}
+
+        <div class="table-responsive">
+          <table class="table table-sm align-middle">
+            <thead>
+              <tr>
+                <th>SKU</th>
+                <th>Product</th>
+                <th>Category</th>
+                <th>Flavor</th>
+                <th>Size</th>
+                <th>Retail</th>
+                <th>Cost</th>
+                <th>Inventory</th>
+                <th>Low Threshold</th>
+                <th>Active</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for row in preview_rows %}
+                <tr>
+                  <td>{{ row.sku }}</td>
+                  <td>{{ row.product_name }}</td>
+                  <td>{{ row.category }}</td>
+                  <td>{{ row.flavor }}</td>
+                  <td>{{ row.size }}</td>
+                  <td>{{ row.retail_price }}</td>
+                  <td>{{ row.cost_price }}</td>
+                  <td>{{ row.inventory_count }}</td>
+                  <td>{{ row.low_stock_threshold }}</td>
+                  <td>{{ row.is_active }}</td>
+                </tr>
+              {% empty %}
+                <tr>
+                  <td colspan="10">No valid rows to import.</td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+
+        <form method="post" class="d-flex gap-2 mt-3">
+          {% csrf_token %}
+          <input type="hidden" name="action" value="commit" />
+          <input type="hidden" name="batch_id" value="{{ preview_batch.id }}" />
+          <button class="btn btn-brand" type="submit" {% if preview_batch.invalid_rows > 0 %}disabled{% endif %}>Commit Import</button>
+        </form>
+      </div>
+    {% endif %}
+
+    <div class="hero-card p-4 mb-4">
+      <h2 class="h5">3. Roll Back Last Committed Import</h2>
+      <form method="post">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="rollback" />
+        <button class="btn btn-outline-danger" type="submit">Rollback Last Import</button>
+      </form>
+    </div>
+
+    <div class="hero-card p-4">
+      <h2 class="h5">Recent Import Batches</h2>
+      <div class="table-responsive">
+        <table class="table table-sm align-middle mb-0">
+          <thead>
+            <tr>
+              <th>Batch</th>
+              <th>Uploader</th>
+              <th>Status</th>
+              <th>Rows</th>
+              <th>Created</th>
+              <th>Updated</th>
+              <th>Uploaded At</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for batch in recent_batches %}
+              <tr>
+                <td>#{{ batch.id }}</td>
+                <td>{{ batch.uploader.username }}</td>
+                <td>{{ batch.get_status_display }}</td>
+                <td>{{ batch.total_rows }}</td>
+                <td>{{ batch.created_skus }}</td>
+                <td>{{ batch.updated_skus }}</td>
+                <td>{{ batch.uploaded_at }}</td>
+              </tr>
+            {% empty %}
+              <tr>
+                <td colspan="7">No imports yet.</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</section>
+{% endblock content %}

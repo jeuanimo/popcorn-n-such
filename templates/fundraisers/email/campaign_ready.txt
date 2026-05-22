@@ -1,0 +1,29 @@
+Hi {{ first_name }},
+
+Great news — your Popcorn-N-Such fundraiser is set up and ready to go!
+
+CAMPAIGN: {{ campaign_name }}
+CAMPAIGN PAGE: {{ campaign_url }}
+DASHBOARD: {{ dashboard_url }}
+
+Share your campaign link with your team so each seller can create their
+personal storefront. Supporters order directly online — you track everything
+in real time from your dashboard.
+
+----------------------------------------------------------------------
+STEP 1 — DONE ✓  You registered your fundraiser.
+STEP 2 — Share your campaign link with sellers.
+STEP 3 — Get paid when your campaign closes.
+----------------------------------------------------------------------
+
+{% if password_reset_url %}
+Your account has been created at {{ contact_email }}.
+Set your password here so you can log in to your dashboard:
+{{ password_reset_url }}
+{% endif %}
+
+Questions? Reply to this email or call us at (618) 917-5351.
+
+— The Popcorn-N-Such Team
+10607 Lincoln Trl, Ste 4 | Fairview Heights, IL 62208
+hello@popcornnsuch.com

@@ -1,0 +1,20 @@
+{% extends "base/base.html" %}
+
+{% block title %}Request Fundraiser Campaign{% endblock title %}
+
+{% block content %}
+<section class="py-5">
+  <div class="container form-container">
+    <div class="hero-card p-4 p-md-5">
+      <h1 class="h4 mb-3">Request or Create Fundraiser Campaign</h1>
+      <form method="post" enctype="multipart/form-data" class="row g-3">
+        {% csrf_token %}
+        {{ form.as_p }}
+        <div class="col-12">
+          <button class="btn btn-brand" type="submit">Submit campaign request</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</section>
+{% endblock content %}

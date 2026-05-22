@@ -1,0 +1,62 @@
+{% extends "base/base.html" %}
+{% load money %}
+
+{% block title %}{{ object.campaign_name }} | Popcorn-N-Such{% endblock title %}
+
+{% block content %}
+<section class="py-5">
+  <div class="container">
+    <a class="btn btn-sm btn-outline-dark mb-3" href="{% url 'fundraisers:public-campaign-list' %}">Back to campaigns</a>
+
+    <div class="hero-card p-4 p-md-5 mb-4">
+      {% if object.campaign_banner %}
+        <img src="{{ object.campaign_banner.url }}" alt="{{ object.campaign_name }} banner" width="1200" height="420" class="img-fluid rounded mb-3" />
+      {% endif %}
+      <h1>{{ object.campaign_name }}</h1>
+      <p class="small text-uppercase mb-2">{{ object.organization.name }} | {{ object.get_status_display }}</p>
+      <p class="lead">{{ object.description }}</p>
+      <p><strong>Purpose:</strong> {{ object.fundraising_purpose|default:"Support our cause" }}</p>
+
+      <div class="mb-3">
+        <div class="d-flex justify-content-between small mb-1">
+          <span>Goal progress</span>
+          <span>{{ goal_progress_percent }}%</span>
+        </div>
+        <div class="progress" role="progressbar" aria-label="Campaign goal progress" aria-valuenow="{{ goal_progress_percent }}" aria-valuemin="0" aria-valuemax="100">
+          <div class="progress-bar bg-success" style="width: {{ goal_progress_percent }}%;"></div>
+        </div>
+        <p class="small mt-2 mb-0">Raised ${{ total_sales_cents|cents_to_dollars }} of goal ${{ object.goal_amount }}.</p>
+      </div>
+
+      {% if is_accepting_orders %}
+        <a class="btn btn-brand" href="{{ shop_url }}">Shop to support this campaign</a>
+      {% else %}
+        <button class="btn btn-outline-secondary" disabled>Campaign not accepting attributed orders</button>
+      {% endif %}
+    </div>
+
+    <div class="row g-4">
+      <div class="col-12 col-lg-6">
+        <div class="hero-card p-4 h-100">
+          <h2 class="h5">Teams</h2>
+          {% for team in object.teams.all %}
+            <p class="mb-1">{{ team.name }}</p>
+          {% empty %}
+            <p class="mb-0">No teams attached yet.</p>
+          {% endfor %}
+        </div>
+      </div>
+      <div class="col-12 col-lg-6">
+        <div class="hero-card p-4 h-100">
+          <h2 class="h5">Sellers</h2>
+          {% for seller in object.sellers.all %}
+            <p class="mb-1">{{ seller.title }}</p>
+          {% empty %}
+            <p class="mb-0">No sellers attached yet.</p>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+{% endblock content %}

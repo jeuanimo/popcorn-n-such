@@ -1,0 +1,116 @@
+{% extends "base/base.html" %}
+{% load money %}
+
+{% block title %}{{ store.display_name }} — Seller Dashboard{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <h1 class="fw-bold mb-0">{{ store.display_name }} — Dashboard</h1>
+    <a href="{% url 'sellers:edit' store.slug %}" class="btn btn-outline-warning btn-sm">Edit Store</a>
+  </div>
+
+  {# ---- Stats row ---- #}
+  <div class="row g-3 mb-5">
+    <div class="col-6 col-md-3">
+      <div class="card text-center shadow-sm h-100">
+        <div class="card-body">
+          <div class="display-6 fw-bold text-warning">${{ total_sales_cents|cents_to_dollars }}</div>
+          <div class="text-muted small">Total Sales</div>
+        </div>
+      </div>
+    </div>
+    <div class="col-6 col-md-3">
+      <div class="card text-center shadow-sm h-100">
+        <div class="card-body">
+          <div class="display-6 fw-bold">{{ total_orders }}</div>
+          <div class="text-muted small">Orders</div>
+        </div>
+      </div>
+    </div>
+    <div class="col-6 col-md-3">
+      <div class="card text-center shadow-sm h-100">
+        <div class="card-body">
+          <div class="display-6 fw-bold text-success">{{ goal_progress_percent }}%</div>
+          <div class="text-muted small">Goal Progress</div>
+        </div>
+      </div>
+    </div>
+    <div class="col-6 col-md-3">
+      <div class="card text-center shadow-sm h-100">
+        <div class="card-body">
+          <div class="display-6 fw-bold text-info">
+            {% if leaderboard_rank %}#{{ leaderboard_rank }}{% else %}—{% endif %}
+          </div>
+          <div class="text-muted small">Leaderboard Rank</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  {# ---- Goal progress bar ---- #}
+  <div class="mb-5">
+    <h5 class="fw-semibold">Goal: ${{ store.seller_goal }}</h5>
+    <div class="progress" style="height:24px;">
+      <div class="progress-bar bg-warning text-dark fw-bold" role="progressbar"
+           style="width:{{ goal_progress_percent }}%"
+           aria-valuenow="{{ goal_progress_percent }}" aria-valuemin="0" aria-valuemax="100">
+        {{ goal_progress_percent }}%
+      </div>
+    </div>
+  </div>
+
+  <div class="row g-4">
+    {# ---- Share / QR ---- #}
+    <div class="col-md-6">
+      <div class="card shadow-sm h-100">
+        <div class="card-body">
+          <h5 class="card-title">Share Your Store</h5>
+          <div class="input-group mb-2">
+            <input type="text" class="form-control form-control-sm" id="shareLinkInput" value="{{ share_link }}" readonly>
+            <button class="btn btn-sm btn-outline-secondary" onclick="navigator.clipboard.writeText(document.getElementById('shareLinkInput').value);this.textContent='Copied!'">Copy</button>
+          </div>
+          {% if qr_data_uri %}
+          <div class="text-center mt-3">
+            <img src="{{ qr_data_uri }}" alt="QR code" class="img-fluid" style="max-width:140px;">
+            <p class="small text-muted mt-1">Scan to open your store</p>
+          </div>
+          {% endif %}
+          <hr>
+          <p class="small text-muted fw-semibold">Suggested message:</p>
+          <p class="small text-muted fst-italic">{{ suggested_message }}</p>
+        </div>
+      </div>
+    </div>
+
+    {# ---- Recent supporters ---- #}
+    <div class="col-md-6">
+      <div class="card shadow-sm h-100">
+        <div class="card-body">
+          <h5 class="card-title">Recent Supporters</h5>
+          {% if recent_supporters %}
+          <ul class="list-group list-group-flush">
+            {% for s in recent_supporters %}
+            <li class="list-group-item d-flex justify-content-between align-items-center px-0">
+              <span>
+                {% if s.customer__first_name %}{{ s.customer__first_name }} {{ s.customer__last_name }}
+                {% else %}{{ s.customer__username }}{% endif %}
+              </span>
+              <small class="text-muted">${{ s.total_cents|cents_to_dollars }}</small>
+            </li>
+            {% endfor %}
+          </ul>
+          {% else %}
+            <p class="text-muted">No orders yet — share your store link to get started!</p>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="mt-4">
+    <a href="{% url 'sellers:public-store' store.slug %}" class="btn btn-outline-warning me-2">View Public Store</a>
+    <a href="{% url 'sellers:my-stores' %}" class="btn btn-outline-secondary">All My Stores</a>
+  </div>
+</div>
+{% endblock %}

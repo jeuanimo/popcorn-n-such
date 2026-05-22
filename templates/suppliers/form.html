@@ -1,0 +1,25 @@
+{% extends "staff/base.html" %}
+{% block title %}{{ form_title }} | Suppliers{% endblock title %}
+{% block content %}
+<div class="d-flex align-items-center justify-content-between mb-4">
+  <h1 class="h3 mb-0">{{ form_title }}</h1>
+  <a class="btn btn-sm btn-outline-dark" href="{% url 'suppliers:list' %}">Back to Suppliers</a>
+</div>
+
+<div class="hero-card p-4">
+  <form method="post" class="row g-3">
+    {% csrf_token %}
+    {% for field in form %}
+      <div class="col-12 col-md-6">
+        <label class="form-label" for="{{ field.id_for_label }}">{{ field.label }}</label>
+        {{ field }}
+        {% if field.help_text %}<div class="form-text">{{ field.help_text }}</div>{% endif %}
+        {% if field.errors %}<div class="text-danger small">{{ field.errors|striptags }}</div>{% endif %}
+      </div>
+    {% endfor %}
+    <div class="col-12">
+      <button type="submit" class="btn btn-brand">Save Supplier</button>
+    </div>
+  </form>
+</div>
+{% endblock content %}

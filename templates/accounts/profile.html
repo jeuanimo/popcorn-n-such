@@ -1,0 +1,103 @@
+{% extends "base/base.html" %}
+
+{% block title %}My Profile{% endblock title %}
+
+{% block content %}
+<section class="py-5">
+  <div class="container form-container">
+    <h1 class="mb-3">Profile</h1>
+    <div class="row g-4">
+      <div class="col-12 col-lg-7">
+        <div class="hero-card p-4">
+          <form method="post" class="row g-3">
+            {% csrf_token %}
+            <div class="col-12 col-md-6">{{ account_form.first_name.label_tag }}{{ account_form.first_name }}</div>
+            <div class="col-12 col-md-6">{{ account_form.last_name.label_tag }}{{ account_form.last_name }}</div>
+            <div class="col-12 col-md-6">{{ account_form.email.label_tag }}{{ account_form.email }}</div>
+            <div class="col-12 col-md-6">{{ account_form.phone_number.label_tag }}{{ account_form.phone_number }}</div>
+            <div class="col-12">{{ profile_form.display_name.label_tag }}{{ profile_form.display_name }}</div>
+
+            <div class="col-12"><hr class="my-2" /></div>
+            <div class="col-12">
+              <h2 class="h5 mb-2">Default Shipping Address</h2>
+              <p class="small text-muted mb-0">Used to prefill checkout for shipping and state tax estimates.</p>
+            </div>
+            <div class="col-12 col-md-6">{{ address_form.recipient_name.label_tag }}{{ address_form.recipient_name }}</div>
+            <div class="col-12 col-md-6">{{ address_form.phone_number.label_tag }}{{ address_form.phone_number }}</div>
+            <div class="col-12">{{ address_form.address_line_1.label_tag }}{{ address_form.address_line_1 }}</div>
+            <div class="col-12">{{ address_form.address_line_2.label_tag }}{{ address_form.address_line_2 }}</div>
+            <div class="col-12 col-md-4">{{ address_form.city.label_tag }}{{ address_form.city }}</div>
+            <div class="col-12 col-md-4">{{ address_form.state.label_tag }}{{ address_form.state }}</div>
+            <div class="col-12 col-md-4">{{ address_form.postal_code.label_tag }}{{ address_form.postal_code }}</div>
+            <div class="col-12 col-md-4">{{ address_form.country.label_tag }}{{ address_form.country }}</div>
+
+            <div class="col-12">
+              <button type="submit" class="btn btn-brand">Save profile</button>
+            </div>
+          </form>
+        </div>
+
+        <div class="hero-card p-4 mt-4">
+          <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+            <h2 class="h5 mb-0">Address Book</h2>
+            <a class="btn btn-sm btn-outline-dark" href="{% url 'accounts:addresses' %}">Add or Manage Gift Addresses</a>
+          </div>
+          <p class="small text-muted">Save multiple shipping addresses for gifts. Your default address is used to prefill checkout tax and shipping details.</p>
+          <div class="row g-3">
+            {% for address in saved_addresses %}
+              <div class="col-12 col-md-6">
+                <div class="border rounded-3 p-3 h-100 bg-white">
+                  <div class="d-flex justify-content-between align-items-start">
+                    <h3 class="h6 mb-1">{{ address.label }}</h3>
+                    {% if address.is_default %}<span class="badge text-bg-success">Default</span>{% endif %}
+                  </div>
+                  <p class="mb-1 small">{{ address.recipient_name }}</p>
+                  <p class="mb-1 small">{{ address.address_line_1 }}</p>
+                  {% if address.address_line_2 %}<p class="mb-1 small">{{ address.address_line_2 }}</p>{% endif %}
+                  <p class="mb-2 small">{{ address.city }}, {{ address.state }} {{ address.postal_code }}</p>
+                  <a class="btn btn-sm btn-outline-dark" href="{% url 'accounts:address-edit' address.public_id %}">Edit</a>
+                </div>
+              </div>
+            {% empty %}
+              <div class="col-12">
+                <p class="mb-0">No saved addresses yet. Use <strong>Add or Manage Gift Addresses</strong> to create one.</p>
+              </div>
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+
+      <div class="col-12 col-lg-5">
+        <div class="hero-card p-4" id="fundraiser-tools">
+          <h2 class="h5 mb-3">Fundraiser Tools</h2>
+          <form method="post" action="{% url 'accounts:fundraiser-join' %}" class="row g-2 align-items-end mb-3">
+            {% csrf_token %}
+            <div class="col-12">
+              {{ fundraiser_join_form.invite_code.label_tag }}
+              {{ fundraiser_join_form.invite_code }}
+            </div>
+            <div class="col-12">
+              <button class="btn btn-brand w-100" type="submit">Join by invite code</button>
+            </div>
+          </form>
+
+          <h3 class="h6">My fundraiser campaigns</h3>
+          {% for participation in fundraiser_participations %}
+            <p class="mb-1">{{ participation.invite.campaign_name }}{% if participation.invite.team_name %} - {{ participation.invite.team_name }}{% endif %}</p>
+          {% empty %}
+            <p class="mb-3">No fundraiser participations yet.</p>
+          {% endfor %}
+
+          <hr />
+          <h3 class="h6">Create fundraiser request</h3>
+          <form method="post" action="{% url 'accounts:fundraiser-request' %}">
+            {% csrf_token %}
+            {{ fundraiser_request_form.as_p }}
+            <button class="btn btn-outline-dark" type="submit">Submit request</button>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+{% endblock content %}

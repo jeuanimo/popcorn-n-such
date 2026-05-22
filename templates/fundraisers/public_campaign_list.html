@@ -1,0 +1,28 @@
+{% extends "base/base.html" %}
+
+{% block title %}Fundraiser Campaigns | Popcorn-N-Such{% endblock title %}
+
+{% block content %}
+<section class="py-5">
+  <div class="container">
+    <h1 class="mb-4">Active Fundraiser Campaigns</h1>
+    <div class="row g-4">
+      {% for campaign in campaigns %}
+        <div class="col-12 col-md-6 col-lg-4">
+          <article class="hero-card p-3 h-100">
+            {% if campaign.campaign_image %}
+              <img src="{{ campaign.campaign_image.url }}" alt="{{ campaign.campaign_name }}" width="640" height="360" class="img-fluid rounded mb-3 product-card-image" />
+            {% endif %}
+            <h2 class="h5">{{ campaign.campaign_name }}</h2>
+            <p class="small text-muted mb-2">{{ campaign.organization.name }}</p>
+            <p>{{ campaign.description|truncatechars:140 }}</p>
+            <a class="btn btn-brand" href="{% url 'fundraisers:public-campaign-detail' campaign.slug %}">View campaign</a>
+          </article>
+        </div>
+      {% empty %}
+        <p>No active campaigns right now.</p>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+{% endblock content %}

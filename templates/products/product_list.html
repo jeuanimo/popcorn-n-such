@@ -1,0 +1,198 @@
+{% extends "base/base.html" %}
+{% block title %}{{ page_title }} | Popcorn-N-Such{% endblock title %}
+
+{% block content %}
+
+<section class="page-hero">
+  <div class="container">
+    <span class="eyebrow">Our Flavors</span>
+    <h1 class="mb-1">{{ page_title }}</h1>
+    <p class="lead mb-0">Hand-popped in small batches — bold flavors for every occasion.</p>
+  </div>
+</section>
+
+<section class="py-4">
+  <div class="container">
+    <div class="shop-layout">
+
+      <!-- ── Left sidebar ──────────────────────────────────────── -->
+      <aside class="shop-sidebar" aria-label="Filters">
+
+        <div class="sidebar-panel">
+          <p class="sidebar-panel-title">Department</p>
+          <a href="{% url 'products:list' %}{% if request.GET.store %}?store={{ request.GET.store }}{% endif %}"
+             class="sidebar-link {% if not selected_category %}active{% endif %}">All Products</a>
+          {% for cat in categories %}
+            <a href="{% url 'products:category' cat.key %}{% if request.GET.store %}?store={{ request.GET.store }}{% endif %}"
+               class="sidebar-link {% if selected_category.id == cat.id %}active{% endif %}">{{ cat.name }}</a>
+          {% endfor %}
+        </div>
+
+        <div class="sidebar-panel">
+          <p class="sidebar-panel-title">Price</p>
+          <a href="{% querystring min_price='' max_price='' page='' %}"
+             class="sidebar-link {% if not current_min_price and not current_max_price %}active{% endif %}">All prices</a>
+          <a href="{% querystring min_price='' max_price='10' page='' %}"
+             class="sidebar-link {% if not current_min_price and current_max_price == '10' %}active{% endif %}">Under $10</a>
+          <a href="{% querystring min_price='10' max_price='20' page='' %}"
+             class="sidebar-link {% if current_min_price == '10' and current_max_price == '20' %}active{% endif %}">$10 – $20</a>
+          <a href="{% querystring min_price='20' max_price='' page='' %}"
+             class="sidebar-link {% if current_min_price == '20' and not current_max_price %}active{% endif %}">$20 &amp; Above</a>
+        </div>
+
+        <div class="sidebar-panel">
+          <p class="sidebar-panel-title">Availability</p>
+          <a href="{% querystring in_stock='' page='' %}"
+             class="sidebar-link {% if not current_in_stock %}active{% endif %}">All Items</a>
+          <a href="{% querystring in_stock='1' page='' %}"
+             class="sidebar-link {% if current_in_stock == '1' %}active{% endif %}">&#10003; In Stock Only</a>
+        </div>
+
+      </aside>
+
+      <!-- ── Main results ──────────────────────────────────────── -->
+      <main>
+
+        <!-- Results + sort bar -->
+        <div class="results-bar">
+          <p class="results-count mb-0">
+            {% if is_paginated %}Showing <strong>{{ page_obj.start_index }}–{{ page_obj.end_index }}</strong> of {% endif %}
+            <strong>{{ total_count }}</strong> result{{ total_count|pluralize }}
+            {% if selected_category %}in <strong>{{ selected_category.name }}</strong>{% endif %}
+          </p>
+          <div class="sort-bar">
+            <span class="sort-bar-label">Sort by:</span>
+            <a href="{% querystring sort='featured' page='' %}" class="sort-link {% if current_sort == 'featured' %}active{% endif %}">Featured</a>
+            <a href="{% querystring sort='price_asc' page='' %}" class="sort-link {% if current_sort == 'price_asc' %}active{% endif %}">Price: Low to High</a>
+            <a href="{% querystring sort='price_desc' page='' %}" class="sort-link {% if current_sort == 'price_desc' %}active{% endif %}">Price: High to Low</a>
+            <a href="{% querystring sort='newest' page='' %}" class="sort-link {% if current_sort == 'newest' %}active{% endif %}">Newest</a>
+          </div>
+        </div>
+
+        <!-- Product grid -->
+        {% if products %}
+          <div class="s-product-grid">
+            {% for product in products %}
+              {% cycle '0ms' '55ms' '110ms' '165ms' '220ms' '275ms' '330ms' '385ms' as delay silent %}
+              <article class="s-card fade-in-up" style="animation-delay:{{ delay }};">
+
+                <!-- Image area -->
+                <a href="{% url 'products:detail' product.slug %}" class="s-card-img-link" tabindex="-1" aria-hidden="true">
+                  <div class="s-card-img-wrap">
+                    {% if product.image %}
+                      <img src="{{ product.image.url }}" alt="{{ product.name }}" class="s-card-img" />
+                    {% elif product.external_image_url %}
+                      <img src="{{ product.external_image_url }}" alt="{{ product.name }}" class="s-card-img" />
+                    {% else %}
+                      <div class="s-card-img-placeholder" aria-hidden="true">🍿</div>
+                    {% endif %}
+                  </div>
+                </a>
+
+                <!-- Card body -->
+                <div class="s-card-body">
+
+                  <!-- Badges -->
+                  {% if product.is_featured %}
+                    <div class="s-card-badge-row">
+                      <span class="s-badge-featured">&#9733; Featured</span>
+                    </div>
+                  {% endif %}
+
+                  <!-- Title -->
+                  <a href="{% url 'products:detail' product.slug %}" class="s-card-title">{{ product.name }}</a>
+
+                  <!-- Category / flavor -->
+                  <p class="s-card-meta">
+                    {{ product.category.name }}{% if product.flavor %} &bull; {{ product.flavor }}{% endif %}
+                  </p>
+
+                  <!-- Sizes -->
+                  {% with product.skus.all as all_skus %}
+                    {% if all_skus %}
+                      <div class="s-card-sizes">
+                        {% for sku in all_skus %}{% if sku.is_active %}<span class="size-chip">{{ sku.size }}</span>{% endif %}{% endfor %}
+                      </div>
+                    {% endif %}
+                  {% endwith %}
+
+                  <!-- Price row -->
+                  <div class="s-card-price-row">
+                    {% if product.primary_cart_sku %}
+                      <span class="s-card-price">${{ product.primary_cart_sku.retail_price }}</span>
+                      {% if product.low_stock_sku_count and product.low_stock_sku_count == product.purchasable_sku_count %}
+                        <span class="s-card-stock-out">Low Stock</span>
+                      {% else %}
+                        <span class="s-card-stock-in">&#10003; In Stock</span>
+                      {% endif %}
+                    {% else %}
+                      <span class="s-card-stock-out">Out of Stock</span>
+                    {% endif %}
+                  </div>
+
+                  <!-- CTA -->
+                  <div class="s-card-actions">
+                    {% if product.primary_cart_sku %}
+                      <form method="post" action="{% url 'cart:add' product.primary_cart_sku.id %}">
+                        {% csrf_token %}
+                        {% if request.GET.campaign %}<input type="hidden" name="campaign" value="{{ request.GET.campaign }}" />{% endif %}
+                        {% if request.GET.team %}<input type="hidden" name="team" value="{{ request.GET.team }}" />{% endif %}
+                        {% if request.GET.seller %}<input type="hidden" name="seller" value="{{ request.GET.seller }}" />{% endif %}
+                        <div class="d-flex gap-2 align-items-center">
+                          <fieldset class="qty-stepper"><legend class="visually-hidden">Quantity</legend>
+                            <button type="button" class="qty-btn qty-dec" aria-label="Decrease quantity">−</button>
+                            <input name="quantity" type="number" min="1" max="{{ product.primary_cart_sku.inventory_quantity }}" value="1" class="qty-input" aria-label="Quantity" />
+                            <button type="button" class="qty-btn qty-inc" data-max="{{ product.primary_cart_sku.inventory_quantity }}" aria-label="Increase quantity">+</button>
+                          </fieldset>
+                          <button class="s-btn-cart" type="submit">Add to Cart</button>
+                        </div>
+                      </form>
+                    {% else %}
+                      <a href="{% url 'products:detail' product.slug %}" class="s-btn-cart">Choose Options</a>
+                    {% endif %}
+                    <a href="{% url 'products:detail' product.slug %}" class="s-card-detail-link">View details</a>
+                  </div>
+
+                </div>
+              </article>
+            {% endfor %}
+          </div>
+
+        {% else %}
+          <div class="hero-card p-5 text-center">
+            <p class="mb-2 text-muted">No products match your current filters.</p>
+            <a href="{% url 'products:list' %}" class="btn btn-sm btn-outline-dark">Clear Filters</a>
+          </div>
+        {% endif %}
+
+        <!-- Pagination -->
+        {% if is_paginated %}
+          <nav class="mt-4 d-flex justify-content-between align-items-center flex-wrap gap-2" aria-label="Product pages">
+            <p class="small text-muted mb-0">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</p>
+            <ul class="pagination mb-0">
+              {% if page_obj.has_previous %}
+                <li class="page-item"><a class="page-link" href="{% querystring page=page_obj.previous_page_number %}">&laquo; Prev</a></li>
+              {% else %}
+                <li class="page-item disabled"><span class="page-link">&laquo; Prev</span></li>
+              {% endif %}
+              {% for num in page_obj.paginator.page_range %}
+                {% if page_obj.number == num %}
+                  <li class="page-item active" aria-current="page"><span class="page-link">{{ num }}</span></li>
+                {% elif num > page_obj.number|add:"-3" and num < page_obj.number|add:"3" %}
+                  <li class="page-item"><a class="page-link" href="{% querystring page=num %}">{{ num }}</a></li>
+                {% endif %}
+              {% endfor %}
+              {% if page_obj.has_next %}
+                <li class="page-item"><a class="page-link" href="{% querystring page=page_obj.next_page_number %}">Next &raquo;</a></li>
+              {% else %}
+                <li class="page-item disabled"><span class="page-link">Next &raquo;</span></li>
+              {% endif %}
+            </ul>
+          </nav>
+        {% endif %}
+
+      </main>
+    </div>
+  </div>
+</section>
+{% endblock content %}

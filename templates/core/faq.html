@@ -1,0 +1,29 @@
+{% extends "base/base.html" %}
+{% load site_content %}
+
+{% block title %}FAQ | Popcorn-N-Such{% endblock title %}
+
+{% block content %}
+<section id="sc-intro" class="py-5">
+  <div class="container form-container">
+    <h1>FAQ</h1>
+    <div id="sc-faq">
+    <div class="accordion" id="faqAccordion">
+      <div class="accordion-item">
+        <h2 class="accordion-header"><button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#q1">How do I start a fundraiser?</button></h2>
+        <div id="q1" class="accordion-collapse collapse show" data-bs-parent="#faqAccordion"><div class="accordion-body">Visit our fundraising page and contact us to launch your campaign storefront.</div></div>
+      </div>
+      <div class="accordion-item">
+        <h2 class="accordion-header"><button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#q2">Do you offer corporate gifts?</button></h2>
+        <div id="q2" class="accordion-collapse collapse" data-bs-parent="#faqAccordion"><div class="accordion-body">Yes, we offer bulk pricing, gift boxes, and seasonal packages for companies and events.</div></div>
+      </div>
+      <div class="accordion-item">
+        <h2 class="accordion-header"><button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#q3">Can I shop online year-round?</button></h2>
+        <div id="q3" class="accordion-collapse collapse" data-bs-parent="#faqAccordion"><div class="accordion-body">Absolutely. Shop from our standalone store anytime and check fundraiser pages for campaign items.</div></div>
+      </div>
+    </div>
+    </div>
+  </div>
+</section>
+{% render_managed_content "faq" %}
+{% endblock content %}

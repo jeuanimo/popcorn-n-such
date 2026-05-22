@@ -1,0 +1,204 @@
+/* ============================================================
+   Popcorn_N_Such — Staff Portal (matches public theme)
+   ============================================================ */
+
+/* ── Sidebar ────────────────────────────────────────────────── */
+
+.staff-sidebar {
+  width: 220px;
+  flex-shrink: 0;
+  background: #fff;
+  border-right: 1px solid rgba(31,31,31,.1);
+  position: sticky;
+  top: var(--nav-h);
+  height: calc(100vh - var(--nav-h));
+  overflow-y: auto;
+  padding-top: .5rem;
+}
+
+.staff-sidebar .text-uppercase.small {
+  font-size: .67rem !important;
+  letter-spacing: .1em;
+  color: var(--text-muted-clr);
+  padding: .7rem 1rem .25rem;
+  display: block;
+  text-transform: uppercase !important;
+}
+
+.staff-sidebar .nav-link {
+  color: var(--kettle-black);
+  font-size: .875rem;
+  font-weight: 500;
+  padding: .4rem .85rem;
+  border-radius: .4rem;
+  margin: .05rem .35rem;
+  border-left: 3px solid transparent;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  transition: background .18s, color .18s, border-left-color .18s;
+  text-decoration: none;
+}
+.staff-sidebar .nav-link:hover {
+  background: rgba(249,178,51,.12);
+  color: var(--kettle-black);
+  border-left-color: var(--butter-gold);
+}
+.staff-sidebar .nav-link.active {
+  background: rgba(214,40,40,.08);
+  color: var(--popcorn-red);
+  border-left-color: var(--popcorn-red);
+  font-weight: 600;
+}
+.staff-sidebar .nav-link.active .badge { background: rgba(214,40,40,.15) !important; color: var(--popcorn-red); }
+.staff-sidebar .badge { font-size: .67rem; padding: .2em .5em; }
+
+/* ── Main content ───────────────────────────────────────────── */
+
+.staff-main {
+  padding: 1.75rem;
+  min-width: 0;
+}
+
+/* ── Stat cards ─────────────────────────────────────────────── */
+
+.staff-stat {
+  background: #fff;
+  border-radius: var(--radius);
+  padding: 1.1rem 1.35rem;
+  min-height: 130px;
+  border-left: 4px solid var(--butter-gold);
+  box-shadow: var(--shadow-sm);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  transition: transform .35s var(--ease-out), box-shadow .35s var(--ease-out);
+}
+.staff-stat:hover {
+  transform: translateY(-3px);
+  box-shadow: var(--shadow);
+}
+.staff-stat.danger  { border-left-color: var(--popcorn-red); }
+.staff-stat.success { border-left-color: var(--success-green); }
+.staff-stat.info    { border-left-color: #3a8fd4; }
+.staff-stat .label  {
+  font-size: .72rem; text-transform: uppercase; letter-spacing: .09em;
+  color: var(--text-muted-clr); font-weight: 700;
+}
+.staff-stat .value  {
+  font-family: "Oswald", sans-serif; font-size: 2rem;
+  line-height: 1.1; color: var(--kettle-black);
+}
+
+/* ── Data tables ────────────────────────────────────────────── */
+
+.staff-table {
+  background: #fff;
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-sm);
+  overflow: hidden;
+}
+.staff-table table { margin: 0; font-size: .88rem; }
+.staff-table thead th {
+  background: #f9f9f9;
+  font-size: .72rem; text-transform: uppercase; letter-spacing: .07em;
+  color: var(--text-muted-clr); font-weight: 700;
+  padding: .65rem .9rem;
+  border-bottom: 2px solid rgba(31,31,31,.08);
+  position: sticky;
+  top: 0;
+  z-index: 2;
+}
+.staff-table tbody td {
+  padding: .65rem .9rem; vertical-align: middle;
+  border-bottom: 1px solid rgba(31,31,31,.05); color: var(--kettle-black);
+}
+.staff-table tbody tr:last-child td { border-bottom: none; }
+.staff-table tbody tr:hover { background: rgba(249,178,51,.06); }
+
+/* ── Toolbar ────────────────────────────────────────────────── */
+
+.staff-toolbar {
+  background: rgba(255,255,255,.75);
+  border-radius: var(--radius);
+  padding: .75rem 1rem;
+  box-shadow: var(--shadow-sm);
+  margin-bottom: 1rem;
+  display: flex; flex-wrap: wrap; gap: .5rem; align-items: center;
+}
+
+/* ── Filter pills ───────────────────────────────────────────── */
+
+.filter-pill-staff {
+  display: inline-flex;
+  align-items: center;
+  height: 32px;
+  padding: 0 14px;
+  border-radius: 99px;
+  font-size: .78rem;
+  font-weight: 600;
+  border: 1.5px solid rgba(31,31,31,.2);
+  background: rgba(255,255,255,.6);
+  color: var(--text-muted-clr);
+  cursor: pointer;
+  transition: border-color .18s, background .18s, color .18s;
+  text-decoration: none;
+  white-space: nowrap;
+}
+.filter-pill-staff:hover {
+  border-color: var(--butter-gold);
+  color: var(--kettle-black);
+  background: rgba(249,178,51,.08);
+}
+.filter-pill-staff.active {
+  border-color: var(--popcorn-red);
+  background: var(--popcorn-red);
+  color: #fff;
+}
+
+/* ── Status badges ──────────────────────────────────────────── */
+
+.status-badge {
+  display: inline-block; font-size: .72rem; font-weight: 700;
+  letter-spacing: .05em; text-transform: uppercase;
+  padding: .22em .6em; border-radius: .3em;
+}
+.status-paid       { background: #e8f5e9; color: #2e7d32; }
+.status-pending    { background: #fff8e1; color: #7a5500; }
+.status-processing { background: #e3f2fd; color: #1565c0; }
+.status-shipped    { background: #e8eaf6; color: #3949ab; }
+.status-delivered  { background: #e8f5e9; color: #2e7d32; }
+.status-cancelled  { background: #ffebee; color: var(--popcorn-red); }
+.status-refunded   { background: #f3e5f5; color: #7b1fa2; }
+.status-packed     { background: #e0f7fa; color: #006064; }
+
+/* ── Action bar ─────────────────────────────────────────────── */
+
+.action-bar { display: flex; flex-wrap: wrap; gap: .4rem; align-items: center; }
+
+/* ── Badge colour ───────────────────────────────────────────── */
+
+.badge.bg-warning { color: var(--kettle-black); }
+
+/* ── Offcanvas sidebar (mobile) ─────────────────────────────── */
+
+.offcanvas-body .staff-sidebar {
+  position: static;
+  height: auto;
+  width: 100%;
+  border-right: none;
+  box-shadow: none;
+}
+
+/* ── Responsive ─────────────────────────────────────────────── */
+
+@media (max-width: 991px) {
+  .staff-main { padding: 1rem; }
+  .staff-stat { min-height: 110px; }
+  .staff-stat .value { font-size: 1.6rem; }
+}
+@media (max-width: 575px) {
+  .staff-stat { padding: .75rem 1rem; min-height: 0; }
+  .staff-table thead th,
+  .staff-table tbody td { padding: .5rem .6rem; font-size: .8rem; }
+}

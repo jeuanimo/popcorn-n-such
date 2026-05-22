@@ -1,0 +1,23 @@
+{% extends "base/base.html" %}
+
+{% block title %}Cart Reminder Preferences | Popcorn-N-Such{% endblock title %}
+
+{% block content %}
+<section class="py-5">
+  <div class="container form-container">
+    <div class="hero-card p-4">
+      <h1 class="h3">Cart Reminder Preferences</h1>
+      {% if success %}
+        <p class="lead">{{ detail_message }}</p>
+      {% else %}
+        <p class="lead">{{ detail_message }}</p>
+      {% endif %}
+      {% if user.is_authenticated %}
+        <a class="btn btn-outline-dark" href="{% url 'accounts:preferences' %}">Manage notification preferences</a>
+      {% else %}
+        <a class="btn btn-outline-dark" href="{% url 'accounts:login' %}">Sign in to manage preferences</a>
+      {% endif %}
+    </div>
+  </div>
+</section>
+{% endblock content %}

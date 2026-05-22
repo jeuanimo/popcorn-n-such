@@ -1,0 +1,45 @@
+{% extends "base/base.html" %}
+{% block title %}Fundraiser Created | Popcorn-N-Such{% endblock title %}
+
+{% block content %}
+<section class="py-5">
+  <div class="container">
+    <div class="row justify-content-center">
+      <div class="col-12 col-md-7 text-center">
+        <div class="hero-card p-5">
+          <div style="font-size:3.5rem;line-height:1;margin-bottom:1rem;">🍿</div>
+          <span class="eyebrow">Step 1 Complete!</span>
+          <h1 class="h3 mb-3">Your Fundraiser Is Live</h1>
+          <p class="lead mb-4">
+            Your campaign page and team storefronts have been created.
+            Check your email — we've sent you your dashboard link and everything you need to get started.
+          </p>
+          <hr class="gold-divider my-4" />
+
+          <!-- What's next -->
+          <div class="text-start mb-4">
+            <p class="small fw-semibold mb-3 text-center">Here's what comes next:</p>
+            <div class="d-flex gap-3 mb-3">
+              <span class="fw-bold flex-shrink-0" style="color:var(--popcorn-red);font-size:1.1rem;line-height:1.3;">2</span>
+              <div class="small"><strong>Share &amp; Sell</strong> — each seller gets a personal storefront link. Supporters order directly online and you track everything in real time from your dashboard.</div>
+            </div>
+            <div class="d-flex gap-3">
+              <span class="fw-bold flex-shrink-0" style="color:var(--popcorn-red);font-size:1.1rem;line-height:1.3;">3</span>
+              <div class="small"><strong>Get Paid</strong> — we handle fulfillment and ship directly to supporters. Your organization receives its earnings automatically when your campaign closes.</div>
+            </div>
+          </div>
+
+          <p class="small text-muted mb-4">
+            Didn't receive the email? Check your spam folder or contact us at
+            <a href="mailto:hello@popcornnsuch.com">hello@popcornnsuch.com</a>.
+          </p>
+          <div class="d-flex flex-wrap gap-3 justify-content-center">
+            <a href="{% url 'home' %}" class="btn btn-brand">Back to Home</a>
+            <a href="{% url 'products:list' %}?store=fundraiser" class="btn btn-outline-dark">Browse Fundraiser Products</a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+{% endblock content %}

@@ -1,0 +1,147 @@
+{% extends "base/base.html" %}
+{% load static %}
+{% load money %}
+
+{% block title %}{{ store.display_name }} — Popcorn-N-Such Fundraiser{% endblock title %}
+
+{% block content %}
+<div class="container py-5">
+
+  {# ---- Hero ---- #}
+  <div class="row align-items-center mb-5">
+    <div class="col-md-3 text-center mb-4 mb-md-0">
+      {% if store.profile_photo %}
+        <img src="{{ store.profile_photo.url }}" alt="{{ store.display_name }}" width="80" height="80" class="rounded-circle img-fluid shadow avatar-circle">
+      {% else %}
+        <div class="avatar-circle rounded-circle bg-warning d-inline-flex align-items-center justify-content-center shadow">
+          <span class="fw-bold text-dark">{{ store.seller.first_name|first|upper }}</span>
+        </div>
+      {% endif %}
+    </div>
+    <div class="col-md-9">
+      <h1 class="fw-bold mb-1">{{ store.display_name }}</h1>
+      {% if store.team %}<p class="text-muted mb-1">Team: <strong>{{ store.team.name }}</strong></p>{% endif %}
+      {% if store.campaign %}<p class="text-muted mb-1">Campaign: <strong>{{ store.campaign.campaign_name }}</strong></p>{% endif %}
+      {% if store.personal_message %}
+        <blockquote class="blockquote mt-3 p-3 bg-light rounded border-start border-warning border-4">
+          <p class="mb-0 fst-italic">{{ store.personal_message }}</p>
+        </blockquote>
+      {% endif %}
+    </div>
+  </div>
+
+  {# ---- Goal progress ---- #}
+  {% if store.seller_goal %}
+  <div class="card mb-5 shadow-sm">
+    <div class="card-body">
+      <h5 class="card-title">Goal Progress</h5>
+      <div class="d-flex justify-content-between mb-1">
+        <small>${{ total_sales_cents|cents_to_dollars }} raised</small>
+        <small>Goal: ${{ store.seller_goal }}</small>
+      </div>
+      <progress class="seller-goal-progress" value="{{ goal_progress_percent }}" max="100">{{ goal_progress_percent }}%</progress>
+      <small class="text-muted">{{ total_orders }} order{{ total_orders|pluralize }} so far — thank you!</small>
+    </div>
+  </div>
+  {% endif %}
+
+  {# ---- Share / QR ---- #}
+  <div class="row mb-5">
+    <div class="col-md-7">
+      <h5>Share This Store</h5>
+      <div class="input-group mb-2">
+        <input type="text" class="form-control" id="shareLinkInput" value="{{ share_link }}" readonly>
+        <button class="btn btn-outline-secondary" type="button" onclick="navigator.clipboard.writeText(document.getElementById('shareLinkInput').value);this.textContent='Copied!'">Copy</button>
+      </div>
+    </div>
+    {% if qr_data_uri %}
+    <div class="col-md-5 text-center">
+      <img src="{{ qr_data_uri }}" alt="QR code for {{ store.display_name }}'s store" width="160" height="160" class="img-fluid seller-qr">
+      <p class="small text-muted mt-1">Scan to open store</p>
+    </div>
+    {% endif %}
+  </div>
+
+  {# ---- Products ---- #}
+  <h2 class="fw-bold mb-4">Shop &amp; Support {{ store.seller.first_name|default:store.display_name }}</h2>
+  {% if products %}
+  <div class="s-product-grid">
+    {% for product in products %}
+      <article class="s-card">
+
+        <a href="{% url 'products:detail' product.slug %}" class="s-card-img-link" tabindex="-1" aria-hidden="true">
+          <div class="s-card-img-wrap">
+            {% if product.image %}
+              <img src="{{ product.image.url }}" alt="{{ product.name }}" width="300" height="300" class="s-card-img" />
+            {% elif product.external_image_url %}
+              <img src="{{ product.external_image_url }}" alt="{{ product.name }}" width="300" height="300" class="s-card-img" />
+            {% else %}
+              <div class="s-card-img-placeholder" aria-hidden="true">🍿</div>
+            {% endif %}
+          </div>
+        </a>
+
+        <div class="s-card-body">
+          {% if product.is_featured %}
+            <div class="s-card-badge-row">
+              <span class="s-badge-featured">&#9733; Featured</span>
+            </div>
+          {% endif %}
+
+          <a href="{% url 'products:detail' product.slug %}" class="s-card-title">{{ product.name }}</a>
+
+          <p class="s-card-meta">
+            {{ product.category.name }}{% if product.flavor %} &bull; {{ product.flavor }}{% endif %}
+          </p>
+
+          {% with product.skus.all as all_skus %}
+            {% if all_skus %}
+              <div class="s-card-sizes">
+                {% for sku in all_skus %}{% if sku.is_active %}<span class="size-chip">{{ sku.size }}</span>{% endif %}{% endfor %}
+              </div>
+            {% endif %}
+          {% endwith %}
+
+          <div class="s-card-price-row">
+            {% if product.primary_cart_sku %}
+              <span class="s-card-price">${{ product.primary_cart_sku.retail_price }}</span>
+              <span class="s-card-stock-in">&#10003; In Stock</span>
+            {% else %}
+              <span class="s-card-stock-out">Out of Stock</span>
+            {% endif %}
+          </div>
+
+          <div class="s-card-actions">
+            {% if product.primary_cart_sku %}
+              <form method="post" action="{% url 'cart:add' product.primary_cart_sku.id %}">
+                {% csrf_token %}
+                <input type="hidden" name="seller" value="{{ store.slug }}" />
+                {% if store.campaign %}<input type="hidden" name="campaign" value="{{ store.campaign.slug }}" />{% endif %}
+                {% if store.team %}<input type="hidden" name="team" value="{{ store.team.slug }}" />{% endif %}
+                <div class="d-flex gap-2 align-items-center">
+                  <fieldset class="qty-stepper"><legend class="visually-hidden">Quantity</legend>
+                    <button type="button" class="qty-btn qty-dec" aria-label="Decrease quantity">−</button>
+                    <input name="quantity" type="number" min="1" max="{{ product.primary_cart_sku.inventory_quantity }}" value="1" class="qty-input" aria-label="Quantity" />
+                    <button type="button" class="qty-btn qty-inc" data-max="{{ product.primary_cart_sku.inventory_quantity }}" aria-label="Increase quantity">+</button>
+                  </fieldset>
+                  <button class="s-btn-cart" type="submit">Add to Cart</button>
+                </div>
+              </form>
+            {% else %}
+              <a href="{% url 'products:detail' product.slug %}" class="s-btn-cart">Choose Options</a>
+            {% endif %}
+            <a href="{% url 'products:detail' product.slug %}" class="s-card-detail-link">View details</a>
+          </div>
+        </div>
+
+      </article>
+    {% endfor %}
+  </div>
+  {% else %}
+    <div class="hero-card p-5 text-center">
+      <p class="mb-2 text-muted">No products available right now — check back soon!</p>
+    </div>
+  {% endif %}
+
+</div>
+{% endblock content %}

@@ -1,0 +1,161 @@
+{% extends "base/base.html" %}
+{% block title %}Start a Fundraiser | Popcorn-N-Such{% endblock title %}
+
+{% block content %}
+<section class="page-hero">
+  <div class="container">
+    <span class="eyebrow">Fundraising Programs</span>
+    <h1 class="mb-2">Start Your Fundraiser</h1>
+    <p class="lead mb-0">Fill out the form below — your campaign page and team storefronts are created instantly.</p>
+  </div>
+</section>
+
+<!-- 3-step progress bar -->
+<div style="background:rgba(255,255,255,.85);border-bottom:2px solid var(--popcorn-red);">
+  <div class="container py-3">
+    <div class="d-flex align-items-center justify-content-center gap-0 flex-wrap">
+
+      <!-- Step 1 (active) -->
+      <div class="d-flex align-items-center gap-2">
+        <span class="d-inline-flex align-items-center justify-content-center rounded-circle fw-bold"
+              style="width:2rem;height:2rem;background:var(--popcorn-red);color:#fff;font-size:.85rem;">1</span>
+        <span class="fw-semibold small" style="color:var(--popcorn-red);">Register</span>
+      </div>
+
+      <span class="mx-3 text-muted" style="font-size:.75rem;">&#9654;</span>
+
+      <!-- Step 2 -->
+      <div class="d-flex align-items-center gap-2 opacity-50">
+        <span class="d-inline-flex align-items-center justify-content-center rounded-circle fw-bold"
+              style="width:2rem;height:2rem;background:var(--kettle-black);color:#fff;font-size:.85rem;">2</span>
+        <span class="fw-semibold small">Share &amp; Sell</span>
+      </div>
+
+      <span class="mx-3 text-muted" style="font-size:.75rem;">&#9654;</span>
+
+      <!-- Step 3 -->
+      <div class="d-flex align-items-center gap-2 opacity-50">
+        <span class="d-inline-flex align-items-center justify-content-center rounded-circle fw-bold"
+              style="width:2rem;height:2rem;background:var(--kettle-black);color:#fff;font-size:.85rem;">3</span>
+        <span class="fw-semibold small">Get Paid</span>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<section class="py-5">
+  <div class="container">
+    <div class="row justify-content-center">
+      <div class="col-12 col-lg-7">
+
+        <div class="hero-card p-4 p-lg-5">
+          <form method="post" novalidate>
+            {% csrf_token %}
+
+            <h2 class="h5 mb-1">Contact Information</h2>
+            <p class="small text-muted mb-3">We'll use this to create your manager account.</p>
+            <div class="row g-3 mb-4">
+              <div class="col-sm-6">
+                <label class="form-label" for="{{ form.contact_first_name.id_for_label }}">{{ form.contact_first_name.label }}</label>
+                {{ form.contact_first_name }}
+                {% if form.contact_first_name.errors %}<div class="invalid-feedback d-block">{{ form.contact_first_name.errors.0 }}</div>{% endif %}
+              </div>
+              <div class="col-sm-6">
+                <label class="form-label" for="{{ form.contact_last_name.id_for_label }}">{{ form.contact_last_name.label }}</label>
+                {{ form.contact_last_name }}
+                {% if form.contact_last_name.errors %}<div class="invalid-feedback d-block">{{ form.contact_last_name.errors.0 }}</div>{% endif %}
+              </div>
+              <div class="col-sm-6">
+                <label class="form-label" for="{{ form.contact_email.id_for_label }}">{{ form.contact_email.label }}</label>
+                {{ form.contact_email }}
+                {% if form.contact_email.errors %}<div class="invalid-feedback d-block">{{ form.contact_email.errors.0 }}</div>{% endif %}
+              </div>
+              <div class="col-sm-6">
+                <label class="form-label" for="{{ form.contact_phone.id_for_label }}">{{ form.contact_phone.label }}</label>
+                {{ form.contact_phone }}
+              </div>
+            </div>
+
+            <hr class="gold-divider my-4" />
+
+            <h2 class="h5 mb-1">Your Organization</h2>
+            <p class="small text-muted mb-3">School, sports team, church group — any organization qualifies.</p>
+            <div class="row g-3 mb-4">
+              <div class="col-12">
+                <label class="form-label" for="{{ form.organization_name.id_for_label }}">{{ form.organization_name.label }}</label>
+                {{ form.organization_name }}
+                {% if form.organization_name.errors %}<div class="invalid-feedback d-block">{{ form.organization_name.errors.0 }}</div>{% endif %}
+              </div>
+              <div class="col-sm-6">
+                <label class="form-label" for="{{ form.org_type.id_for_label }}">{{ form.org_type.label }}</label>
+                {{ form.org_type }}
+              </div>
+              <div class="col-sm-6">
+                <label class="form-label" for="{{ form.estimated_sellers.id_for_label }}">{{ form.estimated_sellers.label }}</label>
+                {{ form.estimated_sellers }}
+                {% if form.estimated_sellers.errors %}<div class="invalid-feedback d-block">{{ form.estimated_sellers.errors.0 }}</div>{% endif %}
+              </div>
+            </div>
+
+            <hr class="gold-divider my-4" />
+
+            <h2 class="h5 mb-1">Campaign Details</h2>
+            <p class="small text-muted mb-3">Help us understand what you're raising money for.</p>
+            <div class="row g-3 mb-4">
+              <div class="col-12">
+                <label class="form-label" for="{{ form.fundraising_purpose.id_for_label }}">{{ form.fundraising_purpose.label }}</label>
+                {{ form.fundraising_purpose }}
+                {% if form.fundraising_purpose.errors %}<div class="invalid-feedback d-block">{{ form.fundraising_purpose.errors.0 }}</div>{% endif %}
+              </div>
+              <div class="col-sm-6">
+                <label class="form-label" for="{{ form.desired_start_date.id_for_label }}">{{ form.desired_start_date.label }}</label>
+                {{ form.desired_start_date }}
+              </div>
+              <div class="col-sm-6">
+                <label class="form-label" for="{{ form.goal_amount.id_for_label }}">{{ form.goal_amount.label }}</label>
+                {{ form.goal_amount }}
+              </div>
+            </div>
+
+            <button type="submit" class="btn btn-brand btn-lg w-100">Create My Fundraiser</button>
+            <p class="small text-muted text-center mt-3 mb-0">
+              Your campaign page and team storefronts are created immediately. Check your email for your dashboard link.
+            </p>
+          </form>
+        </div>
+
+      </div>
+
+      <!-- Side info -->
+      <div class="col-12 col-lg-4 mt-4 mt-lg-0">
+        <div class="hero-card p-4 mb-3">
+          <h3 class="h6 fw-bold mb-3">How it works</h3>
+          <ol class="list-unstyled d-flex flex-column gap-3 mb-0">
+            <li class="d-flex gap-3">
+              <span class="fw-bold" style="color:var(--popcorn-red);font-size:1.2rem;line-height:1;">1</span>
+              <div class="small">
+                <strong>Register your fundraiser</strong> — fill out the form. Your campaign is created instantly.
+                <span class="badge ms-1" style="background:var(--popcorn-red);font-size:.65rem;">You are here</span>
+              </div>
+            </li>
+            <li class="d-flex gap-3">
+              <span class="fw-bold" style="color:var(--kettle-black);font-size:1.2rem;line-height:1;opacity:.4;">2</span>
+              <div class="small text-muted"><strong>Share &amp; Sell</strong> — each seller gets a personal storefront link. Supporters order online.</div>
+            </li>
+            <li class="d-flex gap-3">
+              <span class="fw-bold" style="color:var(--kettle-black);font-size:1.2rem;line-height:1;opacity:.4;">3</span>
+              <div class="small text-muted"><strong>Get Paid</strong> — we handle fulfillment and ship directly to supporters. Your organization receives its earnings automatically.</div>
+            </li>
+          </ol>
+        </div>
+        <div class="hero-card p-4">
+          <h3 class="h6 fw-bold mb-2">Questions?</h3>
+          <p class="small mb-2">Reach us at <a href="mailto:hello@popcornnsuch.com">hello@popcornnsuch.com</a> or call <a href="tel:+16189175351">(618) 917-5351</a>.</p>
+          <a href="{% url 'contact' %}" class="btn btn-sm btn-outline-dark w-100">Contact Us</a>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+{% endblock content %}

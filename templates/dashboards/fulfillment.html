@@ -1,0 +1,44 @@
+{% extends "staff/base.html" %}
+{% load money %}
+{% block content %}
+<div class="container py-4">
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h1 class="h4 mb-0">Fulfillment Dashboard</h1>
+    <a class="btn btn-sm btn-outline-secondary" href="{% url 'notifications:center' %}">Alerts ({{ unread_alerts }})</a>
+  </div>
+
+  <div class="row g-3">
+    <div class="col-md-6">
+      <div class="card"><div class="card-header">Paid orders waiting to ship</div>
+        <div class="card-body"><ul class="mb-0">
+          {% for o in paid_waiting_ship %}<li>{{ o.order_number }} — {{ o.status }} — ${{ o.total_cents|cents_to_dollars }}</li>{% empty %}<li class="text-muted">None.</li>{% endfor %}
+        </ul></div>
+      </div>
+    </div>
+    <div class="col-md-6">
+      <div class="card"><div class="card-header">Labels needing creation</div>
+        <div class="card-body"><ul class="mb-0">
+          {% for o in labels_needed %}<li>{{ o.order_number }} — {{ o.status }}</li>{% empty %}<li class="text-muted">None.</li>{% endfor %}
+        </ul></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row g-3 mt-1">
+    <div class="col-md-6">
+      <div class="card"><div class="card-header">Address problems</div>
+        <div class="card-body"><ul class="mb-0">
+          {% for v in address_problems %}<li>Order #{{ v.order_id }} — {{ v.failure_reason|default:"Invalid" }}</li>{% empty %}<li class="text-muted">None.</li>{% endfor %}
+        </ul></div>
+      </div>
+    </div>
+    <div class="col-md-6">
+      <div class="card"><div class="card-header">Reprint labels</div>
+        <div class="card-body"><ul class="mb-0">
+          {% for l in reprint_labels %}<li>{{ l.tracking_number }} — reprints {{ l.reprint_count }}</li>{% empty %}<li class="text-muted">None.</li>{% endfor %}
+        </ul></div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,72 @@
+{% extends "base/base.html" %}
+{% load money %}
+
+{% block title %}My Orders | Popcorn-N-Such{% endblock title %}
+
+{% block content %}
+<section class="py-5">
+  <div class="container">
+
+    <div class="d-flex align-items-center justify-content-between mb-4 flex-wrap gap-2">
+      <h1 class="mb-0">My Orders</h1>
+      <a class="btn btn-sm btn-outline-dark" href="{% url 'orders:subscriptions' %}">Manage Subscriptions</a>
+    </div>
+
+    <div class="hero-card p-4">
+      {% for order in object_list %}
+        {% with active_label=order.shipping_labels.all|dictsortreversed:"created_at"|first %}
+        <div class="border-bottom py-3 {% if forloop.last %}border-bottom-0{% endif %}">
+          <div class="d-flex justify-content-between align-items-start flex-wrap gap-2">
+            <div>
+              <p class="mb-1 fw-semibold">
+                Order {{ order.order_number|default:order.id }}
+              </p>
+              <p class="mb-1 small text-muted">
+                {{ order.created_at|date:"M d, Y" }}
+                &nbsp;·&nbsp;
+                {% if order.status == "shipped" or order.status == "delivered" %}
+                  <span class="badge text-bg-success">{{ order.get_status_display }}</span>
+                {% elif order.status == "canceled" or order.status == "refunded" %}
+                  <span class="badge text-bg-secondary">{{ order.get_status_display }}</span>
+                {% elif order.status == "paid" or order.status == "processing" or order.status == "packed" %}
+                  <span class="badge text-bg-warning text-dark">{{ order.get_status_display }}</span>
+                {% else %}
+                  <span class="badge text-bg-light text-dark border">{{ order.get_status_display }}</span>
+                {% endif %}
+              </p>
+              <p class="mb-0 small">Total: <strong>${{ order.total_cents|cents_to_dollars }}</strong></p>
+              {% if active_label and not active_label.is_voided %}
+                <p class="mb-0 small mt-1">
+                  Tracking:
+                  {% if active_label.tracking_url %}
+                    <a href="{{ active_label.tracking_url }}" target="_blank" rel="noopener noreferrer" class="fw-semibold">
+                      {{ active_label.tracking_number }}
+                    </a>
+                  {% else %}
+                    <span class="fw-semibold">{{ active_label.tracking_number }}</span>
+                  {% endif %}
+                  <span class="text-muted">({{ active_label.carrier }})</span>
+                </p>
+              {% endif %}
+            </div>
+            <div class="d-flex flex-wrap gap-2 align-items-center">
+              <a class="btn btn-sm btn-outline-dark" href="{% url 'orders:order-detail' order.id %}">View Details</a>
+              <form method="post" action="{% url 'orders:reorder' order.id %}">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-sm btn-brand">Reorder</button>
+              </form>
+            </div>
+          </div>
+        </div>
+        {% endwith %}
+      {% empty %}
+        <div class="text-center py-5">
+          <p class="text-muted mb-3">You have no orders yet.</p>
+          <a class="btn btn-brand" href="{% url 'core:home' %}">Start Shopping</a>
+        </div>
+      {% endfor %}
+    </div>
+
+  </div>
+</section>
+{% endblock content %}

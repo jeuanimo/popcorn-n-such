@@ -1,0 +1,60 @@
+{% extends "base/base.html" %}
+
+{% block title %}Staff — Seller Stores — Popcorn-N-Such{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+  <h1 class="fw-bold mb-4">All Seller Stores</h1>
+
+  <div class="table-responsive">
+    <table class="table table-sm table-hover align-middle">
+      <thead class="table-dark">
+        <tr>
+          <th>Store Name</th>
+          <th>Seller</th>
+          <th>Campaign</th>
+          <th>Team</th>
+          <th>Status</th>
+          <th>Created</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for store in stores %}
+        <tr>
+          <td class="fw-semibold"><a href="{% url 'sellers:public-store' store.slug %}">{{ store.display_name }}</a></td>
+          <td>{{ store.seller.get_full_name|default:store.seller.username }}</td>
+          <td>{{ store.campaign.campaign_name|default:"—" }}</td>
+          <td>{{ store.team.name|default:"—" }}</td>
+          <td>
+            {% if store.is_active %}<span class="badge bg-success">Active</span>
+            {% else %}<span class="badge bg-secondary">Inactive</span>{% endif %}
+          </td>
+          <td><small>{{ store.created_at|date:"Y-m-d" }}</small></td>
+          <td>
+            <a href="{% url 'sellers:edit' store.slug %}" class="btn btn-sm btn-outline-primary">Edit</a>
+          </td>
+        </tr>
+        {% endfor %}
+        {% if not stores %}
+        <tr><td colspan="7" class="text-center text-muted">No seller stores found.</td></tr>
+        {% endif %}
+      </tbody>
+    </table>
+  </div>
+
+  {% if is_paginated %}
+  <nav>
+    <ul class="pagination justify-content-center">
+      {% if page_obj.has_previous %}
+        <li class="page-item"><a class="page-link" href="?page={{ page_obj.previous_page_number }}">Previous</a></li>
+      {% endif %}
+      <li class="page-item disabled"><span class="page-link">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span></li>
+      {% if page_obj.has_next %}
+        <li class="page-item"><a class="page-link" href="?page={{ page_obj.next_page_number }}">Next</a></li>
+      {% endif %}
+    </ul>
+  </nav>
+  {% endif %}
+</div>
+{% endblock %}

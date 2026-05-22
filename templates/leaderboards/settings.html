@@ -1,0 +1,36 @@
+{% extends "base/base.html" %}
+
+{% block title %}Leaderboard Settings — {{ campaign.campaign_name }}{% endblock %}
+
+{% block content %}
+<div class="container py-5" style="max-width:560px;">
+  <h1 class="fw-bold mb-2">Leaderboard Settings</h1>
+  <p class="text-muted mb-4">Campaign: <strong>{{ campaign.campaign_name }}</strong></p>
+
+  <form method="post" novalidate>
+    {% csrf_token %}
+    <div class="card shadow-sm mb-4">
+      <div class="card-body">
+        <div class="form-check form-switch mb-3">
+          <input class="form-check-input" type="checkbox" role="switch"
+                 id="public_sellers_visible" name="public_sellers_visible"
+                 {% if lb_settings.public_sellers_visible %}checked{% endif %}>
+          <label class="form-check-label" for="public_sellers_visible">
+            Show <strong>Top Sellers</strong> on public campaign page
+          </label>
+        </div>
+        <div class="form-check form-switch">
+          <input class="form-check-input" type="checkbox" role="switch"
+                 id="public_teams_visible" name="public_teams_visible"
+                 {% if lb_settings.public_teams_visible %}checked{% endif %}>
+          <label class="form-check-label" for="public_teams_visible">
+            Show <strong>Top Teams</strong> on public campaign page
+          </label>
+        </div>
+      </div>
+    </div>
+    <button type="submit" class="btn btn-warning fw-bold">Save Settings</button>
+    <a href="{% url 'leaderboards:campaign' campaign_slug=campaign.slug %}" class="btn btn-outline-secondary ms-2">View Leaderboard</a>
+  </form>
+</div>
+{% endblock %}

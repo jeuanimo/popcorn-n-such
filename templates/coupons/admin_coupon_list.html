@@ -1,0 +1,64 @@
+{% extends "staff/base.html" %}
+{% load money %}
+
+{% block title %}Coupon Management | Staff Portal{% endblock title %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h1 class="h4 mb-0">Coupon Management</h1>
+  <a class="btn btn-brand" href="{% url 'coupons:admin-create' %}">Create Coupon</a>
+</div>
+
+<div class="card">
+  <div class="card-body p-0">
+    <div class="table-responsive">
+      <table class="table table-striped mb-0 align-middle">
+        <thead>
+          <tr>
+            <th>Code</th>
+            <th>Type</th>
+            <th>Discount</th>
+            <th>Status</th>
+            <th>Date Window</th>
+            <th>Usage</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for coupon in coupons %}
+          <tr>
+            <td><strong>{{ coupon.code }}</strong></td>
+            <td>{{ coupon.get_discount_type_display }}</td>
+            <td>
+              {% if coupon.discount_type == 'percent' %}
+                {{ coupon.percent_off }}%
+              {% else %}
+                ${{ coupon.amount_off_cents|cents_to_dollars }}
+              {% endif %}
+            </td>
+            <td>
+              {% if coupon.is_active %}
+                <span class="badge bg-success">Active</span>
+              {% else %}
+                <span class="badge bg-secondary">Inactive</span>
+              {% endif %}
+            </td>
+            <td>
+              {% if coupon.start_date or coupon.end_date %}
+                {{ coupon.start_date|default:'Any' }} - {{ coupon.end_date|default:'Any' }}
+              {% else %}
+                Always
+              {% endif %}
+            </td>
+            <td>{{ coupon.redemptions.count }}</td>
+          </tr>
+          {% empty %}
+          <tr>
+            <td colspan="6" class="text-center text-muted py-4">No coupons created yet.</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock content %}

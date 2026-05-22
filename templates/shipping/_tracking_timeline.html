@@ -1,0 +1,12 @@
+<ul class="tracking-timeline list-unstyled mb-0">
+  {% for event in events %}
+  <li class="tracking-event">
+    <span class="tracking-dot"></span>
+    <div class="tracking-body">
+      <p class="mb-0 fw-semibold">{{ event.event_description }}</p>
+      {% if event.location %}<p class="mb-0 small text-muted">{{ event.location }}</p>{% endif %}
+      <p class="mb-0 small text-muted">{{ event.event_timestamp|date:"M d, Y g:i A" }}</p>
+    </div>
+  </li>
+  {% endfor %}
+</ul>

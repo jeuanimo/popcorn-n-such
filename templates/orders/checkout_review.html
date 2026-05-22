@@ -1,0 +1,93 @@
+{% extends "base/base.html" %}
+{% load money %}
+
+{% block title %}Review Order{% endblock title %}
+
+{% block content %}
+<section class="py-5">
+  <div class="container">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+      <h1 class="mb-0">Review Order</h1>
+      <a class="btn btn-outline-dark" href="{% url 'orders:checkout' %}">Edit Details</a>
+    </div>
+
+    <div class="row g-4">
+      <div class="col-12 col-lg-7">
+        <div class="hero-card p-4 mb-4">
+          <h2 class="h5 mb-3">Shipping</h2>
+          <p class="mb-1"><strong>{{ checkout_data.recipient_name }}</strong></p>
+          <p class="mb-1">{{ checkout_data.address_line_1 }}</p>
+          {% if checkout_data.address_line_2 %}<p class="mb-1">{{ checkout_data.address_line_2 }}</p>{% endif %}
+          <p class="mb-1">{{ checkout_data.city }}, {{ checkout_data.state }} {{ checkout_data.postal_code }}</p>
+          <p class="mb-0">{{ checkout_data.country }}</p>
+        </div>
+
+        <div class="hero-card p-4">
+          <h2 class="h5 mb-3">Items</h2>
+          {% for item in cart.items.all %}
+            <div class="d-flex gap-3 align-items-center border-bottom py-2">
+              <div class="flex-shrink-0" style="width:56px;height:56px;background:#fff;border:1px solid rgba(0,0,0,.08);border-radius:6px;overflow:hidden;">
+                {% if item.sku.product.image %}
+                  <img src="{{ item.sku.product.image.url }}" alt="{{ item.sku.product.name }}" width="56" height="56" style="width:100%;height:100%;object-fit:contain;" />
+                {% elif item.sku.product.external_image_url %}
+                  <img src="{{ item.sku.product.external_image_url }}" alt="{{ item.sku.product.name }}" width="56" height="56" style="width:100%;height:100%;object-fit:contain;" />
+                {% endif %}
+              </div>
+              <div class="flex-grow-1">
+                <div class="fw-semibold">{{ item.sku.product.name }}</div>
+                <small class="text-muted">{{ item.sku.size }}</small>
+              </div>
+              <div class="text-end flex-shrink-0">Qty: {{ item.quantity }}</div>
+            </div>
+          {% empty %}
+            <p class="mb-0">No items in cart.</p>
+          {% endfor %}
+        </div>
+      </div>
+
+      <div class="col-12 col-lg-5">
+        <div class="hero-card p-4">
+          <h2 class="h5 mb-3">Order Summary</h2>
+          <div class="d-flex justify-content-between mb-2"><span>Subtotal</span><strong>${{ summary.subtotal_cents|cents_to_dollars }}</strong></div>
+          <div class="d-flex justify-content-between mb-2">
+            <span>Tax{% if checkout_data.state %} <span class="text-muted small">({{ checkout_data.state }})</span>{% endif %}</span>
+            <span>${{ summary.tax_cents|cents_to_dollars }}</span>
+          </div>
+          <div class="d-flex justify-content-between mb-2">
+            <span>Shipping{% if checkout_data.postal_code %} <span class="text-muted small">({{ checkout_data.postal_code }})</span>{% endif %}</span>
+            <span>${{ summary.shipping_cents|cents_to_dollars }}</span>
+          </div>
+          {% if summary.discount_cents %}
+            <div class="d-flex justify-content-between mb-2"><span>Discount</span><span>- ${{ summary.discount_cents|cents_to_dollars }}</span></div>
+          {% endif %}
+          <hr />
+          <div class="d-flex justify-content-between fs-5 mb-3"><strong>Total</strong><strong>${{ summary.total_cents|cents_to_dollars }}</strong></div>
+
+          <h3 class="h6 mb-2">Payment Option</h3>
+          <form method="post" class="d-grid gap-3">
+            {% csrf_token %}
+            <div class="d-grid gap-2">
+              {% for method in payment_methods %}
+                <label class="border rounded-3 px-3 py-2 d-flex align-items-center gap-2 bg-white">
+                  <input
+                    type="radio"
+                    name="payment_method"
+                    value="{{ method.key }}"
+                    {% if selected_payment_method == method.key or forloop.first and not selected_payment_method %}checked{% endif %}
+                  />
+                  <span>{{ method.label }}</span>
+                </label>
+              {% endfor %}
+            </div>
+            {% if not stub_checkout_enabled %}
+              <p class="small text-muted mb-0">Payment selection is visible, but live payment confirmation is required before an order can be placed.</p>
+            {% endif %}
+
+            <button class="btn btn-brand w-100" type="submit">Pay &amp; Place Order</button>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+{% endblock content %}

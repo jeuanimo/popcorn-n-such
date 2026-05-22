@@ -1,0 +1,24 @@
+{% comment %}Uses `staff_nav` from context processor.{% endcomment %}
+{% if staff_nav.enabled %}
+  {% regroup staff_nav.items by section as sections %}
+  <nav class="pt-3">
+    {% for group in sections %}
+      <div class="px-3 mb-2 text-uppercase small text-muted fw-semibold">{{ group.grouper }}</div>
+      <ul class="nav nav-pills flex-column mb-3 px-2">
+        {% for item in group.list %}
+          <li class="nav-item">
+            <a class="nav-link d-flex justify-content-between align-items-center" href="{{ item.url }}">
+              <span>{{ item.label }}</span>
+              {% if item.badge and item.badge|add:0 > 0 %}
+                <span class="badge bg-{{ item.badge_variant|default:'secondary' }}">{{ item.badge }}</span>
+              {% endif %}
+            </a>
+          </li>
+        {% endfor %}
+      </ul>
+    {% endfor %}
+  </nav>
+{% else %}
+  <div class="p-3 text-muted small">Navigation unavailable.</div>
+{% endif %}
+

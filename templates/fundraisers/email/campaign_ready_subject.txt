@@ -1,0 +1,1 @@
+Your Popcorn-N-Such Fundraiser Is Ready — {{ campaign_name }}

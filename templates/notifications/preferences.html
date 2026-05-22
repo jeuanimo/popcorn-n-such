@@ -1,0 +1,46 @@
+{% extends "staff/base.html" %}
+{% block title %}Alert Preferences | Staff{% endblock title %}
+{% block content %}
+<div class="mb-4">
+  <span class="eyebrow">Notifications</span>
+  <h1 class="h3 mb-0">Staff Alert Preferences</h1>
+</div>
+<form method="post">
+    {% csrf_token %}
+    <div class="row">
+      <div class="col-md-6">
+        <div class="card mb-3">
+          <div class="card-body">
+            {{ form.enabled.label_tag }} {{ form.enabled }}
+            <hr>
+            <div class="form-check">
+              {{ form.receive_internal }} {{ form.receive_internal.label_tag }}
+            </div>
+            <div class="form-check">
+              {{ form.receive_email }} {{ form.receive_email.label_tag }}
+            </div>
+            <div class="form-check">
+              {{ form.receive_sms }} {{ form.receive_sms.label_tag }}
+            </div>
+            <div class="form-check">
+              {{ form.sms_opt_in }} {{ form.sms_opt_in.label_tag }}
+              <div class="form-text">SMS requires a phone number on your user account.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-6">
+        <div class="card mb-3">
+          <div class="card-header">Alert types</div>
+          <div class="card-body">
+            <div class="form-text mb-2">{{ form.enabled_events.help_text }}</div>
+            {{ form.enabled_events }}
+          </div>
+        </div>
+      </div>
+    </div>
+    <button class="btn btn-primary" type="submit">Save</button>
+    <a class="btn btn-link" href="{% url 'notifications:center' %}">Back</a>
+  </form>
+{% endblock content %}
+

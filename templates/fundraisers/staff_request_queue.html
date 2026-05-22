@@ -1,0 +1,51 @@
+{% extends "staff/base.html" %}
+{% block title %}Fundraiser Requests | Staff{% endblock title %}
+{% block content %}
+<div class="d-flex align-items-center justify-content-between mb-4">
+  <div>
+    <span class="eyebrow">Fundraising</span>
+    <h1 class="h3 mb-0">Fundraiser Requests</h1>
+  </div>
+  <a class="btn btn-sm btn-outline-dark" href="{% url 'fundraisers:staff-campaign-queue' %}">Campaign Queue</a>
+</div>
+
+{% if requests %}
+<div class="staff-table">
+  <table class="table table-sm mb-0">
+    <thead>
+      <tr>
+        <th>Organization</th>
+        <th>Contact</th>
+        <th>Type</th>
+        <th class="text-end">Est. Sellers</th>
+        <th>Start Date</th>
+        <th>Submitted</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for req in requests %}
+      <tr>
+        <td class="fw-semibold">{{ req.organization_name }}</td>
+        <td>
+          {{ req.contact_first_name }} {{ req.contact_last_name }}<br>
+          <span class="small text-muted">{{ req.contact_email }}</span>
+        </td>
+        <td class="small text-muted">{{ req.get_org_type_display|default:req.org_type }}</td>
+        <td class="text-end">{{ req.estimated_sellers }}</td>
+        <td class="small">{{ req.desired_start_date|default:"—" }}</td>
+        <td class="small text-muted">{{ req.created_at|date:"M j, Y" }}</td>
+        <td>
+          <a href="{% url 'fundraisers:staff-provision-campaign' req.pk %}" class="btn btn-sm btn-brand">Review</a>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% else %}
+<div class="hero-card p-5 text-center">
+  <p class="text-muted mb-0">No pending fundraiser requests.</p>
+</div>
+{% endif %}
+{% endblock content %}

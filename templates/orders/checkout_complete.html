@@ -1,0 +1,22 @@
+{% extends "base/base.html" %}
+{% load money %}
+
+{% block title %}Order Complete{% endblock title %}
+
+{% block content %}
+<section class="py-5">
+  <div class="container form-container">
+    <div class="hero-card p-4 p-lg-5 text-center">
+      <h1 class="mb-3">Thank You for Your Order</h1>
+      <p class="mb-2">Order Number: <strong>{{ order.order_number|default:order.id }}</strong></p>
+      <p class="mb-4">Total Charged: <strong>${{ order.total_cents|cents_to_dollars }}</strong></p>
+      <div class="d-flex justify-content-center gap-2 flex-wrap">
+        {% if user.is_authenticated and order.customer_id == user.id %}
+          <a class="btn btn-brand" href="{% url 'orders:order-detail' order.id %}">View Order</a>
+        {% endif %}
+        <a class="btn btn-outline-dark" href="{% url 'products:list' %}">Continue Shopping</a>
+      </div>
+    </div>
+  </div>
+</section>
+{% endblock content %}

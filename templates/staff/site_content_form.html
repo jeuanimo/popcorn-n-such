@@ -1,0 +1,263 @@
+{% extends "staff/base.html" %}
+
+{% block title %}{% if object %}Edit{% else %}Add{% endif %} Site Content | Popcorn-N-Such{% endblock title %}
+
+{% block head %}
+<style>
+  .sc-layout {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.25rem;
+    align-items: start;
+  }
+  .sc-preview-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: .75rem;
+  }
+  .sc-preview-select { width: auto; }
+  .sc-iframe {
+    display: block;
+    width: 100%;
+    min-height: 540px;
+    border: 1px solid rgba(0,0,0,.12);
+    border-radius: 10px;
+    background: #fff;
+  }
+  .sc-img-thumb { max-height: 110px; border-radius: 6px; margin-top: .5rem; }
+</style>
+{% endblock head %}
+
+{% block content %}
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h1 class="h3 mb-0">{% if object %}Edit{% else %}Add{% endif %} Site Content Block</h1>
+  <a href="{% url 'site-config-list' %}" class="btn btn-outline-dark btn-sm">Back</a>
+</div>
+
+<div class="sc-layout">
+
+  <!-- ── Left: edit form ───────────────────────────────────── -->
+  <div class="hero-card p-4">
+    <form method="post" enctype="multipart/form-data" id="siteContentEditorForm">
+      {% csrf_token %}
+
+      <div class="row g-3">
+        <div class="col-12 col-sm-5">
+          <label class="form-label" for="{{ form.page_key.id_for_label }}">{{ form.page_key.label }}</label>
+          {{ form.page_key }}
+          {% if form.page_key.errors %}<div class="invalid-feedback d-block">{{ form.page_key.errors.0 }}</div>{% endif %}
+        </div>
+        <div class="col-12 col-sm-7">
+          <label class="form-label" for="sectionKeySelect">Section</label>
+          <select id="sectionKeySelect" class="form-select">
+            <option value="">— pick a page first —</option>
+          </select>
+          {# hidden field carries the actual value on POST #}
+          <input type="hidden" name="section_key" id="id_section_key" value="{{ form.section_key.value|default:'' }}" />
+          {% if form.section_key.errors %}<div class="invalid-feedback d-block">{{ form.section_key.errors.0 }}</div>{% endif %}
+        </div>
+        <div class="col-12">
+          <label class="form-label" for="{{ form.title.id_for_label }}">{{ form.title.label }}</label>
+          {{ form.title }}
+          {% if form.title.errors %}<div class="invalid-feedback d-block">{{ form.title.errors.0 }}</div>{% endif %}
+        </div>
+        <div class="col-12">
+          <label class="form-label" for="{{ form.body.id_for_label }}">{{ form.body.label }}</label>
+          {{ form.body }}
+          {% if form.body.errors %}<div class="invalid-feedback d-block">{{ form.body.errors.0 }}</div>{% endif %}
+        </div>
+        <div class="col-12 col-sm-6">
+          <label class="form-label" for="{{ form.cta_text.id_for_label }}">{{ form.cta_text.label }}</label>
+          {{ form.cta_text }}
+        </div>
+        <div class="col-12 col-sm-6">
+          <label class="form-label" for="{{ form.cta_url.id_for_label }}">{{ form.cta_url.label }}</label>
+          {{ form.cta_url }}
+        </div>
+        <div class="col-12 col-sm-6">
+          <label class="form-label" for="{{ form.image.id_for_label }}">{{ form.image.label }}</label>
+          {{ form.image }}
+          {% if object and object.image %}
+            <img src="{{ object.image.url }}" alt="{{ object.title|default:object.section_key }}" class="sc-img-thumb" width="110" height="110" />
+          {% endif %}
+        </div>
+        <div class="col-6 col-sm-3">
+          <label class="form-label" for="{{ form.sort_order.id_for_label }}">{{ form.sort_order.label }}</label>
+          {{ form.sort_order }}
+        </div>
+        <div class="col-6 col-sm-3 d-flex align-items-end pb-1">
+          <div class="form-check">
+            {{ form.is_active }}
+            <label class="form-check-label" for="{{ form.is_active.id_for_label }}">{{ form.is_active.label }}</label>
+          </div>
+        </div>
+        <div class="col-12">
+          <button type="submit" class="btn btn-brand w-100">
+            {% if object %}Save Changes{% else %}Create Block{% endif %}
+          </button>
+        </div>
+      </div>
+
+    </form>
+  </div>
+
+  <!-- ── Right: live preview ───────────────────────────────── -->
+  <div class="hero-card p-4">
+
+    <div class="sc-preview-header">
+      <h2 class="h6 fw-bold mb-0">Live Page Preview</h2>
+      <select id="previewPageSelect" class="form-select form-select-sm sc-preview-select">
+        {% for key, label in managed_pages %}
+          <option value="{{ key }}" {% if key == selected_page_key %}selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <div class="mb-3 p-3 border rounded bg-light small">
+      <div class="fw-semibold mb-1">Editable sections on this page:</div>
+      <ul class="mb-0 ps-3" id="editableSectionsList">
+        <li class="text-muted">Loading…</li>
+      </ul>
+    </div>
+
+    <iframe
+      id="livePagePreviewFrame"
+      title="Live page preview"
+      src=""
+      sandbox="allow-same-origin allow-scripts allow-forms"
+      class="sc-iframe"
+    ></iframe>
+
+  </div>
+
+</div>
+
+{{ page_preview_urls_script }}
+{{ page_sections_map_script }}
+{{ page_sections_script }}
+
+<script>
+(function () {
+  var pageKeyEl       = document.getElementById('id_page_key');
+  var sectionSelect   = document.getElementById('sectionKeySelect');
+  var sectionHidden   = document.getElementById('id_section_key');
+  var previewSelect   = document.getElementById('previewPageSelect');
+  var frame           = document.getElementById('livePagePreviewFrame');
+  var sectionsList    = document.getElementById('editableSectionsList');
+
+  var urls       = JSON.parse((document.getElementById('page-preview-urls')    || {}).textContent || '{}');
+  var secMap     = JSON.parse((document.getElementById('page-sections-map')    || {}).textContent || '{}');
+  var secOptions = JSON.parse((document.getElementById('page-sections-options') || {}).textContent || '{}');
+
+  /* ── Section highlight helpers ─────────────────────────────── */
+  function injectHighlightStyles() {
+    try {
+      var doc = frame.contentDocument;
+      if (!doc || !doc.head) return;
+      var existing = doc.getElementById('sc-admin-styles');
+      if (existing) existing.remove();
+      var style = doc.createElement('style');
+      style.id = 'sc-admin-styles';
+      style.textContent = [
+        '.sc-admin-highlight {',
+        '  outline: 3px solid #D4AF37 !important;',
+        '  outline-offset: 2px;',
+        '  box-shadow: 0 0 0 8px rgba(212,175,55,.18) !important;',
+        '  position: relative;',
+        '  z-index: 1;',
+        '}'
+      ].join('');
+      doc.head.appendChild(style);
+    } catch(e) {}
+  }
+
+  function highlightSection(sectionKey) {
+    try {
+      var doc = frame.contentDocument;
+      if (!doc) return;
+      doc.querySelectorAll('.sc-admin-highlight').forEach(function(el) {
+        el.classList.remove('sc-admin-highlight');
+      });
+      if (!sectionKey) return;
+      var target = doc.getElementById('sc-' + sectionKey);
+      if (target) {
+        target.classList.add('sc-admin-highlight');
+        target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    } catch(e) {}
+  }
+
+  /* Re-inject styles and re-highlight after every iframe navigation */
+  frame.addEventListener('load', function () {
+    injectHighlightStyles();
+    highlightSection(sectionHidden.value);
+  });
+
+  /* ── Section dropdown ───────────────────────────────────────── */
+  function populateSectionDropdown(pageKey, currentVal) {
+    var options = secOptions[pageKey] || [];
+    sectionSelect.innerHTML = '';
+    options.forEach(function (opt) {
+      var el = document.createElement('option');
+      el.value = opt.key;
+      el.textContent = opt.label;
+      if (opt.key === currentVal) el.selected = true;
+      sectionSelect.appendChild(el);
+    });
+    sectionHidden.value = sectionSelect.value || (options[0] ? options[0].key : '');
+  }
+
+  sectionSelect.addEventListener('change', function () {
+    sectionHidden.value = sectionSelect.value;
+    highlightSection(sectionSelect.value);
+  });
+
+  /* ── Saved sections panel ───────────────────────────────────── */
+  function renderSavedSections(pageKey) {
+    var sections = secMap[pageKey] || [];
+    if (!sections.length) {
+      sectionsList.innerHTML = '<li class="text-muted">No saved sections yet — create the first one using the form.</li>';
+      return;
+    }
+    sectionsList.innerHTML = '';
+    sections.forEach(function (s) {
+      var li = document.createElement('li');
+      var status = s.active ? 'Active' : 'Hidden';
+      li.innerHTML = '<code>' + s.key + '</code> — ' + s.label + (s.title ? ' <em>' + s.title + '</em>' : '') + ' <span class="text-muted">(' + status + ')</span>';
+      sectionsList.appendChild(li);
+    });
+  }
+
+  /* ── Preview loading ────────────────────────────────────────── */
+  function loadPreview(pageKey) {
+    frame.src = urls[pageKey] || urls['home'] || '/';
+    renderSavedSections(pageKey);
+  }
+
+  function onPageChange(pageKey) {
+    previewSelect.value = pageKey;
+    populateSectionDropdown(pageKey, sectionHidden.value);
+    loadPreview(pageKey);
+  }
+
+  if (pageKeyEl) {
+    pageKeyEl.addEventListener('change', function () {
+      onPageChange(pageKeyEl.value || 'home');
+    });
+  }
+
+  previewSelect.addEventListener('change', function () {
+    loadPreview(previewSelect.value);
+  });
+
+  /* ── Initial state ──────────────────────────────────────────── */
+  var initialPage    = (pageKeyEl ? pageKeyEl.value : null) || previewSelect.value || 'home';
+  var initialSection = sectionHidden.value;
+  populateSectionDropdown(initialPage, initialSection);
+  loadPreview(initialPage);
+}());
+</script>
+
+{% endblock content %}

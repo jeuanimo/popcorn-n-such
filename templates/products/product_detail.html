@@ -1,0 +1,183 @@
+{% extends "base/base.html" %}
+
+{% block title %}{{ product.name }}{% endblock title %}
+
+{% block content %}
+<section class="py-5">
+  <div class="container">
+    <a href="{% url 'products:list' %}" class="btn btn-sm btn-outline-dark mb-3">Back to shop</a>
+    <div class="hero-card p-4 p-md-5">
+      <p class="small text-uppercase mb-1">{{ product.category.name }} • {{ product.flavor }}</p>
+      <h1>{{ product.name }}</h1>
+      {% if product.image %}
+        <img src="{{ product.image.url }}" alt="{{ product.name }}" width="960" height="540" class="img-fluid rounded mb-3 product-detail-image" />
+      {% elif product.external_image_url %}
+        <img src="{{ product.external_image_url }}" alt="{{ product.name }}" width="960" height="540" class="img-fluid rounded mb-3 product-detail-image" />
+      {% endif %}
+      <p class="lead">{{ product.description }}</p>
+
+      <h2 class="h4 mt-4">Available SKUs</h2>
+      {% if active_skus %}
+      <div class="mb-3">
+        <p class="mb-2 fw-semibold">Select Size:</p>
+        <div class="d-flex flex-wrap gap-2" id="size-selector">
+          {% for sku in active_skus %}
+            <a
+              href="#sku-row-{{ sku.id }}"
+              class="btn btn-sm {% if sku.is_purchasable %}btn-outline-dark{% else %}btn-outline-secondary disabled{% endif %} size-chip-link"
+              data-sku-id="{{ sku.id }}"
+              data-sku-size="{{ sku.size }}"
+              data-sku-stock="{{ sku.inventory_quantity }}"
+              aria-disabled="{% if sku.is_purchasable %}false{% else %}true{% endif %}"
+            >
+              {{ sku.size }} ({{ sku.inventory_quantity }})
+            </a>
+          {% endfor %}
+        </div>
+        <div class="alert alert-danger mt-2 d-none" id="size-inventory-alert" role="alert"></div>
+      </div>
+      {% endif %}
+      <div class="table-responsive">
+        <table class="table align-middle">
+          <thead>
+            <tr>
+              <th>SKU</th>
+              <th>Size</th>
+              <th>Retail Price</th>
+              <th>Weight (oz)</th>
+              <th>Status</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for sku in active_skus %}
+              <tr id="sku-row-{{ sku.id }}">
+                <td>{{ sku.sku_code }}</td>
+                <td>{{ sku.size }}</td>
+                <td>${{ sku.retail_price }}</td>
+                <td>{{ sku.weight_ounces }}</td>
+                <td>
+                  {% if sku.is_purchasable %}
+                    <span class="badge text-bg-success">Purchasable</span>
+                  {% else %}
+                    <span class="badge text-bg-secondary">Unavailable</span>
+                  {% endif %}
+                </td>
+                <td>
+                  {% if sku.is_purchasable %}
+                    <form method="post" action="{% url 'cart:add' sku.id %}" class="d-flex gap-2 align-items-center flex-wrap sku-action-form" data-sku-id="{{ sku.id }}" data-sku-size="{{ sku.size }}" data-sku-stock="{{ sku.inventory_quantity }}">
+                      {% csrf_token %}
+                      <fieldset class="qty-stepper"><legend class="visually-hidden">Quantity</legend>
+                        <button type="button" class="qty-btn qty-dec" aria-label="Decrease quantity">−</button>
+                        <input name="quantity" type="number" min="1" max="{{ sku.inventory_quantity }}" value="1" class="qty-input sku-field" aria-label="Quantity" />
+                        <button type="button" class="qty-btn qty-inc" data-max="{{ sku.inventory_quantity }}" aria-label="Increase quantity">+</button>
+                      </fieldset>
+                      <input type="hidden" name="next" value="{{ request.path }}{% if request.GET %}?{{ request.GET.urlencode }}{% endif %}" />
+                      {% if request.GET.campaign %}<input type="hidden" name="campaign" value="{{ request.GET.campaign }}" />{% endif %}
+                      {% if request.GET.team %}<input type="hidden" name="team" value="{{ request.GET.team }}" />{% endif %}
+                      {% if request.GET.seller %}<input type="hidden" name="seller" value="{{ request.GET.seller }}" />{% endif %}
+                      <button class="btn btn-sm btn-brand" type="submit">Add to Cart</button>
+                    </form>
+                  {% else %}
+                    <span class="text-muted small">Not purchasable</span>
+                  {% endif %}
+                </td>
+              </tr>
+            {% empty %}
+              <tr>
+                <td colspan="6">No active SKUs available.</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+
+      {% if related_products %}
+        <h2 class="h4 mt-5">More in {{ product.category.name }}</h2>
+        <div class="row g-3 mt-1">
+          {% for related in related_products %}
+            <div class="col-12 col-md-6 col-lg-3">
+              <div class="p-3 border rounded bg-white h-100 product-card-amz">
+                <h3 class="h6">{{ related.name }}</h3>
+                <a class="btn btn-sm btn-outline-dark" href="{% url 'products:detail' related.slug %}">View</a>
+              </div>
+            </div>
+          {% endfor %}
+        </div>
+      {% endif %}
+    </div>
+  </div>
+</section>
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+  const sizeLinks = document.querySelectorAll(".size-chip-link:not(.disabled)");
+  const forms = document.querySelectorAll(".sku-action-form");
+  const alertBox = document.getElementById("size-inventory-alert");
+
+  function showAlert(message) {
+    if (!alertBox) return;
+    alertBox.textContent = message;
+    alertBox.classList.remove("d-none");
+  }
+
+  function clearAlert() {
+    if (!alertBox) return;
+    alertBox.textContent = "";
+    alertBox.classList.add("d-none");
+  }
+
+  function validateForm(form) {
+    const qtyInput = form.querySelector('input[name="quantity"]');
+    const stock = parseInt(form.dataset.skuStock || "0", 10);
+    const size = form.dataset.skuSize || "this size";
+    const qty = parseInt((qtyInput && qtyInput.value) || "1", 10);
+
+    if (!Number.isFinite(qty) || qty < 1) {
+      showAlert("Quantity must be at least 1.");
+      return false;
+    }
+    if (qty > stock) {
+      showAlert(`Only ${stock} item(s) are available for ${size}.`);
+      return false;
+    }
+    clearAlert();
+    return true;
+  }
+
+  forms.forEach((form) => {
+    const qtyInput = form.querySelector('input[name="quantity"]');
+    if (qtyInput) {
+      qtyInput.addEventListener("input", () => validateForm(form));
+    }
+    form.addEventListener("submit", (event) => {
+      if (!validateForm(form)) {
+        event.preventDefault();
+      }
+    });
+  });
+
+  sizeLinks.forEach((link) => {
+    link.addEventListener("click", (event) => {
+      event.preventDefault();
+      const skuId = link.dataset.skuId;
+      const targetForm = document.querySelector(`.sku-action-form[data-sku-id="${skuId}"]`);
+      if (!targetForm) return;
+
+      document.querySelectorAll(".size-chip-link").forEach((node) => {
+        node.classList.remove("active");
+      });
+      link.classList.add("active");
+
+      const row = document.getElementById(`sku-row-${skuId}`);
+      if (row) {
+        row.scrollIntoView({ behavior: "smooth", block: "center" });
+      }
+
+      const qtyInput = targetForm.querySelector('input[name="quantity"]');
+      if (qtyInput) qtyInput.focus();
+      validateForm(targetForm);
+    });
+  });
+});
+</script>
+{% endblock content %}

@@ -1,0 +1,185 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Draft Label — {{ order.order_number|default:order.id }}</title>
+  <style>
+    /* ── Screen preview ──────────────────────────────────── */
+    body {
+      margin: 0;
+      padding: 1rem;
+      background: #e5e5e5;
+      font-family: Arial, Helvetica, sans-serif;
+      font-size: 12pt;
+    }
+
+    .label-wrap {
+      width: 4in;
+      min-height: 6in;
+      background: #fff;
+      margin: 0 auto;
+      padding: 0.25in;
+      box-sizing: border-box;
+      border: 1px solid #aaa;
+      box-shadow: 0 2px 8px rgba(0,0,0,.2);
+    }
+
+    /* ── Label sections ──────────────────────────────────── */
+    .label-from {
+      border: 1px solid #555;
+      padding: 6pt 8pt;
+      margin-bottom: 10pt;
+      font-size: 9pt;
+    }
+
+    .label-from .section-title {
+      font-size: 7pt;
+      letter-spacing: .05em;
+      text-transform: uppercase;
+      color: #666;
+      margin-bottom: 2pt;
+    }
+
+    .label-to {
+      border: 2px solid #000;
+      padding: 10pt 12pt;
+      margin-bottom: 10pt;
+      min-height: 1.8in;
+    }
+
+    .label-to .section-title {
+      font-size: 8pt;
+      letter-spacing: .06em;
+      text-transform: uppercase;
+      color: #444;
+      margin-bottom: 4pt;
+    }
+
+    .label-to .recipient-name {
+      font-size: 16pt;
+      font-weight: bold;
+      line-height: 1.2;
+    }
+
+    .label-to .address-line {
+      font-size: 13pt;
+      line-height: 1.4;
+    }
+
+    .label-footer {
+      border-top: 1px dashed #999;
+      padding-top: 8pt;
+      font-size: 8pt;
+      color: #555;
+    }
+
+    .label-footer .row {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 3pt;
+    }
+
+    .draft-banner {
+      border: 2px dashed #c00;
+      color: #c00;
+      text-align: center;
+      font-weight: bold;
+      font-size: 9pt;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      padding: 4pt;
+      margin-bottom: 10pt;
+    }
+
+    .barcode-placeholder {
+      border: 1px dashed #bbb;
+      height: 0.55in;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #bbb;
+      font-size: 8pt;
+      margin-bottom: 10pt;
+      letter-spacing: .04em;
+    }
+
+    /* ── Print ───────────────────────────────────────────── */
+    @media print {
+      body {
+        margin: 0;
+        padding: 0;
+        background: #fff;
+      }
+
+      .label-wrap {
+        width: 100%;
+        min-height: auto;
+        margin: 0;
+        padding: 0.2in;
+        border: none;
+        box-shadow: none;
+      }
+
+      @page {
+        size: 4in 6in;
+        margin: 0;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="label-wrap">
+
+    <div class="draft-banner">Draft — No Tracking Number</div>
+
+    {# FROM #}
+    <div class="label-from">
+      <div class="section-title">From</div>
+      <strong>{{ from_addr.recipient_name }}</strong><br />
+      {{ from_addr.address_line_1 }}{% if from_addr.address_line_2 %}, {{ from_addr.address_line_2 }}{% endif %}<br />
+      {{ from_addr.city }}, {{ from_addr.state }} {{ from_addr.postal_code }}<br />
+      {{ from_addr.country }}
+    </div>
+
+    {# TO #}
+    <div class="label-to">
+      <div class="section-title">Ship To</div>
+      <div class="recipient-name">{{ order.shipping_recipient_name|default:"—" }}</div>
+      <div class="address-line">{{ order.shipping_address_line_1|default:"" }}</div>
+      {% if order.shipping_address_line_2 %}
+        <div class="address-line">{{ order.shipping_address_line_2 }}</div>
+      {% endif %}
+      <div class="address-line">
+        {{ order.shipping_city }}, {{ order.shipping_state }} {{ order.shipping_postal_code }}
+      </div>
+      {% if order.shipping_country and order.shipping_country != "US" %}
+        <div class="address-line">{{ order.shipping_country }}</div>
+      {% endif %}
+    </div>
+
+    {# Barcode placeholder — replace with actual tracking when carrier label is generated #}
+    <div class="barcode-placeholder">[ Carrier tracking barcode printed here ]</div>
+
+    {# Footer #}
+    <div class="label-footer">
+      <div class="row">
+        <span><strong>Order:</strong> {{ order.order_number|default:order.id }}</span>
+        <span><strong>Date:</strong> {{ label.created_at|date:"M d, Y" }}</span>
+      </div>
+      <div class="row">
+        <span><strong>Carrier:</strong> To be determined</span>
+        <span><strong>Prints:</strong> {{ label.print_count }}</span>
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    /* Auto-trigger print dialog when loaded in the label iframe */
+    window.addEventListener("load", function () {
+      window.print();
+    });
+  </script>
+</body>
+</html>

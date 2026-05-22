@@ -1,0 +1,15 @@
+{% extends "base/base.html" %}
+
+{% block title %}Staff Console{% endblock title %}
+
+{% block content %}
+<section class="py-5">
+  <div class="container">
+    <h1 class="mb-3">Staff Console</h1>
+    <p class="lead">This page is restricted to staff/admin roles.</p>
+    {% if can_create_users %}
+      <a href="{% url 'accounts:admin-user-create' %}" class="btn btn-success mb-3">Create New User</a>
+    {% endif %}
+  </div>
+</section>
+{% endblock content %}

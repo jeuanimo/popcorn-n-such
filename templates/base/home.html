@@ -1,0 +1,83 @@
+{% extends "base/base.html" %}
+{% load site_content %}
+
+{% block title %}Popcorn-N-Such | Family Fun, Flavor, and Fundraising{% endblock title %}
+
+{% block content %}
+<section id="sc-hero" class="hero-section storefront-hero py-5">
+  <div class="container">
+    <div class="d-flex flex-column align-items-center justify-content-center text-center" style="min-height: 350px;">
+      <p class="eyebrow mb-2">Freshly popped joy for every occasion</p>
+      <h1 class="display-4 fw-bold mb-3">Snack happy. Fundraise big. Share popcorn everyone loves.</h1>
+      <p class="lead mb-4">From classic buttery favorites to signature sweet crunches, Popcorn-N-Such powers family-friendly shopping and high-energy fundraising campaigns.</p>
+      <div class="d-flex flex-wrap gap-2 justify-content-center">
+        <a class="btn btn-brand btn-lg" href="{% url 'products:list' %}">Shop now</a>
+        <a class="btn btn-gold btn-lg border border-dark" href="{% url 'start-fundraiser' %}">Start a fundraiser</a>
+        <a class="btn btn-outline-dark btn-lg" href="{% url 'corporate-gifts' %}">Corporate/Bulk orders</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="sc-featured" class="py-5">
+  <div class="container">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+      <h2 class="mb-0">Featured Popcorn Flavors</h2>
+      <a class="btn btn-outline-dark" href="{% url 'products:list' %}">View all flavors</a>
+    </div>
+    <div class="row g-4">
+      {% for product in featured_products %}
+        <div class="col-12 col-md-6 col-lg-4">
+          <article class="hero-card p-3 h-100">
+            {% if product.image %}
+              <img src="{{ product.image.url }}" alt="{{ product.name }}" width="640" height="420" class="img-fluid rounded mb-3 product-card-image" />
+            {% elif product.external_image_url %}
+              <img src="{{ product.external_image_url }}" alt="{{ product.name }}" width="640" height="420" class="img-fluid rounded mb-3 product-card-image" />
+            {% endif %}
+            <p class="small text-uppercase mb-1">{{ product.category.name }} • {{ product.flavor }}</p>
+            <h3 class="h5">{{ product.name }}</h3>
+            <p>{{ product.description|truncatechars:95 }}</p>
+            <div class="d-flex gap-2 flex-wrap mb-3">
+              {% if product.is_featured %}<span class="badge text-bg-warning">Featured</span>{% endif %}
+            </div>
+            <a class="btn btn-brand" href="{% url 'products:detail' product.slug %}">See details</a>
+          </article>
+        </div>
+      {% empty %}
+        <p>No featured products yet. Add featured products in admin.</p>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+
+<section id="sc-testimonials" class="py-5 bg-white">
+  <div class="container">
+    <h2 class="mb-4">Testimonials</h2>
+    <div class="row g-4">
+      <div class="col-md-4"><div class="testimonial-card p-3 h-100">"Our PTA sold out in two weeks. Families loved the flavors and online ordering was simple."</div></div>
+      <div class="col-md-4"><div class="testimonial-card p-3 h-100">"The fundraiser dashboard made it easy for team captains to keep everyone motivated."</div></div>
+      <div class="col-md-4"><div class="testimonial-card p-3 h-100">"Perfect for gifts and events. Fast, fresh, and fun every time."</div></div>
+    </div>
+  </div>
+</section>
+<section id="sc-promo-banner" class="py-4" style="background:var(--butter-gold);">
+  <div class="container text-center">
+    <p class="mb-0 fw-semibold" style="color:var(--kettle-black);font-size:1.1rem;">
+      🍿 Promotional banner — edit this section to add a special offer or announcement.
+    </p>
+  </div>
+</section>
+
+<section id="sc-cta" class="cta-band">
+  <div class="container text-center">
+    <h2 class="display-6 mb-3">Ready to Pop?</h2>
+    <p class="mb-4">Shop our full lineup or start a fundraiser today.</p>
+    <div class="d-flex flex-wrap gap-3 justify-content-center">
+      <a class="btn btn-gold btn-lg" href="{% url 'products:list' %}">Shop Now</a>
+      <a class="btn btn-outline-light btn-lg" href="{% url 'start-fundraiser' %}">Start a Fundraiser</a>
+    </div>
+  </div>
+</section>
+
+{% render_managed_content "home" %}
+{% endblock content %}

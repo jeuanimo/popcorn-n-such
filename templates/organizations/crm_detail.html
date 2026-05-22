@@ -1,0 +1,134 @@
+{% extends "staff/base.html" %}
+{% load money %}
+{% block title %}{{ organization.name }} | CRM{% endblock title %}
+{% block content %}
+<div class="d-flex align-items-center gap-3 mb-4">
+  <a href="{% url 'crm-list' %}" class="btn btn-sm btn-outline-dark">&larr; Organizations</a>
+  <h1 class="h3 mb-0">{{ organization.name }}</h1>
+  <div class="d-flex gap-2 ms-auto">
+      {% if request.user.is_staff or request.user.is_superuser %}
+      <form method="post" action="{% url 'convert-to-campaign' organization.id %}">
+        {% csrf_token %}
+        <button class="btn btn-sm btn-primary" type="submit">Convert to campaign</button>
+      </form>
+      {% endif %}
+      <a class="btn btn-sm btn-outline-dark" href="{% url 'crm-list' %}">All Organizations</a>
+    </div>
+  </div>
+
+  <div class="row g-3">
+    <div class="col-md-6">
+      <div class="card">
+        <div class="card-header">Profile</div>
+        <div class="card-body">
+          <div><strong>Type:</strong> {{ organization.get_org_type_display }}</div>
+          <div><strong>Lead status:</strong> {{ organization.get_lead_status_display }}</div>
+          <div><strong>Relationship owner:</strong> {{ organization.relationship_owner|default:"—" }}</div>
+          <div><strong>Manager:</strong> {{ organization.manager }}</div>
+          <hr>
+          <div><strong>Computed total sales:</strong> {{ computed_total_sales }}</div>
+          <div><strong>Stored total sales:</strong> ${{ organization.total_sales_cents|cents_to_dollars }}</div>
+          <div><strong>Stored fundraiser revenue:</strong> ${{ organization.total_fundraiser_revenue_cents|cents_to_dollars }}</div>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-6">
+      <div class="card">
+        <div class="card-header">Contact</div>
+        <div class="card-body">
+          <div><strong>Main contact:</strong> {{ organization.main_contact|default:"—" }}</div>
+          <div><strong>Email:</strong> {{ organization.email|default:"—" }}</div>
+          <div><strong>Phone:</strong> {{ organization.phone|default:"—" }}</div>
+          <div><strong>Website:</strong> {{ organization.website|default:"—" }}</div>
+          <hr>
+          <div><strong>Last contact:</strong> {{ organization.last_contact_date|default:"—" }}</div>
+          <div><strong>Next contact:</strong> {{ organization.next_contact_date|default:"—" }}</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row g-3 mt-2">
+    <div class="col-md-6">
+      <div class="card">
+        <div class="card-header">Open Tasks</div>
+        <div class="card-body">
+          <ul class="mb-0">
+            {% for task in tasks %}
+              <li>{{ task.title }}{% if task.due_date %} (due {{ task.due_date }}){% endif %}</li>
+            {% empty %}
+              <li class="text-muted">No tasks.</li>
+            {% endfor %}
+          </ul>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-6">
+      <div class="card">
+        <div class="card-header">Campaign History</div>
+        <div class="card-body">
+          <ul class="mb-0">
+            {% for c in campaigns %}
+              <li>{{ c.campaign_name }} — {{ c.get_status_display }} ({{ c.start_date }} → {{ c.end_date }})</li>
+            {% empty %}
+              <li class="text-muted">No campaigns.</li>
+            {% endfor %}
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row g-3 mt-2">
+    <div class="col-md-6">
+      <div class="card">
+        <div class="card-header">Sales History (Fundraisers)</div>
+        <div class="card-body">
+          <ul class="mb-0">
+            {% for o in orders %}
+              <li>{{ o.order_number }} — {{ o.status }} — ${{ o.total_cents|cents_to_dollars }}</li>
+            {% empty %}
+              <li class="text-muted">No orders.</li>
+            {% endfor %}
+          </ul>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-6">
+      <div class="card">
+        <div class="card-header">Documents</div>
+        <div class="card-body">
+          <ul class="mb-0">
+            {% for doc in documents %}
+              <li>{{ doc.title }}{% if doc.document_type %} ({{ doc.document_type }}){% endif %}</li>
+            {% empty %}
+              <li class="text-muted">No documents.</li>
+            {% endfor %}
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row g-3 mt-2">
+    <div class="col-12">
+      <div class="card">
+        <div class="card-header">CRM Notes</div>
+        <div class="card-body">
+          <ul class="mb-0">
+            {% for note in notes %}
+              <li>{{ note.created_at }} — {{ note.note|truncatechars:160 }}</li>
+            {% empty %}
+              <li class="text-muted">No notes.</li>
+            {% endfor %}
+          </ul>
+          {% if organization.notes %}
+            <hr>
+            <div><strong>Organization notes:</strong></div>
+            <div class="text-muted">{{ organization.notes }}</div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+{% endblock content %}

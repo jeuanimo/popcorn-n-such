@@ -1,0 +1,129 @@
+{% extends "base/base.html" %}
+
+{% block title %}My Account Dashboard{% endblock title %}
+
+{% block content %}
+<section class="py-5">
+  <div class="container">
+    <h1 class="mb-1">Account Dashboard</h1>
+    <p class="lead mb-4">Welcome back, {{ customer_profile.display_name|default:request.user.first_name|default:request.user.username }}.</p>
+
+    <div class="row g-4">
+      <div class="col-12 col-lg-8">
+        <div class="hero-card p-4 mb-4">
+          <h2 class="h5 mb-3">Profile</h2>
+          <p class="mb-2"><strong>Name:</strong> {{ request.user.get_full_name|default:request.user.username }}</p>
+          <p class="mb-2"><strong>Email:</strong> {{ request.user.email|default:"-" }}</p>
+          <p class="mb-2"><strong>Phone:</strong> {{ request.user.phone_number|default:"-" }}</p>
+          <a class="btn btn-sm btn-brand" href="{% url 'accounts:profile' %}">Edit profile</a>
+        </div>
+
+        <div class="hero-card p-4 mb-4">
+          <div class="d-flex justify-content-between align-items-center mb-3">
+            <h2 class="h5 mb-0">Order History</h2>
+            <a class="btn btn-sm btn-outline-dark" href="{% url 'orders:my-orders' %}">View all</a>
+          </div>
+          {% for order in orders %}
+            <div class="d-flex justify-content-between align-items-center border-bottom py-2">
+              <div>
+                <p class="mb-0"><strong>Order #{{ order.id }}</strong></p>
+                <small class="text-muted">{{ order.created_at|date:"M d, Y" }} • {{ order.get_status_display }}</small>
+              </div>
+              <div class="d-flex gap-2">
+                <a class="btn btn-sm btn-outline-dark" href="{% url 'orders:order-detail' order.id %}">Details</a>
+                <form method="post" action="{% url 'orders:reorder' order.id %}">
+                  {% csrf_token %}
+                  <button class="btn btn-sm btn-brand" type="submit">Reorder</button>
+                </form>
+              </div>
+            </div>
+          {% empty %}
+            <p class="mb-0">No orders yet.</p>
+          {% endfor %}
+        </div>
+
+        <div class="hero-card p-4 mb-4">
+          <div class="d-flex justify-content-between align-items-center mb-3">
+            <h2 class="h5 mb-0">Subscriptions</h2>
+            <a class="btn btn-sm btn-outline-dark" href="{% url 'orders:subscriptions' %}">Manage</a>
+          </div>
+          {% for sub in active_subscriptions %}
+            <div class="d-flex justify-content-between align-items-center border-bottom py-2">
+              <div>
+                <p class="mb-0 small fw-semibold">{{ sub.get_interval_display }}</p>
+                <p class="mb-0 small text-muted">Next: {{ sub.next_order_date|date:"M d, Y" }}</p>
+              </div>
+              <span class="badge text-bg-success">Active</span>
+            </div>
+          {% empty %}
+            <p class="mb-2 small text-muted">No active subscriptions.</p>
+          {% endfor %}
+          <a class="btn btn-sm btn-outline-dark mt-2" href="{% url 'orders:subscriptions' %}">View all subscriptions</a>
+        </div>
+
+        <div class="hero-card p-4 mb-4">
+          <h2 class="h5 mb-3">Saved Addresses</h2>
+          {% for address in saved_addresses|slice:":3" %}
+            <p class="mb-1"><strong>{{ address.label }}</strong> - {{ address.address_line_1 }}, {{ address.city }} {{ address.state }}</p>
+          {% empty %}
+            <p class="mb-2">No saved addresses yet.</p>
+          {% endfor %}
+          <a class="btn btn-sm btn-outline-dark mt-2" href="{% url 'accounts:addresses' %}">Manage addresses</a>
+        </div>
+
+        <div class="hero-card p-4 mb-4">
+          <h2 class="h5 mb-3">Fundraiser</h2>
+          <p class="mb-3">Manage your fundraiser participation and submit fundraiser requests from your profile.</p>
+          <a class="btn btn-sm btn-outline-dark" href="{% url 'accounts:profile' %}#fundraiser-tools">Open fundraiser tools</a>
+        </div>
+      </div>
+
+      <div class="col-12 col-lg-4">
+        <div class="hero-card p-4 mb-4">
+          <h2 class="h5 mb-3">Cart</h2>
+          {% if active_cart %}
+            <p class="mb-2">Active cart updated {{ active_cart.updated_at|timesince }} ago.</p>
+            <a class="btn btn-sm btn-brand" href="{% url 'cart:view' %}">Open cart</a>
+          {% else %}
+            <p class="mb-0">No active cart.</p>
+          {% endif %}
+        </div>
+
+        <div class="hero-card p-4 mb-4">
+          <h2 class="h5 mb-3">Saved Items</h2>
+          {% for saved in saved_items|slice:":5" %}
+            <p class="mb-1">{{ saved.sku.product.name }} ({{ saved.quantity }})</p>
+          {% empty %}
+            <p class="mb-0">No saved items.</p>
+          {% endfor %}
+        </div>
+
+        <div class="hero-card p-4 mb-4">
+          <h2 class="h5 mb-3">Notification Preferences</h2>
+          <p class="mb-1">Email: {% if notification_preference.email_opt_in %}Opted in{% else %}Opted out{% endif %}</p>
+          <p class="mb-2">SMS: {% if notification_preference.sms_opt_in %}Opted in{% else %}Opted out{% endif %}</p>
+          <a class="btn btn-sm btn-outline-dark" href="{% url 'accounts:preferences' %}">Manage preferences</a>
+        </div>
+
+        <div class="hero-card p-4 mb-4">
+          <h2 class="h5 mb-3">My Teams</h2>
+          {% for membership in team_memberships %}
+            <p class="mb-1">{{ membership.team.name }}</p>
+          {% empty %}
+            <p class="mb-0">No team memberships yet.</p>
+          {% endfor %}
+        </div>
+
+        <div class="hero-card p-4">
+          <h2 class="h5 mb-3">My Seller Links</h2>
+          {% for link in seller_links %}
+            <p class="mb-1">{{ link.title }} ({{ link.slug }})</p>
+          {% empty %}
+            <p class="mb-0">No seller links yet.</p>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+{% endblock content %}

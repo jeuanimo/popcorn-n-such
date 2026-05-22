@@ -1,0 +1,119 @@
+{% extends "base/base.html" %}
+{% load static %}
+{% load site_content %}
+
+{% block title %}About | Popcorn-N-Such{% endblock title %}
+
+{% block content %}
+
+<!-- Page hero -->
+<section id="sc-hero" class="storefront-hero">
+  <div class="container">
+    <span class="eyebrow">Our Story</span>
+    <h1 class="mb-2">About Popcorn-N-Such</h1>
+    <p class="lead mb-0">A family-focused popcorn company blending bold flavors with meaningful fundraising.</p>
+  </div>
+</section>
+
+<!-- Mission -->
+<section id="sc-story" class="py-5 bg-white">
+  <div class="container">
+    <div class="row g-5 align-items-center">
+      <div class="col-12 col-lg-8 fade-in-up">
+        <div class="section-title">
+          <span class="eyebrow">Our Mission</span>
+          <h2>Snack Time That Matters</h2>
+        </div>
+        <p style="font-size:1.05rem;line-height:1.75;">
+          Our mission is simple: make snack time exciting while helping schools, teams, and
+          organizations hit their goals. Every bag sold supports a real cause — whether that's
+          a sports team, a school program, or a community initiative.
+        </p>
+        <p style="font-size:1.05rem;line-height:1.75;">
+          We hand-pop our popcorn in small batches using quality ingredients, so supporters
+          get something genuinely delicious. No obligation. No guilt. Just great popcorn.
+        </p>
+        <hr class="gold-divider" />
+        <div class="d-flex flex-wrap gap-4 mt-3">
+          <div>
+            <p class="stat-label mb-1">Founded</p>
+            <p class="h4 mb-0" style="font-family:'Oswald',sans-serif;">2019</p>
+          </div>
+          <div>
+            <p class="stat-label mb-1">Flavors</p>
+            <p class="h4 mb-0" style="font-family:'Oswald',sans-serif;">20+</p>
+          </div>
+          <div>
+            <p class="stat-label mb-1">Campaigns</p>
+            <p class="h4 mb-0" style="font-family:'Oswald',sans-serif;">500+</p>
+          </div>
+        </div>
+      </div>
+      <div class="col-12 col-lg-4 fade-in-up delay-1">
+        <div class="hero-card hover-lift p-4 h-100 d-flex align-items-center justify-content-center">
+          <img
+            src="{% static 'images/owners.webp' %}"
+            alt="Popcorn-N-Such owners"
+            width="960"
+            height="1280"
+            class="img-fluid rounded-4 shadow-sm"
+          />
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Values -->
+<section id="sc-values" class="py-5" style="background:#f5f5f5;">
+  <div class="container">
+    <div class="section-title centered mb-5">
+      <span class="eyebrow">What We Stand For</span>
+      <h2>Our Values</h2>
+    </div>
+    <div class="row g-4">
+      <div class="col-12 col-md-4">
+        <div class="feature-card fade-in-up">
+          <div class="feature-icon" style="background:rgba(214,40,40,.1);">
+            <span>❤️</span>
+          </div>
+          <h3>Community First</h3>
+          <p>Every product we sell is tied to a fundraiser, a team, or an organization that needs support. Community isn't a slogan — it's the business model.</p>
+        </div>
+      </div>
+      <div class="col-12 col-md-4">
+        <div class="feature-card fade-in-up delay-1">
+          <div class="feature-icon" style="background:rgba(249,178,51,.15);">
+            <span>✨</span>
+          </div>
+          <h3>Quality Ingredients</h3>
+          <p>Small-batch popping, real flavors, no shortcuts. We make the kind of popcorn you'd actually want to snack on yourself.</p>
+        </div>
+      </div>
+      <div class="col-12 col-md-4">
+        <div class="feature-card fade-in-up delay-2">
+          <div class="feature-icon" style="background:rgba(46,125,50,.1);">
+            <span>🤝</span>
+          </div>
+          <h3>Transparent Partnerships</h3>
+          <p>No hidden fees, no confusing splits. Organizations know exactly what they earn and when they'll receive it.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- CTA -->
+<section id="sc-cta" class="cta-band">
+  <div class="container text-center">
+    <h2 class="display-6 mb-3">Ready to Pop Together?</h2>
+    <p class="mb-4">Whether you're buying, selling, or organizing — we'd love to hear from you.</p>
+    <div class="d-flex flex-wrap gap-3 justify-content-center">
+      <a class="btn btn-gold btn-lg" href="{% url 'contact' %}">Get in Touch</a>
+      <a class="btn btn-outline-light btn-lg" href="{% url 'products:list' %}">Shop Now</a>
+    </div>
+  </div>
+</section>
+{% render_managed_content "about" %}
+
+{% endblock content %}

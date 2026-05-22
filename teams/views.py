@@ -1,0 +1,246 @@
+from django.contrib import messages
+from django.contrib.auth.decorators import login_required
+from django.contrib.auth.mixins import LoginRequiredMixin
+from django.core.exceptions import PermissionDenied, ValidationError
+from django.shortcuts import get_object_or_404, redirect, render
+from django.urls import reverse
+from django.views.generic import DetailView, ListView
+
+from core.security import RoleRequiredMixin, TeamCaptainQuerysetMixin
+from security_audit.models import AuditAction
+from security_audit.utils import log_audit_event
+
+from .forms import JoinTeamByCodeForm, MemberReminderForm, MoveSellerForm, TeamCreateForm
+from .models import Team, TeamMembership, TeamMemberRole
+from .services import TeamService
+
+
+# ---------------------------------------------------------------------------
+# Helpers
+# ---------------------------------------------------------------------------
+
+def _is_staff_or_admin(user) -> bool:
+    return user.is_staff or user.is_superuser or user.has_any_role("staff", "admin")
+
+
+def _active_member_or_staff(user, team) -> bool:
+    """Return True if the user is an active member / captain of *team* or is staff."""
+    if _is_staff_or_admin(user):
+        return True
+    return TeamMembership.objects.filter(team=team, member=user, is_active=True).exists()
+
+
+# ---------------------------------------------------------------------------
+# Public views
+# ---------------------------------------------------------------------------
+
+class PublicTeamDetailView(DetailView):
+    model = Team
+    template_name = "teams/public_team_detail.html"
+    slug_field = "slug"
+    slug_url_kwarg = "slug"
+
+    def get_queryset(self):
+        return Team.objects.filter(is_active=True).select_related("campaign", "organization", "captain")
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        team = self.object
+        metrics = TeamService.dashboard_metrics(team=team)
+        context["share_link"] = metrics["share_link"]
+        context["qr_data_uri"] = metrics["qr_data_uri"]
+        context["total_sales_cents"] = metrics["total_sales_cents"]
+        context["total_orders"] = metrics["total_orders"]
+        context["goal_progress_percent"] = metrics["goal_progress_percent"]
+        return context
+
+
+# ---------------------------------------------------------------------------
+# Join by invite code
+# ---------------------------------------------------------------------------
+
+@login_required
+def join_team_view(request, slug: str):
+    team = get_object_or_404(Team, slug=slug, is_active=True)
+    form = JoinTeamByCodeForm(request.POST or None)
+
+    if request.method == "POST" and form.is_valid():
+        try:
+            membership = TeamService.join_team_by_code(
+                user=request.user,
+                invite_code=form.cleaned_data["invite_code"],
+            )
+            log_audit_event(
+                user=request.user,
+                action=AuditAction.UPDATE,
+                resource_type="team_membership",
+                resource_id=str(membership.pk),
+                details={"team_slug": team.slug},
+            )
+            messages.success(request, f"You joined {team.name}!")
+            return redirect("teams:dashboard", slug=team.slug)
+        except ValidationError as exc:
+            form.add_error("invite_code", exc)
+
+    return render(request, "teams/join_team.html", {"form": form, "team": team})
+
+
+# ---------------------------------------------------------------------------
+# Team dashboard (members + captains + staff)
+# ---------------------------------------------------------------------------
+
+@login_required
+def team_dashboard_view(request, slug: str):
+    team = get_object_or_404(Team, slug=slug)
+    if not _active_member_or_staff(request.user, team):
+        raise PermissionDenied("You must be an active team member to view this dashboard.")
+
+    metrics = TeamService.dashboard_metrics(team=team)
+    fundraising_shop_link = ""
+    if team.campaign:
+        fundraising_shop_link = request.build_absolute_uri(
+            reverse("fundraisers:public-campaign-detail", kwargs={"slug": team.campaign.slug})
+        )
+
+    return render(
+        request,
+        "teams/team_dashboard.html",
+        {"team": team, "fundraising_shop_link": fundraising_shop_link, **metrics},
+    )
+
+
+# ---------------------------------------------------------------------------
+# Team member list (captain + staff)
+# ---------------------------------------------------------------------------
+
+@login_required
+def team_members_view(request, slug: str):
+    team = get_object_or_404(Team, slug=slug)
+    is_captain = team.captain_id == request.user.pk
+    if not (is_captain or _is_staff_or_admin(request.user)):
+        raise PermissionDenied("Only the team captain or staff can view the member list.")
+
+    memberships = TeamMembership.objects.filter(team=team).select_related("member").order_by(
+        "-role", "member__username"
+    )
+    return render(
+        request,
+        "teams/team_members.html",
+        {"team": team, "memberships": memberships, "is_captain": is_captain},
+    )
+
+
+# ---------------------------------------------------------------------------
+# Send member reminders (captain only)
+# ---------------------------------------------------------------------------
+
+@login_required
+def send_reminder_view(request, slug: str):
+    team = get_object_or_404(Team, slug=slug)
+    if team.captain_id != request.user.pk:
+        raise PermissionDenied("Only the team captain can send reminders.")
+
+    form = MemberReminderForm(request.POST or None, team=team)
+    if request.method == "POST" and form.is_valid():
+        recipients_qs = form.cleaned_data.get("recipients") or None
+        sent = TeamService.send_member_reminders(
+            team=team,
+            captain=request.user,
+            subject=form.cleaned_data["subject"],
+            message=form.cleaned_data["message"],
+            memberships=recipients_qs if recipients_qs else None,
+        )
+        messages.success(request, f"Reminder sent to {sent} member(s).")
+        return redirect("teams:members", slug=team.slug)
+
+    return render(request, "teams/send_reminder.html", {"team": team, "form": form})
+
+
+# ---------------------------------------------------------------------------
+# Captain team list
+# ---------------------------------------------------------------------------
+
+class TeamCaptainTeamListView(RoleRequiredMixin, TeamCaptainQuerysetMixin, ListView):
+    model = Team
+    template_name = "teams/team_list.html"
+    context_object_name = "teams"
+    allowed_roles = ("team_captain",)
+
+
+# ---------------------------------------------------------------------------
+# Team create (captain / org manager)
+# ---------------------------------------------------------------------------
+
+@login_required
+def team_create_view(request):
+    if not (request.user.has_any_role("team_captain", "organization_manager") or _is_staff_or_admin(request.user)):
+        raise PermissionDenied("You do not have permission to create a team.")
+
+    organization = None
+    if request.user.has_any_role("organization_manager"):
+        from organizations.models import Organization
+        organization = Organization.objects.filter(manager=request.user).first()
+
+    form = TeamCreateForm(request.POST or None, request.FILES or None, user=request.user)
+    if request.method == "POST" and form.is_valid():
+        if organization is None and not _is_staff_or_admin(request.user):
+            messages.error(request, "No organization found for your account.")
+            return render(request, "teams/team_form.html", {"form": form})
+        if organization is None:
+            from organizations.models import Organization
+            org_id = request.POST.get("organization")
+            organization = get_object_or_404(Organization, pk=org_id) if org_id else None
+            if organization is None:
+                messages.error(request, "Please specify an organization.")
+                return render(request, "teams/team_form.html", {"form": form})
+        team = TeamService.create_team(user=request.user, organization=organization, form=form)
+        messages.success(request, f"Team '{team.name}' created.")
+        return redirect("teams:dashboard", slug=team.slug)
+
+    return render(request, "teams/team_form.html", {"form": form})
+
+
+# ---------------------------------------------------------------------------
+# Staff views
+# ---------------------------------------------------------------------------
+
+class StaffTeamListView(RoleRequiredMixin, ListView):
+    model = Team
+    template_name = "teams/staff_team_list.html"
+    context_object_name = "teams"
+    allowed_roles = ("staff", "admin")
+
+    def get_queryset(self):
+        return Team.objects.select_related("campaign", "organization", "captain").order_by("name")
+
+
+@login_required
+def staff_move_seller_view(request):
+    if not _is_staff_or_admin(request.user):
+        raise PermissionDenied("Only staff can move sellers between teams.")
+
+    form = MoveSellerForm(request.POST or None)
+    if request.method == "POST" and form.is_valid():
+        try:
+            TeamService.move_seller(
+                seller_link=form.cleaned_data["seller_link"],
+                from_team=form.cleaned_data["from_team"],
+                to_team=form.cleaned_data["to_team"],
+                staff_user=request.user,
+            )
+            messages.success(request, "Seller moved successfully.")
+            log_audit_event(
+                user=request.user,
+                action=AuditAction.UPDATE,
+                resource_type="team_seller_move",
+                resource_id=str(form.cleaned_data["seller_link"].pk),
+                details={
+                    "from_team": form.cleaned_data["from_team"].slug,
+                    "to_team": form.cleaned_data["to_team"].slug,
+                },
+            )
+            return redirect("teams:staff-list")
+        except (ValidationError, PermissionDenied) as exc:
+            messages.error(request, str(exc))
+
+    return render(request, "teams/staff_move_seller.html", {"form": form})

@@ -1,0 +1,486 @@
+{% extends "staff/base.html" %}
+
+{% block title %}Generate Shipping Label | Popcorn-N-Such{% endblock title %}
+
+{% block content %}
+<div class="container-fluid px-4 py-4 label-create-wrap">
+
+  <div class="d-flex align-items-center justify-content-between mb-4">
+    <div>
+      <span class="eyebrow">Shipping</span>
+      <h1 class="h3 mb-0">Generate &amp; Print Label</h1>
+    </div>
+    <a class="btn btn-sm btn-outline-dark" href="{% url 'shipping:label-list' %}">All Labels</a>
+  </div>
+
+  {# ── QZ Tray status & setup ── #}
+  <div class="hero-card p-4 mb-4">
+    <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
+      <div>
+        <h2 class="h5 mb-1">Network Label Printer</h2>
+        <p class="small text-muted mb-0">Direct printing to your thermal printer via QZ Tray.</p>
+      </div>
+      <span id="qzStatus" class="badge text-bg-secondary">Checking…</span>
+    </div>
+
+    <div id="qzSetup" class="d-none mt-3">
+      <hr class="my-3">
+
+      {# Step 1 — JS library #}
+      <div id="qzStepLibrary" class="mb-3">
+        <p class="small fw-semibold mb-2">Step 1 — Install QZ Tray JS library on this server</p>
+        <div class="d-flex align-items-center gap-2 flex-wrap">
+          <button id="installQzBtn" type="button" class="btn btn-sm btn-brand">
+            Install Library
+            <span id="installQzSpinner" class="spinner-border spinner-border-sm ms-1 d-none" aria-hidden="true"></span>
+          </button>
+          <span id="installQzResult" class="small"></span>
+        </div>
+      </div>
+
+      {# Step 2 — Desktop app #}
+      <div class="mb-3">
+        <p class="small fw-semibold mb-2">Step 2 — Install QZ Tray desktop app on this workstation</p>
+        <a href="https://qz.io/download" target="_blank" rel="noopener noreferrer" class="btn btn-sm btn-outline-dark">
+          Download QZ Tray App ↗
+        </a>
+        <p class="form-text mt-1">
+          QZ Tray runs in the system tray and bridges this page to your label printer.
+          Once installed, this page connects to it automatically.
+        </p>
+      </div>
+
+      {# Step 3 — Printer name #}
+      <p class="small text-muted mb-0">
+        Step 3 — Set your printer name in
+        <a href="{% url 'dashboards:operational-settings' %}">Operational Settings</a>
+        (must match exactly how it appears in the OS print manager).
+      </p>
+    </div>
+  </div>
+
+  {# ── Generate form ── #}
+  <div class="hero-card p-4 mb-4">
+    <h2 class="h5 mb-3">Label Details</h2>
+
+    <div class="mb-3">
+      <label class="form-label fw-semibold" for="orderRef">Order</label>
+      <select id="orderRef" class="form-select">
+        <option value="">— Select an order —</option>
+        {% for order in eligible_orders %}
+          <option value="{{ order.order_number|default:order.id }}">
+            {{ order.order_number|default:order.id }}
+            {% if order.shipping_recipient_name %} — {{ order.shipping_recipient_name }}{% endif %}
+            ({{ order.status }})
+          </option>
+        {% endfor %}
+      </select>
+      <div class="form-text">Only paid and later-stage orders are shown.</div>
+    </div>
+
+    <div class="mb-4">
+      <label class="form-label fw-semibold" for="carrierSelect">Carrier &amp; Service</label>
+      <select id="carrierSelect" class="form-select">
+        {% for key, label in carrier_choices %}
+          <option value="{{ key }}">{{ label }}</option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <div id="labelError" class="alert alert-danger d-none" role="alert"></div>
+
+    <button id="generateBtn" type="button" class="btn btn-brand px-4">
+      <span id="generateBtnLabel">Generate &amp; Print</span>
+      <span id="generateBtnSpinner" class="spinner-border spinner-border-sm ms-2 d-none" aria-hidden="true"></span>
+    </button>
+  </div>
+
+  {# ── Success / result panel ── #}
+  <div id="resultPanel" class="hero-card p-4 mb-4 d-none">
+    <h2 class="h5 mb-3">Label Created</h2>
+    <dl class="row mb-3">
+      <dt class="col-sm-4">Tracking Number</dt>
+      <dd class="col-sm-8 fw-semibold" id="resTn"></dd>
+      <dt class="col-sm-4">Carrier / Service</dt>
+      <dd class="col-sm-8" id="resCarrier"></dd>
+      <dt class="col-sm-4">Cost</dt>
+      <dd class="col-sm-8" id="resCost"></dd>
+    </dl>
+
+    <div id="draftAlert" class="alert alert-warning d-none" role="alert">
+      <strong>Draft label only.</strong>
+      The carrier API was unavailable — this label has no tracking number.
+      Print it and affix to the package. Generate a new label once the carrier is reachable to get a real tracking number.
+    </div>
+
+    <div id="noPrinterAlert" class="alert alert-warning d-none" role="alert">
+      <strong>Printer not found.</strong>
+      Download the PDF to print manually, or connect your label printer and click <strong>Print Again</strong>.
+    </div>
+
+    <div class="d-flex gap-2 flex-wrap">
+      <button id="printAgainBtn" type="button" class="btn btn-gold">Print Again</button>
+      <a id="downloadLink" href="#" class="btn btn-outline-dark">Download PDF</a>
+      <a id="trackLink" href="#" target="_blank" rel="noopener noreferrer" class="btn btn-outline-secondary">Track Shipment</a>
+    </div>
+  </div>
+
+  {# ── Hidden print iframe ── #}
+  <iframe
+    id="labelFrame"
+    title="Shipping Label"
+    class="label-print-frame"
+    aria-hidden="true"
+  ></iframe>
+
+</div>
+
+{# ── Print confirmation modal ── #}
+<div class="modal fade" id="printConfirmModal" tabindex="-1" aria-labelledby="printConfirmModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="printConfirmModalLabel">Label Sent to Printer</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <p class="mb-1">Check your printer. Did the label print correctly?</p>
+        <p class="small text-muted mb-0">
+          If the print failed or the label is damaged, click <strong>Print Again</strong>.
+          If no printer is available, <strong>Download PDF</strong> to print manually.
+        </p>
+      </div>
+      <div class="modal-footer">
+        <a id="modalDownloadBtn" href="#" class="btn btn-outline-dark">Download PDF</a>
+        <button type="button" class="btn btn-outline-secondary" id="modalPrintAgainBtn">Print Again</button>
+        <button type="button" class="btn btn-brand" data-bs-dismiss="modal">Yes, Done</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% endblock content %}
+
+{% block scripts %}
+{% load static %}
+{#
+  QZ Tray — browser-to-thermal-printer bridge. Requires QZ Tray desktop app on the workstation.
+  Self-host the library to avoid CDN dependency:
+    curl -o static/js/vendor/qz-tray.js https://cdn.qz.io/qz-tray/qz-tray.js
+  If the file is absent the page falls back silently to PDF/iframe printing.
+#}
+<script src="{% static 'js/vendor/qz-tray.js' %}"></script>
+<script>
+(function () {
+  /* ── DOM refs ─────────────────────────────────────────────── */
+  var csrfToken      = "{{ csrf_token }}";
+  var generateBtn    = document.getElementById("generateBtn");
+  var spinner        = document.getElementById("generateBtnSpinner");
+  var orderRefEl     = document.getElementById("orderRef");
+  var carrierEl      = document.getElementById("carrierSelect");
+  var errorBox       = document.getElementById("labelError");
+  var resultPanel    = document.getElementById("resultPanel");
+  var noPrinterAlert = document.getElementById("noPrinterAlert");
+  var labelFrame     = document.getElementById("labelFrame");
+  var qzStatusEl     = document.getElementById("qzStatus");
+  var printModal     = new bootstrap.Modal(document.getElementById("printConfirmModal"));
+
+  /* ── State ────────────────────────────────────────────────── */
+  var currentPrintUrl = "";
+  var currentLabelId  = null;
+  var currentHasZpl   = false;
+  var modalShown      = false;
+  var safetyTimer     = null;
+  var qzConnected     = false;
+  var qzPrinterName   = "";
+
+  /* ── QZ Tray setup card ───────────────────────────────────── */
+  var qzSetupEl      = document.getElementById("qzSetup");
+  var qzStepLibEl    = document.getElementById("qzStepLibrary");
+  var installQzBtn   = document.getElementById("installQzBtn");
+  var installSpinner = document.getElementById("installQzSpinner");
+  var installResult  = document.getElementById("installQzResult");
+
+  function refreshSetupCard(state) {
+    /* Hide the whole setup card if connected; show it otherwise */
+    if (state === "connected") {
+      qzSetupEl.classList.add("d-none");
+      return;
+    }
+    qzSetupEl.classList.remove("d-none");
+    /* If the JS library is already loaded (qz defined), Step 1 is done */
+    if (typeof qz !== "undefined") {
+      qzStepLibEl.classList.add("d-none");
+    } else {
+      qzStepLibEl.classList.remove("d-none");
+    }
+  }
+
+  if (installQzBtn) {
+    installQzBtn.addEventListener("click", function () {
+      installQzBtn.disabled = true;
+      installSpinner.classList.remove("d-none");
+      installResult.textContent = "";
+
+      fetch("{% url 'shipping:qz-install' %}", {
+        method: "POST",
+        headers: { "X-CSRFToken": csrfToken },
+      })
+      .then(function (resp) { return resp.json(); })
+      .then(function (data) {
+        installQzBtn.disabled = false;
+        installSpinner.classList.add("d-none");
+        if (data.ok) {
+          installResult.textContent = "Installed (" + data.size_kb + " KB). Refresh the page to activate.";
+          installResult.className = "small text-success fw-semibold";
+          installQzBtn.textContent = "Refresh Page";
+          installQzBtn.disabled = false;
+          installQzBtn.addEventListener("click", function () { window.location.reload(); }, { once: true });
+        } else {
+          installResult.textContent = data.error || "Installation failed.";
+          installResult.className = "small text-danger";
+        }
+      })
+      .catch(function (err) {
+        installQzBtn.disabled = false;
+        installSpinner.classList.add("d-none");
+        installResult.textContent = "Request failed: " + err;
+        installResult.className = "small text-danger";
+      });
+    });
+  }
+
+  /* ── QZ Tray security & connection ────────────────────────── */
+  function qzSetSecurity() {
+    qz.security.setCertificatePromise(function (resolve) {
+      /*
+       * DEVELOPMENT: resolve(null) = unsigned mode — QZ Tray shows a one-time
+       * trust prompt on the workstation.
+       *
+       * PRODUCTION: fetch your signed certificate from the backend and resolve
+       * with the PEM string, e.g.:
+       *   fetch("/shipping/qz-cert/").then(r => r.text()).then(resolve).catch(resolve);
+       */
+      resolve(null);
+    });
+    qz.security.setSignatureAlgorithm("SHA512");
+    qz.security.setSignaturePromise(function (toSign) {
+      return function (resolve) {
+        /*
+         * DEVELOPMENT: resolve(null) = unsigned.
+         * PRODUCTION: send toSign to a backend endpoint that signs it with your
+         * private key and returns the base64 signature, e.g.:
+         *   fetch("/shipping/qz-sign/", {method:"POST", body:toSign})
+         *     .then(r => r.text()).then(resolve).catch(resolve);
+         */
+        resolve(null);
+      };
+    });
+  }
+
+  function setQzStatus(state) {
+    if (qzStatusEl) {
+      var labels  = { connected: "QZ Tray connected", disconnected: "QZ Tray not detected", connecting: "Connecting…" };
+      var classes = { connected: "badge text-bg-success", disconnected: "badge text-bg-secondary", connecting: "badge text-bg-warning text-dark" };
+      qzStatusEl.textContent = labels[state] || state;
+      qzStatusEl.className   = classes[state] || "badge text-bg-secondary";
+    }
+    refreshSetupCard(state);
+  }
+
+  function qzConnect() {
+    if (typeof qz === "undefined") { setQzStatus("disconnected"); refreshSetupCard("disconnected"); return; }
+    qzSetSecurity();
+    setQzStatus("connecting");
+    qz.websocket.connect({ retries: 1, delay: 1 })
+      .then(function () {
+        qzConnected = true;
+        setQzStatus("connected");
+      })
+      .catch(function () {
+        qzConnected = false;
+        setQzStatus("disconnected");
+      });
+  }
+
+  /* Fetch printer name from site config, then attempt QZ Tray connection */
+  fetch("{% url 'shipping:printer-config' %}")
+    .then(function (r) { return r.json(); })
+    .then(function (cfg) {
+      qzPrinterName = (cfg.printer_name || "").trim();
+      qzConnect();
+    })
+    .catch(qzConnect);
+
+  /* ── PDF iframe fallback ──────────────────────────────────── */
+  function clearSafetyTimer() {
+    if (safetyTimer) { clearTimeout(safetyTimer); safetyTimer = null; }
+  }
+
+  function openPrintModal() {
+    if (modalShown) { return; }
+    modalShown = true;
+    clearSafetyTimer();
+    printModal.show();
+  }
+
+  function showNoPrinter() {
+    modalShown = true;
+    clearSafetyTimer();
+    noPrinterAlert.classList.remove("d-none");
+  }
+
+  function triggerPdfPrint(url) {
+    modalShown = false;
+    noPrinterAlert.classList.add("d-none");
+    clearSafetyTimer();
+    labelFrame.onload = function () {
+      var fw;
+      try { fw = labelFrame.contentWindow; } catch (e) { showNoPrinter(); return; }
+      function onAfterPrint() {
+        fw.removeEventListener("afterprint", onAfterPrint);
+        openPrintModal();
+      }
+      try {
+        fw.addEventListener("afterprint", onAfterPrint);
+        fw.focus();
+        fw.print();
+        safetyTimer = setTimeout(openPrintModal, 5000);
+      } catch (e) {
+        fw.removeEventListener("afterprint", onAfterPrint);
+        showNoPrinter();
+      }
+    };
+    labelFrame.src = url;
+  }
+
+  /* ── QZ Tray ZPL path ─────────────────────────────────────── */
+  function printViaQzTray(labelId) {
+    fetch("/shipping/labels/" + labelId + "/zpl/")
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        if (!data.zpl) { triggerPdfPrint(currentPrintUrl); return; }
+        var printerName = qzPrinterName || null;
+        var findPrinter = printerName
+          ? qz.printers.find(printerName)
+          : qz.printers.getDefault();
+        findPrinter
+          .then(function (printer) {
+            var config = qz.configs.create(printer);
+            return qz.print(config, [{ type: "raw", format: "command", data: data.zpl }]);
+          })
+          .then(openPrintModal)
+          .catch(function (err) {
+            /* QZ Tray print failed — fall back to PDF */
+            console.warn("QZ Tray print failed, falling back to PDF:", err);
+            triggerPdfPrint(currentPrintUrl);
+          });
+      })
+      .catch(function () { triggerPdfPrint(currentPrintUrl); });
+  }
+
+  /* ── Unified print dispatcher ─────────────────────────────── */
+  function triggerPrint(url, labelId, hasZpl) {
+    currentPrintUrl = url;
+    if (qzConnected && hasZpl && labelId) {
+      printViaQzTray(labelId);
+    } else {
+      triggerPdfPrint(url);
+    }
+  }
+
+  /* ── Result panel ─────────────────────────────────────────── */
+  var draftAlert = document.getElementById("draftAlert");
+
+  function showResult(data) {
+    document.getElementById("resTn").textContent      = data.tracking_number || "—";
+    document.getElementById("resCarrier").textContent = (data.carrier || "") + " / " + (data.service_name || "");
+    document.getElementById("resCost").textContent    = data.cost || "—";
+
+    draftAlert.classList.toggle("d-none", !data.draft);
+
+    currentLabelId = data.label_id  || null;
+    currentHasZpl  = !!data.has_zpl;
+
+    var downloadUrl = data.draft
+      ? (data.print_url || "#")
+      : (currentLabelId ? "/shipping/labels/" + currentLabelId + "/download/" : "#");
+    var downloadBtn = document.getElementById("downloadLink");
+    var modalDownloadBtn = document.getElementById("modalDownloadBtn");
+    downloadBtn.href = downloadUrl;
+    downloadBtn.textContent = data.draft ? "Open Draft Label" : "Download PDF";
+    if (modalDownloadBtn) { modalDownloadBtn.href = downloadUrl; }
+
+    var trackLink = document.getElementById("trackLink");
+    if (data.tracking_url) {
+      trackLink.href = data.tracking_url;
+      trackLink.classList.remove("d-none");
+    } else {
+      trackLink.classList.add("d-none");
+    }
+    resultPanel.classList.remove("d-none");
+  }
+
+  /* ── Generate button ──────────────────────────────────────── */
+  generateBtn.addEventListener("click", function () {
+    errorBox.textContent = "";
+    errorBox.classList.add("d-none");
+    var orderRef   = (orderRefEl.value || "").trim();
+    var carrierKey = carrierEl.value;
+    if (!orderRef) {
+      errorBox.textContent = "Please select an order.";
+      errorBox.classList.remove("d-none");
+      orderRefEl.focus();
+      return;
+    }
+    generateBtn.disabled = true;
+    spinner.classList.remove("d-none");
+    resultPanel.classList.add("d-none");
+
+    fetch("{% url 'shipping:label-create' %}", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "X-CSRFToken": csrfToken },
+      body: JSON.stringify({ order_ref: orderRef, carrier_key: carrierKey }),
+    })
+    .then(function (resp) {
+      return resp.json().then(function (data) { return { ok: resp.ok, data: data }; });
+    })
+    .then(function (result) {
+      generateBtn.disabled = false;
+      spinner.classList.add("d-none");
+      if (!result.ok) {
+        errorBox.textContent = result.data.error || "Label creation failed.";
+        errorBox.classList.remove("d-none");
+        return;
+      }
+      showResult(result.data);
+      if (result.data.print_url) {
+        triggerPrint(result.data.print_url, result.data.label_id, result.data.has_zpl);
+      }
+    })
+    .catch(function (err) {
+      generateBtn.disabled = false;
+      spinner.classList.add("d-none");
+      errorBox.textContent = "Network error — please try again. (" + err + ")";
+      errorBox.classList.remove("d-none");
+    });
+  });
+
+  /* ── Print Again ──────────────────────────────────────────── */
+  function printAgain() {
+    if (currentPrintUrl) {
+      triggerPrint(currentPrintUrl, currentLabelId, currentHasZpl);
+    }
+  }
+  document.getElementById("printAgainBtn").addEventListener("click", printAgain);
+  document.getElementById("modalPrintAgainBtn").addEventListener("click", function () {
+    printModal.hide();
+    printAgain();
+  });
+
+  orderRefEl.addEventListener("keydown", function (e) {
+    if (e.key === "Enter") { generateBtn.click(); }
+  });
+}());
+</script>
+{% endblock scripts %}

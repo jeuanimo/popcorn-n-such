@@ -1,0 +1,62 @@
+{% extends "staff/base.html" %}
+
+{% block title %}{{ form_title }} | Staff Portal{% endblock title %}
+
+{% block content %}
+<div class="mb-3">
+  <a class="btn btn-outline-secondary btn-sm" href="{% url 'coupons:admin-list' %}">&larr; Back to Coupons</a>
+</div>
+
+<div class="card">
+  <div class="card-body">
+    <h1 class="h4 mb-3">{{ form_title }}</h1>
+    <form method="post" novalidate>
+      {% csrf_token %}
+      <div class="row g-3">
+        {% for field in form %}
+          <div class="col-12 {% if field.name != 'description' and field.name != 'code' %}col-md-6{% endif %}">
+            <label class="form-label fw-semibold" for="{{ field.id_for_label }}">{{ field.label }}</label>
+            {{ field }}
+            {% if field.name == "applies_to_products" %}
+              <div class="form-check mt-2 coupon-select-all-tools">
+                <input class="form-check-input" type="checkbox" id="id_select_all_products">
+                <label class="form-check-label" for="id_select_all_products">Select all products</label>
+              </div>
+            {% elif field.name == "applies_to_categories" %}
+              <div class="form-check mt-2 coupon-select-all-tools">
+                <input class="form-check-input" type="checkbox" id="id_select_all_categories">
+                <label class="form-check-label" for="id_select_all_categories">Select all categories</label>
+              </div>
+            {% endif %}
+            {% if field.help_text %}<div class="form-text">{{ field.help_text }}</div>{% endif %}
+            {% for error in field.errors %}<div class="text-danger small">{{ error }}</div>{% endfor %}
+          </div>
+        {% endfor %}
+      </div>
+      {% if form.non_field_errors %}
+        <div class="alert alert-danger mt-3">{{ form.non_field_errors }}</div>
+      {% endif %}
+      <div class="mt-4 d-flex gap-2">
+        <button type="submit" class="btn btn-brand">{{ submit_label }}</button>
+        <a class="btn btn-outline-secondary" href="{% url 'coupons:admin-list' %}">Cancel</a>
+      </div>
+    </form>
+  </div>
+</div>
+<script>
+(function(){
+  function setAll(selectId, checked){
+    const sel = document.getElementById(selectId);
+    if (!sel) return;
+    Array.from(sel.options).forEach(opt => { opt.selected = checked; });
+  }
+  function wire(toggleId, selectId){
+    const cb = document.getElementById(toggleId);
+    if (!cb) return;
+    cb.addEventListener('change', function(){ setAll(selectId, cb.checked); });
+  }
+  wire('id_select_all_products', 'id_applies_to_products');
+  wire('id_select_all_categories', 'id_applies_to_categories');
+})();
+</script>
+{% endblock content %}

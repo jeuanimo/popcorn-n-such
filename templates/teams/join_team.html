@@ -1,0 +1,31 @@
+{% extends "base/base.html" %}
+{% block title %}Join {{ team.name }}{% endblock title %}
+{% block content %}
+<section class="py-5">
+  <div class="container" style="max-width:520px">
+    <h1 class="mb-1">Join {{ team.name }}</h1>
+    {% if team.campaign %}
+      <p class="text-muted mb-4">Campaign: {{ team.campaign.campaign_name }}</p>
+    {% endif %}
+
+    <div class="hero-card p-4">
+      <p>Enter the invite code shared by your team captain to join.</p>
+      <form method="post" novalidate>
+        {% csrf_token %}
+        {% for field in form %}
+          <div class="mb-3">
+            <label class="form-label" for="{{ field.id_for_label }}">{{ field.label }}</label>
+            {{ field }}
+            {% if field.errors %}
+              {% for error in field.errors %}
+                <div class="invalid-feedback d-block">{{ error }}</div>
+              {% endfor %}
+            {% endif %}
+          </div>
+        {% endfor %}
+        <button type="submit" class="btn btn-brand w-100">Join Team</button>
+      </form>
+    </div>
+  </div>
+</section>
+{% endblock content %}

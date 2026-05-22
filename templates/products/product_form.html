@@ -1,0 +1,70 @@
+{% extends "base/base.html" %}
+
+{% block title %}{{ form_title }} | Popcorn-N-Such{% endblock title %}
+
+{% block content %}
+<section class="py-5">
+  <div class="container">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+      <h1 class="mb-0">{{ form_title }}</h1>
+      <a href="{% url 'products:admin-list' %}" class="btn btn-outline-dark">Back to Products</a>
+    </div>
+
+    <div class="hero-card p-4">
+      <form method="post" enctype="multipart/form-data" class="row g-3">
+        {% csrf_token %}
+
+        <div class="col-md-6">
+          <label class="form-label" for="id_name">Product Name</label>
+          {{ form.name }}
+        </div>
+        <div class="col-md-6">
+          <label class="form-label" for="id_slug">Slug</label>
+          {{ form.slug }}
+        </div>
+
+        <div class="col-md-6">
+          <label class="form-label" for="id_category">Category</label>
+          {{ form.category }}
+        </div>
+        <div class="col-md-6">
+          <label class="form-label" for="id_flavor">Flavor</label>
+          {{ form.flavor }}
+        </div>
+
+        <div class="col-12">
+          <label class="form-label" for="id_description">Description</label>
+          {{ form.description }}
+        </div>
+
+        <div class="col-md-6">
+          <label class="form-label" for="id_image">Upload Image</label>
+          {{ form.image }}
+        </div>
+        <div class="col-md-6">
+          <label class="form-label" for="id_external_image_url">External Image URL</label>
+          {{ form.external_image_url }}
+        </div>
+
+        <div class="col-12 d-flex flex-wrap gap-3">
+          <div class="form-check">{{ form.is_active }} <label class="form-check-label" for="id_is_active">Active</label></div>
+          <div class="form-check">{{ form.is_featured }} <label class="form-check-label" for="id_is_featured">Featured</label></div>
+          <div class="form-check">{{ form.fundraiser_eligible }} <label class="form-check-label" for="id_fundraiser_eligible">Fundraiser Eligible</label></div>
+          <div class="form-check">{{ form.standalone_store_eligible }} <label class="form-check-label" for="id_standalone_store_eligible">Standalone Eligible</label></div>
+        </div>
+
+        {% if form.errors %}
+          <div class="col-12">
+            <div class="alert alert-danger mb-0">Please correct the errors below.</div>
+          </div>
+        {% endif %}
+
+        <div class="col-12 d-flex gap-2 pt-2">
+          <button class="btn btn-brand" type="submit">{{ submit_label }}</button>
+          <a href="{% url 'products:admin-list' %}" class="btn btn-outline-dark">Cancel</a>
+        </div>
+      </form>
+    </div>
+  </div>
+</section>
+{% endblock content %}

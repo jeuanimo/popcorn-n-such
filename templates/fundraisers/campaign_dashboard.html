@@ -1,0 +1,180 @@
+{% extends "base/base.html" %}
+{% load money %}
+{% block title %}{{ object.campaign_name }} Dashboard | Popcorn-N-Such{% endblock title %}
+
+{% block content %}
+<section class="page-hero">
+  <div class="container">
+    <span class="eyebrow">My Fundraiser</span>
+    <h1 class="mb-1">{{ object.campaign_name }}</h1>
+    <div class="d-flex gap-2 mt-2 flex-wrap">
+      <a class="btn btn-sm btn-outline-dark" href="{% url 'fundraisers:public-campaign-detail' object.slug %}">Public Page</a>
+      <span class="badge text-bg-{{ object.status|lower }}" style="font-size:.8rem;padding:.4em .8em;">{{ object.get_status_display }}</span>
+    </div>
+  </div>
+</section>
+
+<section class="py-4">
+  <div class="container">
+    <!-- Stats row -->
+    <div class="row g-3 mb-4">
+      <div class="col-6 col-lg-3">
+        <div class="stat-card">
+          <div class="stat-label">Total Sales</div>
+          <div class="stat-value">${{ total_sales_cents|cents_to_dollars }}</div>
+        </div>
+      </div>
+      <div class="col-6 col-lg-3">
+        <div class="stat-card">
+          <div class="stat-label">Orders</div>
+          <div class="stat-value">{{ total_orders }}</div>
+        </div>
+      </div>
+      <div class="col-6 col-lg-3">
+        <div class="stat-card">
+          <div class="stat-label">Profit Est.</div>
+          <div class="stat-value">${{ profit_estimate_cents|cents_to_dollars }}</div>
+        </div>
+      </div>
+      <div class="col-6 col-lg-3">
+        <div class="stat-card">
+          <div class="stat-label">Goal</div>
+          <div class="stat-value">{{ goal_progress_percent }}%</div>
+          <div class="mt-2">
+            <div class="progress" style="height:6px;">
+              <div class="progress-bar bg-warning" style="width:{{ goal_progress_percent }}%;"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="row g-4">
+
+      <!-- Campaign Photos (full CRUD) -->
+      <div class="col-12 col-lg-4">
+        <div class="hero-card p-4 h-100">
+          <h2 class="h6 fw-bold mb-3">Campaign Photos</h2>
+
+          <!-- Campaign Image -->
+          <p class="small fw-semibold mb-2">Main Photo</p>
+          {% if object.campaign_image %}
+            <img src="{{ object.campaign_image.url }}" alt="{{ object.campaign_name }}"
+                 class="img-fluid rounded mb-2" style="max-height:160px;object-fit:cover;width:100%;">
+            <form method="post" class="mb-3">
+              {% csrf_token %}
+              <button name="action" value="delete_image" class="btn btn-sm btn-outline-danger w-100" type="submit">Remove Photo</button>
+            </form>
+          {% else %}
+            <div class="bg-cream rounded d-flex align-items-center justify-content-center mb-2"
+                 style="height:120px;font-size:2rem;">📷</div>
+          {% endif %}
+          <form method="post" enctype="multipart/form-data" class="mb-4">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="upload_image" />
+            <input type="file" name="campaign_image" accept="image/*" class="form-control form-control-sm mb-2" required />
+            <button type="submit" class="btn btn-sm btn-outline-dark w-100">
+              {% if object.campaign_image %}Replace Photo{% else %}Upload Photo{% endif %}
+            </button>
+          </form>
+
+          <!-- Campaign Banner -->
+          <p class="small fw-semibold mb-2">Banner Image</p>
+          {% if object.campaign_banner %}
+            <img src="{{ object.campaign_banner.url }}" alt="{{ object.campaign_name }} banner"
+                 class="img-fluid rounded mb-2" style="max-height:100px;object-fit:cover;width:100%;">
+            <form method="post" class="mb-3">
+              {% csrf_token %}
+              <button name="action" value="delete_banner" class="btn btn-sm btn-outline-danger w-100" type="submit">Remove Banner</button>
+            </form>
+          {% else %}
+            <div class="bg-cream rounded d-flex align-items-center justify-content-center mb-2"
+                 style="height:80px;font-size:1.5rem;">🖼</div>
+          {% endif %}
+          <form method="post" enctype="multipart/form-data">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="upload_banner" />
+            <input type="file" name="campaign_banner" accept="image/*" class="form-control form-control-sm mb-2" required />
+            <button type="submit" class="btn btn-sm btn-outline-dark w-100">
+              {% if object.campaign_banner %}Replace Banner{% else %}Upload Banner{% endif %}
+            </button>
+          </form>
+        </div>
+      </div>
+
+      <!-- Share / QR -->
+      <div class="col-12 col-lg-4">
+        <div class="hero-card p-4 h-100">
+          <h2 class="h6 fw-bold mb-3">Share Your Campaign</h2>
+          <p class="small text-muted mb-2">Send this link to your sellers so they can create their personal storefronts.</p>
+          <div class="d-flex gap-2 mb-3">
+            <input type="text" class="form-control form-control-sm" value="{{ share_link }}" readonly id="shareInput" />
+            <button class="btn btn-sm btn-outline-dark" onclick="navigator.clipboard.writeText('{{ share_link }}');this.textContent='Copied!'">Copy</button>
+          </div>
+          {% if qr_data_uri %}
+            <img alt="Campaign QR code" src="{{ qr_data_uri }}" class="img-fluid mb-2" style="max-width:160px;">
+            <div><a class="btn btn-sm btn-outline-dark" href="{{ share_link }}qr.png">Download QR</a></div>
+          {% endif %}
+          {% if suggested_message %}
+            <p class="small text-muted mt-3 mb-0 fst-italic">{{ suggested_message }}</p>
+          {% endif %}
+        </div>
+      </div>
+
+      <!-- Top teams + sellers -->
+      <div class="col-12 col-lg-4">
+        <div class="hero-card p-4 mb-3">
+          <h2 class="h6 fw-bold mb-2">Top Teams</h2>
+          {% for row in top_teams %}
+            <div class="d-flex justify-content-between small py-1 border-bottom">
+              <span>{{ row.team__name }}</span>
+              <span class="fw-semibold">${{ row.sales_cents|cents_to_dollars }}</span>
+            </div>
+          {% empty %}
+            <p class="small text-muted mb-0">No team sales yet.</p>
+          {% endfor %}
+        </div>
+        <div class="hero-card p-4">
+          <h2 class="h6 fw-bold mb-2">Top Sellers</h2>
+          {% for row in top_sellers %}
+            <div class="d-flex justify-content-between small py-1 border-bottom">
+              <span>{{ row.seller__display_name }}</span>
+              <span class="fw-semibold">${{ row.sales_cents|cents_to_dollars }}</span>
+            </div>
+          {% empty %}
+            <p class="small text-muted mb-0">No seller sales yet.</p>
+          {% endfor %}
+        </div>
+      </div>
+
+      <!-- Recent orders -->
+      <div class="col-12">
+        <div class="hero-card p-4">
+          <h2 class="h6 fw-bold mb-3">Recent Orders</h2>
+          {% if recent_orders %}
+          <div class="table-responsive">
+            <table class="table table-sm mb-0">
+              <thead><tr><th>Order</th><th>Customer</th><th>Team</th><th>Seller</th><th class="text-end">Total</th></tr></thead>
+              <tbody>
+                {% for order in recent_orders %}
+                <tr>
+                  <td>#{{ order.id }}</td>
+                  <td>{{ order.customer.get_full_name|default:order.customer.username|default:"Guest" }}</td>
+                  <td>{{ order.team.name|default:"—" }}</td>
+                  <td>{{ order.seller.display_name|default:"—" }}</td>
+                  <td class="text-end">${{ order.total_cents|cents_to_dollars }}</td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+          {% else %}
+            <p class="small text-muted mb-0">No orders yet.</p>
+          {% endif %}
+        </div>
+      </div>
+
+    </div>
+  </div>
+</section>
+{% endblock content %}

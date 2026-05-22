@@ -1,0 +1,231 @@
+{% extends "base/base.html" %}
+{% load money %}
+
+{% block title %}Order {{ object.order_number|default:object.id }} | Popcorn-N-Such{% endblock title %}
+
+{% block content %}
+<section class="py-5">
+  <div class="container">
+
+    <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+      <h1 class="mb-0">Order {{ object.order_number|default:object.id }}</h1>
+      <a class="btn btn-sm btn-outline-dark" href="{% url 'orders:my-orders' %}">Back to orders</a>
+    </div>
+
+    {# ── Order summary ── #}
+    <div class="hero-card p-4 mb-4">
+      <div class="row g-3">
+        <div class="col-sm-4">
+          <p class="text-muted small mb-0">Status</p>
+          {% if object.status == "shipped" or object.status == "delivered" %}
+            <span class="badge text-bg-success fs-6">{{ object.get_status_display }}</span>
+          {% elif object.status == "canceled" or object.status == "refunded" %}
+            <span class="badge text-bg-secondary fs-6">{{ object.get_status_display }}</span>
+          {% elif object.status == "paid" or object.status == "processing" or object.status == "packed" %}
+            <span class="badge text-bg-warning text-dark fs-6">{{ object.get_status_display }}</span>
+          {% else %}
+            <span class="badge text-bg-light text-dark border fs-6">{{ object.get_status_display }}</span>
+          {% endif %}
+        </div>
+        <div class="col-sm-4">
+          <p class="text-muted small mb-0">Placed</p>
+          <p class="mb-0 fw-semibold">{{ object.created_at|date:"M d, Y" }}</p>
+        </div>
+        <div class="col-sm-4">
+          <p class="text-muted small mb-0">Order Total</p>
+          <p class="mb-0 fw-semibold">${{ object.total_cents|cents_to_dollars }}</p>
+        </div>
+      </div>
+    </div>
+
+    {# ── Tracking ── #}
+    {% if active_label %}
+    <div class="hero-card p-4 mb-4" id="trackingCard">
+      <div class="d-flex justify-content-between align-items-start flex-wrap gap-2 mb-3">
+        <h2 class="h5 mb-0">Shipment Tracking</h2>
+        {% if active_label.provider != "draft" %}
+        <button
+          class="btn btn-sm btn-outline-dark"
+          id="refreshTrackingBtn"
+          data-tracking-url="{% url 'shipping:label-tracking' active_label.id %}"
+        >Refresh Status</button>
+        {% endif %}
+      </div>
+
+      <div class="row g-3 mb-3">
+        <div class="col-sm-6">
+          <p class="text-muted small mb-1">Tracking Number</p>
+          {% if active_label.tracking_url %}
+            <a class="fw-semibold" href="{{ active_label.tracking_url }}" target="_blank" rel="noopener noreferrer">
+              {{ active_label.tracking_number }}
+            </a>
+          {% else %}
+            <p class="mb-0 fw-semibold">{{ active_label.tracking_number }}</p>
+          {% endif %}
+        </div>
+        <div class="col-sm-6">
+          <p class="text-muted small mb-1">Carrier / Service</p>
+          <p class="mb-0">{{ active_label.carrier }}{% if active_label.service_name %} — {{ active_label.service_name }}{% endif %}</p>
+        </div>
+      </div>
+
+      {# Tracking timeline #}
+      <div id="trackingTimeline">
+        {% if tracking_events %}
+          {% include "shipping/_tracking_timeline.html" with events=tracking_events %}
+        {% elif active_label.provider == "draft" %}
+          <p class="text-muted small mb-0">This is a draft label — no carrier tracking is available.</p>
+        {% else %}
+          <p class="text-muted small mb-0">No tracking updates yet. Click <strong>Refresh Status</strong> to check for the latest scan.</p>
+        {% endif %}
+      </div>
+
+      <div id="trackingSpinner" class="d-none text-center py-3">
+        <output class="spinner-border spinner-border-sm text-secondary" aria-label="Loading tracking status"></output>
+        <span class="ms-2 small text-muted">Fetching latest status…</span>
+      </div>
+    </div>
+    {% endif %}
+
+    {# ── Line items ── #}
+    <div class="hero-card p-4 mb-4">
+      <h2 class="h5 mb-3">Items</h2>
+      {% for item in object.items.all %}
+        <div class="d-flex gap-3 align-items-center border-bottom py-2">
+          <div class="flex-shrink-0 rounded overflow-hidden border order-item-thumb">
+            {% if item.sku.product.image %}
+              <img src="{{ item.sku.product.image.url }}" alt="{{ item.sku.product.name }}" width="64" height="64" loading="lazy" />
+            {% elif item.sku.product.external_image_url %}
+              <img src="{{ item.sku.product.external_image_url }}" alt="{{ item.sku.product.name }}" width="64" height="64" loading="lazy" />
+            {% endif %}
+          </div>
+          <div class="flex-grow-1">
+            <p class="mb-0 fw-semibold">{{ item.product_name_snapshot }}</p>
+            <small class="text-muted">{{ item.sku.size }} &nbsp;·&nbsp; SKU {{ item.sku.sku_code }}</small>
+          </div>
+          <div class="text-end flex-shrink-0">
+            <p class="mb-0">Qty: {{ item.quantity }}</p>
+            <p class="mb-0 text-muted small">${{ item.unit_price_cents|cents_to_dollars }} each</p>
+          </div>
+        </div>
+      {% empty %}
+        <p class="mb-0 text-muted">No line items recorded for this order.</p>
+      {% endfor %}
+
+      <div class="d-flex gap-2 mt-3 flex-wrap">
+        <form method="post" action="{% url 'orders:reorder' object.id %}">
+          {% csrf_token %}
+          <button class="btn btn-brand" type="submit">Reorder These Items</button>
+        </form>
+      </div>
+    </div>
+
+    {# ── Pricing breakdown ── #}
+    <div class="hero-card p-4 mb-4">
+      <h2 class="h5 mb-3">Charges</h2>
+      <div class="d-flex justify-content-between mb-2">
+        <span>Subtotal</span>
+        <span>${{ object.subtotal_cents|cents_to_dollars }}</span>
+      </div>
+      {% if object.discount_cents %}
+      <div class="d-flex justify-content-between mb-2 text-success">
+        <span>Discount{% if object.coupon_code %} <span class="badge text-bg-success ms-1">{{ object.coupon_code }}</span>{% endif %}</span>
+        <span>− ${{ object.discount_cents|cents_to_dollars }}</span>
+      </div>
+      {% endif %}
+      <div class="d-flex justify-content-between mb-2">
+        <span>Shipping</span>
+        <span>
+          {% if object.shipping_cents == 0 %}
+            <span class="text-success fw-semibold">Free</span>
+          {% else %}
+            ${{ object.shipping_cents|cents_to_dollars }}
+          {% endif %}
+        </span>
+      </div>
+      <div class="d-flex justify-content-between mb-2">
+        <span>Tax</span>
+        <span>${{ object.tax_cents|cents_to_dollars }}</span>
+      </div>
+      <hr class="my-2">
+      <div class="d-flex justify-content-between fw-bold fs-5">
+        <span>Total</span>
+        <span>${{ object.total_cents|cents_to_dollars }}</span>
+      </div>
+    </div>
+
+    {# ── Subscribe ── #}
+    <div class="hero-card p-4">
+      <h2 class="h5 mb-1">Subscribe &amp; Save</h2>
+      <p class="text-muted small mb-3">Set up automatic repeat orders for these items on a schedule you choose.</p>
+      <form method="post" action="{% url 'orders:subscribe' object.id %}" class="d-flex gap-2 flex-wrap align-items-end">
+        {% csrf_token %}
+        <div>
+          <label class="form-label small fw-semibold mb-1" for="subscribeInterval">Repeat every</label>
+          <select id="subscribeInterval" name="interval" class="form-select form-select-sm subscribe-interval">
+            {% for key, label in interval_choices %}
+              <option value="{{ key }}">{{ label }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <button class="btn btn-sm btn-gold" type="submit">Subscribe</button>
+      </form>
+    </div>
+
+  </div>
+</section>
+{% endblock content %}
+
+{% block scripts %}
+<script>
+(function () {
+  const btn = document.getElementById("refreshTrackingBtn");
+  if (!btn) return;
+
+  const timeline = document.getElementById("trackingTimeline");
+  const spinner = document.getElementById("trackingSpinner");
+
+  function renderEvents(events) {
+    if (!events || events.length === 0) {
+      timeline.innerHTML = '<p class="text-muted small mb-0">No tracking updates available yet.</p>';
+      return;
+    }
+    const rows = events.map(function (e) {
+      const ts = e.event_timestamp || e.timestamp || "";
+      const date = ts ? new Date(ts).toLocaleString() : "";
+      const loc = e.location || e.event_location || "";
+      const desc = e.event_description || e.description || e.code || "Update";
+      return (
+        '<li class="tracking-event">' +
+          '<span class="tracking-dot"></span>' +
+          '<div class="tracking-body">' +
+            '<p class="mb-0 fw-semibold">' + desc + '</p>' +
+            (loc ? '<p class="mb-0 small text-muted">' + loc + '</p>' : '') +
+            (date ? '<p class="mb-0 small text-muted">' + date + '</p>' : '') +
+          '</div>' +
+        '</li>'
+      );
+    });
+    timeline.innerHTML = '<ul class="tracking-timeline list-unstyled mb-0">' + rows.join("") + '</ul>';
+  }
+
+  btn.addEventListener("click", function () {
+    btn.disabled = true;
+    spinner.classList.remove("d-none");
+    timeline.classList.add("d-none");
+
+    fetch(btn.dataset.trackingUrl, {headers: {"X-Requested-With": "XMLHttpRequest"}})
+      .then(function (r) { return r.json(); })
+      .then(function (data) { renderEvents(data.events || []); })
+      .catch(function () {
+        timeline.innerHTML = '<p class="text-danger small mb-0">Could not fetch tracking — please try again later.</p>';
+      })
+      .finally(function () {
+        spinner.classList.add("d-none");
+        timeline.classList.remove("d-none");
+        btn.disabled = false;
+      });
+  });
+}());
+</script>
+{% endblock scripts %}

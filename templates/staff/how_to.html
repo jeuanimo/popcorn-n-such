@@ -1,0 +1,133 @@
+{% extends "staff/base.html" %}
+
+{% block title %}Staff How-To | Popcorn-N-Such{% endblock title %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <div>
+    <span class="eyebrow">Training</span>
+    <h1 class="h3 mb-0">Staff / Admin How-To Guide</h1>
+  </div>
+  <a class="btn btn-sm btn-outline-dark" href="{% url 'dashboards:portal' %}">Back to Portal</a>
+</div>
+
+{# ── Catalog & Inventory ── #}
+<div class="hero-card p-4 mb-3">
+  <h2 class="h6 fw-bold mb-2">Catalog &amp; Inventory</h2>
+  <p class="mb-2">Use <strong>Products</strong> to create and edit product listings, descriptions, images, and pricing. Each product has one or more <strong>SKUs</strong> (size/variant combinations) that track individual inventory counts.</p>
+  <p class="mb-2">Use <strong>SKU Management</strong> to update stock quantities and set low-stock alert thresholds. When a SKU hits its threshold the fulfillment dashboard flags it.</p>
+  <p class="mb-0">Use <strong>Suppliers</strong> for vendor records and CSV bulk import. Supplier records link to purchase orders and help track replenishment.</p>
+</div>
+
+{# ── Orders & Fulfillment ── #}
+<div class="hero-card p-4 mb-3">
+  <h2 class="h6 fw-bold mb-2">Orders &amp; Fulfillment</h2>
+  <p class="mb-2">Use <strong>All Orders</strong> to search by order number, customer name, or email, and to update order status. Status transitions (Paid → Processing → Packed → Shipped → Delivered) drive what actions are available to staff and customers.</p>
+  <p class="mb-0">Use the <strong>Fulfillment Dashboard</strong> to see orders that are ready to pick, pack, and ship, along with low-stock alerts and open label issues.</p>
+</div>
+
+{# ── Shipping Labels ── #}
+<div class="hero-card p-4 mb-3">
+  <h2 class="h6 fw-bold mb-2">Shipping Labels</h2>
+
+  <p class="mb-1"><strong>Generating a label</strong></p>
+  <ol class="mb-3 ps-3">
+    <li>Go to <strong>Shipping → Generate &amp; Print Label</strong>.</li>
+    <li>Select the order from the dropdown (only paid/in-progress orders appear).</li>
+    <li>Choose a carrier/service — USPS Ground Advantage, FedEx Ground, or UPS Ground.</li>
+    <li>Click <strong>Generate Label</strong>. The Pitney Bowes API is called and the label opens for printing.</li>
+  </ol>
+
+  <p class="mb-1"><strong>Draft labels (no carrier credentials yet)</strong></p>
+  <p class="mb-3">If Pitney Bowes credentials are not configured, the system automatically creates a <em>Draft Label</em> — a printable address label (PDF) with a "DRAFT — No Tracking Number" banner. Use the browser's <strong>Save as PDF</strong> option to keep a copy. Replace it with a real label once API credentials are set up in Operational Settings.</p>
+
+  <p class="mb-1"><strong>Label Monitor</strong></p>
+  <p class="mb-2">Go to <strong>Shipping → Label Monitor</strong> to search all labels by tracking number or order number. From here you can:</p>
+  <ul class="mb-3 ps-3">
+    <li><strong>Print</strong> — open the label PDF in the browser print dialog</li>
+    <li><strong>Download</strong> — save the PDF to disk</li>
+    <li><strong>Reprint</strong> — re-serve the label and log the reprint in the audit trail</li>
+  </ul>
+
+  <p class="mb-1"><strong>Thermal printer via QZ Tray (one-time setup per workstation)</strong></p>
+  <ol class="mb-0 ps-3">
+    <li>Download and install <strong>QZ Tray</strong> on the computer at the store (free Java app).</li>
+    <li>In <strong>Operational Settings → Label Printer</strong>, enter the <strong>Printer Name</strong> (must match the OS print spooler exactly, e.g. <code>ZDesigner GK420d</code>) and the printer's IP address.</li>
+    <li>On the Generate &amp; Print page, follow the <strong>QZ Tray Setup</strong> card: click <strong>Install Library</strong> (one-time), then start QZ Tray on the workstation, then click <strong>Connect to QZ</strong>.</li>
+    <li>Labels with ZPL data will now print directly to the thermal printer without a browser dialog. If QZ Tray is unavailable the page falls back to browser PDF printing automatically.</li>
+  </ol>
+</div>
+
+{# ── Shipment Tracking ── #}
+<div class="hero-card p-4 mb-3">
+  <h2 class="h6 fw-bold mb-2">Shipment Tracking for Buyers</h2>
+  <p class="mb-2">Customers see a live tracking timeline on their order detail page. They can click <strong>Refresh Status</strong> to fetch the latest scan from Pitney Bowes (results are cached 5 minutes).</p>
+  <p class="mb-2">Customers receive automatic email notifications when their package is <strong>Out for Delivery</strong> or <strong>Delivered</strong>. Emails use the SMTP settings configured in Operational Settings.</p>
+  <p class="mb-0"><strong>Webhook (automatic push):</strong> In your Pitney Bowes account, configure the tracking webhook URL to <code>https://&lt;your-domain&gt;/shipping/webhooks/tracking/</code>. PB will push scan events in real time. Set the <code>SHIPPING_WEBHOOK_SECRET</code> environment variable and configure PB to send it in the <code>X-PB-Webhook-Secret</code> header to verify requests.</p>
+</div>
+
+{# ── Campaigns & Teams ── #}
+<div class="hero-card p-4 mb-3">
+  <h2 class="h6 fw-bold mb-2">Campaigns &amp; Teams</h2>
+  <p class="mb-2">Campaigns go live immediately by design. Use the <strong>Campaign Monitoring Queue</strong> to review any auto-flagged issues.</p>
+  <p class="mb-0">Use the <strong>Kill Switch</strong> to pause a campaign instantly, and <strong>Restore Live</strong> to re-enable it. Only paid orders count toward fundraising totals — cancelled and refunded orders are excluded automatically.</p>
+</div>
+
+{# ── Site Content (CMS) ── #}
+<div class="hero-card p-4 mb-3">
+  <h2 class="h6 fw-bold mb-2">Site Content (CMS)</h2>
+  <p class="mb-2">Use <strong>Site Configuration → Content Blocks</strong> to create and edit the editable sections that appear on public pages (hero banners, promotional callouts, testimonials, etc.) — no code changes required.</p>
+  <p class="mb-2">Each block has a <strong>Page</strong> (which page it appears on), a <strong>Section Name</strong> (internal key, e.g. <code>hero</code> or <code>promo-banner</code>), heading text, body text, an optional image, and an optional call-to-action button. Use <strong>Display Order</strong> to control the sequence and the <strong>Active</strong> toggle to show or hide a section without deleting it.</p>
+  <p class="mb-0">Use <strong>Notification Center</strong> and <strong>Alert Preferences</strong> to manage internal staff alerts (e.g. label printed, low stock).</p>
+</div>
+
+{# ── Operational Settings ── #}
+<div class="hero-card p-4 mb-3">
+  <h2 class="h6 fw-bold mb-2">Operational Settings</h2>
+  <p class="mb-2">Go to <strong>Staff Portal → Operational Settings</strong>. All changes take effect immediately — no server restart needed. Secret fields are never shown back; leave blank to keep the current value.</p>
+
+  <p class="mb-1"><strong>Business / Ship-From Address</strong></p>
+  <p class="mb-3">Enter your store or warehouse address here. This is what appears in the <em>FROM</em> field on every shipping label. Fill in Business Name, Street Address, City, State (2 letters), ZIP, and Country (2 letters).</p>
+
+  <p class="mb-1"><strong>Shipping Provider &amp; Rates</strong></p>
+  <ul class="mb-3 ps-3">
+    <li><strong>Shipping Provider</strong> — Pitney Bowes for live carrier rates; Flat Rate for a fixed charge with no API</li>
+    <li><strong>Default Package Weight</strong> — used when item weight is unknown</li>
+    <li><strong>Flat / Fallback Rate</strong> — charged on Flat Rate mode or when the live API fails (enter in cents: <code>899</code> = $8.99)</li>
+    <li><strong>Free Shipping Threshold</strong> — orders at or above this subtotal ship free (<code>7500</code> = $75; set <code>0</code> to disable)</li>
+  </ul>
+
+  <p class="mb-1"><strong>Label Printer (QZ Tray)</strong></p>
+  <ul class="mb-3 ps-3">
+    <li><strong>Printer Name</strong> — must match exactly how the printer appears in the OS print spooler or QZ Tray</li>
+    <li><strong>Printer IP</strong> — network IP for reference; configure in QZ Tray's printer settings</li>
+  </ul>
+
+  <p class="mb-1"><strong>Pitney Bowes API</strong></p>
+  <ul class="mb-3 ps-3">
+    <li>Enter your API Key and API Secret from the PB developer portal</li>
+    <li>Set <strong>Environment</strong> to <code>sandbox</code> for testing, <code>production</code> for live shipments</li>
+  </ul>
+
+  <p class="mb-1"><strong>GoDaddy Payments</strong></p>
+  <p class="mb-3">Enter API Key, Merchant ID, Webhook Secret, and API endpoint paths as supplied by GoDaddy. The webhook URL to register in GoDaddy's dashboard is shown at the bottom of the GoDaddy section — copy it from there.</p>
+
+  <p class="mb-1"><strong>Email / SMTP</strong></p>
+  <p class="mb-0">Configure Contact Email, Default From Email, and your SMTP credentials. These settings power all transactional emails — order confirmations, tracking notifications, and password resets. Click <strong>Save Operational Settings</strong> for changes to take effect.</p>
+</div>
+
+{# ── Customer Subscriptions ── #}
+<div class="hero-card p-4 mb-3">
+  <h2 class="h6 fw-bold mb-2">Customer Subscriptions</h2>
+  <p class="mb-2">Customers can subscribe to repeat orders from any order detail page. Intervals available: <strong>Weekly, Every 2 Weeks, Monthly, Every 2 Months</strong>. Customers can pause, resume, or cancel subscriptions from their account.</p>
+  <p class="mb-0">Subscription renewal orders are created automatically on the scheduled date. Cancelled or paused subscriptions do not generate new orders. Staff can view all subscriptions via the Django admin panel.</p>
+</div>
+
+{# ── Access & Users ── #}
+<div class="hero-card p-4">
+  <h2 class="h6 fw-bold mb-2">Access &amp; User Management</h2>
+  <p class="mb-2">Admin users can use <strong>Create User</strong> in the staff portal to add a new portal account, set the user's initial password, and assign roles and permissions.</p>
+  <p class="mb-0">Roles available: <strong>admin, staff, organization_manager, team_captain, seller, customer</strong>. Role assignments control which dashboards, orders, and settings a user can access. All sensitive actions (label creation, reprints, settings changes) are logged in the security audit trail.</p>
+</div>
+
+{% endblock content %}

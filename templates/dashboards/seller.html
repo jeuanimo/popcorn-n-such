@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% load money %}
+{% block content %}
+<div class="container py-4">
+  {% if not store %}
+    <p class="text-muted">No seller store found.</p>
+  {% else %}
+    <h1 class="h4">{{ store.display_name }} Dashboard</h1>
+    <div class="row g-3">
+      <div class="col-12 col-md-4"><div class="card"><div class="card-body"><div class="text-muted small">Sales</div><div class="fs-4">${{ total_sales_cents|cents_to_dollars }}</div></div></div></div>
+      <div class="col-12 col-md-4"><div class="card"><div class="card-body"><div class="text-muted small">Goal progress</div><div class="fs-4">{{ goal_progress_percent }}%</div></div></div></div>
+      <div class="col-12 col-md-4"><div class="card"><div class="card-body"><div class="text-muted small">Rank</div><div class="fs-4">{{ leaderboard_rank|default:"—" }}</div></div></div></div>
+    </div>
+    <div class="card mt-3">
+      <div class="card-header">Share link</div>
+      <div class="card-body">
+        <div><a href="{{ share_link }}">{{ share_link }}</a></div>
+        {% if qr_data_uri %}
+          <div class="mt-2"><img alt="QR" src="{{ qr_data_uri }}" width="180" height="180" class="img-fluid" style="max-width:180px;"></div>
+          {% if qr_download_url %}<div class="mt-2"><a class="btn btn-sm btn-outline-dark" href="{{ qr_download_url }}">Download QR</a></div>{% endif %}
+        {% endif %}
+        <div class="mt-2 text-muted small">{{ suggested_message }}</div>
+      </div>
+    </div>
+  {% endif %}
+</div>
+{% endblock content %}
