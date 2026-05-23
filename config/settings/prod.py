@@ -73,8 +73,10 @@ if _redis_url:
 _cloudinary_url = os.getenv("CLOUDINARY_URL", "")
 
 if _cloudinary_url:
-    # CLOUDINARY_URL=cloudinary://API_KEY:API_SECRET@CLOUD_NAME is auto-parsed
-    # by the cloudinary package at import time — no extra config call needed.
+    # cloudinary_storage's app_settings.py runs set_credentials() at import time
+    # and raises ImproperlyConfigured if CLOUDINARY_URL is missing. Only add
+    # these apps (and activate the storage backend) when the env var is present.
+    INSTALLED_APPS = INSTALLED_APPS + ["cloudinary_storage", "cloudinary"]  # noqa: F821
     STORAGES = {
         "default": {
             "BACKEND": "cloudinary_storage.storage.MediaCloudinaryStorage",
