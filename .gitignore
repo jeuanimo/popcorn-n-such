@@ -14,6 +14,7 @@ staticfiles/
 
 # Virtual environments
 .venv/
+.venv312/
 venv/
 
 # Env files
@@ -23,3 +24,7 @@ venv/
 # IDE
 .vscode/
 .idea/
+
+# Tool output files
+djlint_output.txt
+pyright_output.json

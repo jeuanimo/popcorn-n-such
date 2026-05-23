@@ -1,67 +1,83 @@
 {% extends "base/base.html" %}
-
-{% block title %}Checkout{% endblock title %}
-
+{% block title %}
+    Checkout
+{% endblock title %}
 {% block content %}
-<section class="py-5">
-  <div class="container">
-    <div class="d-flex justify-content-between align-items-center mb-4">
-      <h1 class="mb-0">Checkout</h1>
-      <a class="btn btn-outline-dark" href="{% url 'cart:view' %}">Back to cart</a>
-    </div>
-
-    <div class="row g-4">
-      <div class="col-12 col-lg-7">
-        <div class="hero-card p-4">
-          <form method="post" class="row g-3">
-            {% csrf_token %}
-
-            <div class="col-12 col-md-6">{{ form.guest_email.label_tag }}{{ form.guest_email }}</div>
-            <div class="col-12 col-md-6">{{ form.guest_phone.label_tag }}{{ form.guest_phone }}</div>
-
-            <div class="col-12"><hr class="my-2" /></div>
-            <div class="col-12"><h2 class="h5 mb-1">Shipping Address</h2></div>
-
-            <div class="col-12">{{ form.recipient_name.label_tag }}{{ form.recipient_name }}</div>
-            <div class="col-12 col-md-6">{{ form.shipping_phone.label_tag }}{{ form.shipping_phone }}</div>
-            <div class="col-12">{{ form.address_line_1.label_tag }}{{ form.address_line_1 }}</div>
-            <div class="col-12">{{ form.address_line_2.label_tag }}{{ form.address_line_2 }}</div>
-            <div class="col-12 col-md-4">{{ form.city.label_tag }}{{ form.city }}</div>
-            <div class="col-12 col-md-4">{{ form.state.label_tag }}{{ form.state }}</div>
-            <div class="col-12 col-md-4">{{ form.postal_code.label_tag }}{{ form.postal_code }}</div>
-            {{ form.country }}
-
-            <div class="col-12">
-              <button type="submit" class="btn btn-brand">Review Order</button>
+    <section class="py-5">
+        <div class="container">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h1 class="mb-0">Checkout</h1>
+                <a class="btn btn-outline-dark" href="{% url 'cart:view' %}">Back to cart</a>
             </div>
-          </form>
-        </div>
-      </div>
-
-      <div class="col-12 col-lg-5">
-        <div class="hero-card p-4">
-          <h2 class="h5 mb-3">Cart Items</h2>
-          {% for item in cart.items.all %}
-            <div class="d-flex gap-3 align-items-center border-bottom py-2">
-              <div class="flex-shrink-0" style="width:56px;height:56px;background:#fff;border:1px solid rgba(0,0,0,.08);border-radius:6px;overflow:hidden;">
-                {% if item.sku.product.image %}
-                  <img src="{{ item.sku.product.image.url }}" alt="{{ item.sku.product.name }}" width="56" height="56" style="width:100%;height:100%;object-fit:contain;" />
-                {% elif item.sku.product.external_image_url %}
-                  <img src="{{ item.sku.product.external_image_url }}" alt="{{ item.sku.product.name }}" width="56" height="56" style="width:100%;height:100%;object-fit:contain;" />
-                {% endif %}
-              </div>
-              <div class="flex-grow-1">
-                <div class="fw-semibold">{{ item.sku.product.name }}</div>
-                <small class="text-muted">{{ item.sku.size }}</small>
-              </div>
-              <div class="text-end flex-shrink-0">Qty: {{ item.quantity }}</div>
+            <div class="row g-4">
+                <div class="col-12 col-lg-7">
+                    <div class="hero-card p-4">
+                        <form method="post" class="row g-3">
+                            {% csrf_token %}
+                            <div class="col-12 col-md-6">{{ form.guest_email.label_tag }}{{ form.guest_email }}</div>
+                            <div class="col-12 col-md-6">{{ form.guest_phone.label_tag }}{{ form.guest_phone }}</div>
+                            <div class="col-12">
+                                <hr class="my-2" />
+                            </div>
+                            <div class="col-12">
+                                <h2 class="h5 mb-1">Shipping Address</h2>
+                            </div>
+                            <div class="col-12">{{ form.recipient_name.label_tag }}{{ form.recipient_name }}</div>
+                            <div class="col-12 col-md-6">{{ form.shipping_phone.label_tag }}{{ form.shipping_phone }}</div>
+                            <div class="col-12">{{ form.address_line_1.label_tag }}{{ form.address_line_1 }}</div>
+                            <div class="col-12">{{ form.address_line_2.label_tag }}{{ form.address_line_2 }}</div>
+                            <div class="col-12 col-md-4">{{ form.city.label_tag }}{{ form.city }}</div>
+                            <div class="col-12 col-md-4">{{ form.state.label_tag }}{{ form.state }}</div>
+                            <div class="col-12 col-md-4">{{ form.postal_code.label_tag }}{{ form.postal_code }}</div>
+                            {{ form.country }}
+                            <div class="col-12">
+                                <button type="submit" class="btn btn-brand">Review Order</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+                <div class="col-12 col-lg-5">
+                    <div class="hero-card p-4">
+                        <h2 class="h5 mb-3">Cart Items</h2>
+                        {% for item in cart.items.all %}
+                            <div class="d-flex gap-3 align-items-center border-bottom py-2">
+                                <div class="flex-shrink-0"
+                                     style="width:56px;
+                                            height:56px;
+                                            background:#fff;
+                                            border:1px solid rgba(0,0,0,.08);
+                                            border-radius:6px;
+                                            overflow:hidden">
+                                    {% if item.sku.product.image %}
+                                        <img src="{{ item.sku.product.image.url }}"
+                                             alt="{{ item.sku.product.name }}"
+                                             width="56"
+                                             height="56"
+                                             style="width:100%;
+                                                    height:100%;
+                                                    object-fit:contain" />
+                                    {% elif item.sku.product.external_image_url %}
+                                        <img src="{{ item.sku.product.external_image_url }}"
+                                             alt="{{ item.sku.product.name }}"
+                                             width="56"
+                                             height="56"
+                                             style="width:100%;
+                                                    height:100%;
+                                                    object-fit:contain" />
+                                    {% endif %}
+                                </div>
+                                <div class="flex-grow-1">
+                                    <div class="fw-semibold">{{ item.sku.product.name }}</div>
+                                    <small class="text-muted">{{ item.sku.size }}</small>
+                                </div>
+                                <div class="text-end flex-shrink-0">Qty: {{ item.quantity }}</div>
+                            </div>
+                        {% empty %}
+                            <p class="mb-0">No items in cart.</p>
+                        {% endfor %}
+                    </div>
+                </div>
             </div>
-          {% empty %}
-            <p class="mb-0">No items in cart.</p>
-          {% endfor %}
         </div>
-      </div>
-    </div>
-  </div>
-</section>
+    </section>
 {% endblock content %}

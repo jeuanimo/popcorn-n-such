@@ -16,6 +16,7 @@ from .models import AbandonedCartEvent, CartRecoveryMessage, EventCloseReason, M
 from .services import AbandonedCartRecoveryService
 
 User = get_user_model()
+TEST_LOGIN_SECRET = "test-secret-abandoned-carts"
 
 
 @override_settings(
@@ -30,7 +31,7 @@ class AbandonedCartRecoveryTests(TestCase):
 		self.user = User.objects.create_user(
 			username="cart-user",
 			email="cart-user@example.com",
-			password="TestingOnlyPassword!123",
+			password=TEST_LOGIN_SECRET,
 			phone_number="+15551234567",
 		)
 		self.user.profile.marketing_opt_in = True

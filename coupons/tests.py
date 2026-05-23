@@ -15,11 +15,12 @@ from .models import Coupon, CouponDiscountType, CouponRedemption
 from .services import CouponService
 
 User = get_user_model()
+TEST_LOGIN_SECRET = "test-secret-coupons"
 
 
 class CouponServiceTests(TestCase):
     def setUp(self):
-        self.user = User.objects.create_user(username="buyer", password="pw", email="b@x.com")
+        self.user = User.objects.create_user(username="buyer", password=TEST_LOGIN_SECRET, email="b@x.com")
         self.category = ProductCategory.objects.create(key="popcorn", name="Popcorn")
         self.product = Product.objects.create(
             name="Test Pop",
@@ -41,7 +42,7 @@ class CouponServiceTests(TestCase):
         CartItem.objects.create(cart=self.cart, sku=self.sku, quantity=2)  # $20
 
     def test_percent_coupon_applies_and_caps_to_eligible_subtotal(self):
-        c = Coupon.objects.create(code="SAVE10", discount_type=CouponDiscountType.PERCENT, percent_off=Decimal("10.00"))
+        Coupon.objects.create(code="SAVE10", discount_type=CouponDiscountType.PERCENT, percent_off=Decimal("10.00"))
         self.cart.coupon_code = "save10"
         self.cart.save()
         quote = CouponService.quote_discount(cart=self.cart, user=self.user)

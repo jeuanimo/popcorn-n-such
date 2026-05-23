@@ -1,31 +1,38 @@
 {# Reusable leaderboard widget. Pass `rows`, `title`, `bar_color` from parent context. #}
 {% load money %}
 {% if rows %}
-<div class="card shadow-sm mb-4">
-  <div class="card-header fw-bold" style="background:var(--bs-{{ bar_color|default:'warning' }});color:#fff;">
-    {{ title|default:"Leaderboard" }}
-  </div>
-  <div class="card-body p-0">
-    <table class="table table-sm mb-0 align-middle">
-      <thead class="table-light">
-        <tr><th>#</th><th>Name</th><th>Raised</th><th>Goal</th></tr>
-      </thead>
-      <tbody>
-        {% for row in rows %}
-        <tr {% if row.rank == 1 %}class="fw-bold"{% endif %}>
-          <td>{{ row.rank }}</td>
-          <td>{{ row.display_name }}</td>
-          <td>${{ row.total_sales_cents|cents_to_dollars }}</td>
-          <td>
-            <div class="progress" style="height:10px;min-width:50px;">
-              <div class="progress-bar" role="progressbar"
-                   style="width:{{ row.goal_progress_percent }}%;background:var(--bs-{{ bar_color|default:'warning' }})"></div>
-            </div>
-          </td>
-        </tr>
-        {% endfor %}
-      </tbody>
-    </table>
-  </div>
-</div>
+    <div class="card shadow-sm mb-4">
+        <div class="card-header fw-bold"
+             style="background:var(--bs-{{ bar_color|default:'warning' }});
+                    color:#fff">{{ title|default:"Leaderboard" }}</div>
+        <div class="card-body p-0">
+            <table class="table table-sm mb-0 align-middle">
+                <thead class="table-light">
+                    <tr>
+                        <th>#</th>
+                        <th>Name</th>
+                        <th>Raised</th>
+                        <th>Goal</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for row in rows %}
+                        <tr {% if row.rank == 1 %}class="fw-bold"{% endif %}>
+                            <td>{{ row.rank }}</td>
+                            <td>{{ row.display_name }}</td>
+                            <td>${{ row.total_sales_cents|cents_to_dollars }}</td>
+                            <td>
+                                <div class="progress" style="height:10px;min-width:50px;">
+                                    <div class="progress-bar"
+                                         role="progressbar"
+                                         style="width:{{ row.goal_progress_percent }}%;
+                                                background:var(--bs-{{ bar_color|default:'warning' }})"></div>
+                                </div>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
 {% endif %}

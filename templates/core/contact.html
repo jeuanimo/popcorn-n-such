@@ -1,118 +1,116 @@
 {% extends "base/base.html" %}
 {% load site_content %}
-
-{% block title %}Contact | Popcorn-N-Such{% endblock title %}
-
+{% block title %}
+    Contact | Popcorn-N-Such
+{% endblock title %}
 {% block content %}
-
-<!-- Page hero -->
-<section id="sc-hero" class="page-hero">
-  <div class="container">
-    <span class="eyebrow">Get in Touch</span>
-    <h1 class="mb-2">Contact Us</h1>
-    <p class="lead mb-0">Questions about orders, fundraising, or bulk gifts? We're here to help.</p>
-  </div>
-</section>
-
-<section id="sc-contact-info" class="py-5">
-  <div class="container">
-
-    <div class="row g-5 justify-content-center">
-      <!-- Contact info -->
-      <div class="col-12 col-lg-4">
-        <div class="hero-card p-4 h-100">
-          <div class="section-title mb-3">
-            <span class="eyebrow">Reach Us</span>
-            <h2 class="h5">Contact Details</h2>
-          </div>
-          <div class="mb-3">
-            <div class="feature-icon flex-shrink-0" style="background:rgba(214,40,40,.1);display:inline-block;width:2rem;height:2rem;text-align:center;line-height:2rem;border-radius:50%;margin-right:.5rem;">
-              ✉
-            </div>
-            <strong>Email:</strong><br>
-            <a href="mailto:hello@popcornnsuch.com" class="link-gold">hello@popcornnsuch.com</a>
-          </div>
-          <div class="mb-3">
-            <div class="feature-icon flex-shrink-0" style="background:rgba(249,178,51,.15);display:inline-block;width:2rem;height:2rem;text-align:center;line-height:2rem;border-radius:50%;margin-right:.5rem;">
-              📞
-            </div>
-            <strong>Phone:</strong><br>
-            <span>(618) 917-5351</span>
-          </div>
-          <div class="mb-3">
-            <div class="feature-icon flex-shrink-0" style="background:rgba(214,40,40,.1);display:inline-block;width:2rem;height:2rem;text-align:center;line-height:2rem;border-radius:50%;margin-right:.5rem;">
-              📍
-            </div>
-            <strong>Address:</strong><br>
-            <span>515 Lincoln Hwy Ste 7<br>Fairview Heights, IL 62208</span>
-          </div>
-          <div id="sc-hours" class="mb-3">
-            <div class="feature-icon flex-shrink-0" style="background:rgba(46,125,50,.1);display:inline-block;width:2rem;height:2rem;text-align:center;line-height:2rem;border-radius:50%;margin-right:.5rem;">
-              🕐
-            </div>
-            <strong>Hours:</strong><br>
-            <span>Monday – Friday, 9 am – 5 pm</span>
-          </div>
-          <hr class="gold-divider my-4" />
-          <p class="small" style="color:var(--text-muted-clr);">
-            For fundraiser inquiries, please mention your organization name, estimated group size, and your target start date. We'll get back to you within 1 business day.
-          </p>
+    <!-- Page hero -->
+    <section id="sc-hero" class="page-hero">
+        <div class="container">
+            <span class="eyebrow">Get in Touch</span>
+            <h1 class="mb-2">Contact Us</h1>
+            <p class="lead mb-0">Questions about orders, fundraising, or bulk gifts? We're here to help.</p>
         </div>
-      </div>
-
-      <!-- Contact form -->
-      <div class="col-12 col-lg-4">
-        <div class="hero-card p-4 h-100">
-          <h3 class="h5 mb-4">Send Us a Message</h3>
-          <form method="post" novalidate>
-            {% csrf_token %}
-            <div class="mb-3">
-              {{ form.name.label_tag }}
-              {{ form.name }}
-              {% if form.name.errors %}<div class="text-danger small">{{ form.name.errors }}</div>{% endif %}
+    </section>
+    <section id="sc-contact-info" class="py-5">
+        <div class="container">
+            <div class="row g-5 justify-content-center">
+                <!-- Contact info -->
+                <div class="col-12 col-lg-4">
+                    <div class="hero-card p-4 h-100">
+                        <div class="section-title mb-3">
+                            <span class="eyebrow">Reach Us</span>
+                            <h2 class="h5">Contact Details</h2>
+                        </div>
+                        <div class="mb-3">
+                            <div class="feature-icon flex-shrink-0 contact-icon-chip contact-icon-red">✉</div>
+                            <strong>Email:</strong>
+                            <br>
+                            <a href="mailto:hello@popcornnsuch.com" class="link-gold">hello@popcornnsuch.com</a>
+                        </div>
+                        <div class="mb-3">
+                            <div class="feature-icon flex-shrink-0 contact-icon-chip contact-icon-gold">📞</div>
+                            <strong>Phone:</strong>
+                            <br>
+                            <span>(618) 917-5351</span>
+                        </div>
+                        <div class="mb-3">
+                            <div class="feature-icon flex-shrink-0 contact-icon-chip contact-icon-red">📍</div>
+                            <strong>Address:</strong>
+                            <br>
+                            <span>515 Lincoln Hwy Ste 7
+                                <br>
+                            Fairview Heights, IL 62208</span>
+                        </div>
+                        <div id="sc-hours" class="mb-3">
+                            <div class="feature-icon flex-shrink-0 contact-icon-chip contact-icon-green">🕐</div>
+                            <strong>Hours:</strong>
+                            <br>
+                            <span>Monday – Friday, 9 am – 5 pm</span>
+                        </div>
+                        <hr class="gold-divider my-4" />
+                        <p class="small contact-muted-copy">
+                            For fundraiser inquiries, please mention your organization name, estimated group size, and your target start date. We'll get back to you within 1 business day.
+                        </p>
+                    </div>
+                </div>
+                <!-- Contact form -->
+                <div class="col-12 col-lg-4">
+                    <div class="hero-card p-4 h-100">
+                        <h3 class="h5 mb-4">Send Us a Message</h3>
+                        <form method="post" novalidate>
+                            {% csrf_token %}
+                            <div class="mb-3">
+                                {{ form.name.label_tag }}
+                                {{ form.name }}
+                                {% if form.name.errors %}<div class="text-danger small">{{ form.name.errors }}</div>{% endif %}
+                            </div>
+                            <div class="mb-3">
+                                {{ form.email.label_tag }}
+                                {{ form.email }}
+                                {% if form.email.errors %}<div class="text-danger small">{{ form.email.errors }}</div>{% endif %}
+                            </div>
+                            <div class="mb-3">
+                                {{ form.message.label_tag }}
+                                {{ form.message }}
+                                {% if form.message.errors %}<div class="text-danger small">{{ form.message.errors }}</div>{% endif %}
+                            </div>
+                            <button type="submit" class="btn btn-brand">Send Message</button>
+                        </form>
+                    </div>
+                </div>
+                <!-- Map -->
+                <div class="col-12 col-lg-4">
+                    <div class="hero-card p-4 h-100">
+                        <h3 class="h5 mb-4">Find Us</h3>
+                        <div class="ratio ratio-4x3 rounded overflow-hidden mb-3">
+                            <iframe src="https://www.google.com/maps?q=515+Lincoln+Hwy+Ste+7,+Fairview+Heights,+IL+62208&output=embed"
+                                    width="100%"
+                                    height="100%"
+                                    class="contact-map-frame"
+                                    allowfullscreen=""
+                                    loading="lazy"
+                                    referrerpolicy="no-referrer-when-downgrade"
+                                    title="Popcorn-N-Such location"></iframe>
+                        </div>
+                        <div class="d-flex gap-2 align-items-start mb-3">
+                            <span class="contact-location-icon">📍</span>
+                            <div class="small">
+                                <strong>Popcorn-N-Such</strong>
+                                <br>
+                                515 Lincoln Hwy Ste 7
+                                <br>
+                                Fairview Heights, IL 62208
+                            </div>
+                        </div>
+                        <a href="https://www.google.com/maps/dir/?api=1&destination=515+Lincoln+Hwy+Ste+7,+Fairview+Heights,+IL+62208"
+                           target="_blank"
+                           rel="noopener noreferrer"
+                           class="btn btn-sm btn-brand w-100">Get Directions</a>
+                    </div>
+                </div>
             </div>
-            <div class="mb-3">
-              {{ form.email.label_tag }}
-              {{ form.email }}
-              {% if form.email.errors %}<div class="text-danger small">{{ form.email.errors }}</div>{% endif %}
-            </div>
-            <div class="mb-3">
-              {{ form.message.label_tag }}
-              {{ form.message }}
-              {% if form.message.errors %}<div class="text-danger small">{{ form.message.errors }}</div>{% endif %}
-            </div>
-            <button type="submit" class="btn btn-brand">Send Message</button>
-          </form>
         </div>
-      </div>
-
-      <!-- Map -->
-      <div class="col-12 col-lg-4">
-        <div class="hero-card p-4 h-100">
-          <h3 class="h5 mb-4">Find Us</h3>
-          <div class="ratio ratio-4x3 rounded overflow-hidden mb-3">
-            <iframe
-              src="https://www.google.com/maps?q=515+Lincoln+Hwy+Ste+7,+Fairview+Heights,+IL+62208&output=embed"
-              width="100%" height="100%" style="border:0;" allowfullscreen="" loading="lazy"
-              referrerpolicy="no-referrer-when-downgrade" title="Popcorn-N-Such location"></iframe>
-          </div>
-          <div class="d-flex gap-2 align-items-start mb-3">
-            <span style="font-size:1.1rem;">📍</span>
-            <div class="small">
-              <strong>Popcorn-N-Such</strong><br>
-              515 Lincoln Hwy Ste 7<br>
-              Fairview Heights, IL 62208
-            </div>
-          </div>
-          <a href="https://www.google.com/maps/dir/?api=1&destination=515+Lincoln+Hwy+Ste+7,+Fairview+Heights,+IL+62208"
-             target="_blank" rel="noopener noreferrer"
-             class="btn btn-sm btn-brand w-100">Get Directions</a>
-        </div>
-      </div>
-
-    </div>
-  </div>
-</section>
-{% render_managed_content "contact" %}
-
+    </section>
+    {% render_managed_content "contact" %}
 {% endblock content %}

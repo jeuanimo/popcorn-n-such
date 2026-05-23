@@ -1,176 +1,174 @@
 {% extends "staff/base.html" %}
-
-{% block title %}Generate Shipping Label | Popcorn-N-Such{% endblock title %}
-
+{% block title %}
+    Generate Shipping Label | Popcorn-N-Such
+{% endblock title %}
 {% block content %}
-<div class="container-fluid px-4 py-4 label-create-wrap">
-
-  <div class="d-flex align-items-center justify-content-between mb-4">
-    <div>
-      <span class="eyebrow">Shipping</span>
-      <h1 class="h3 mb-0">Generate &amp; Print Label</h1>
-    </div>
-    <a class="btn btn-sm btn-outline-dark" href="{% url 'shipping:label-list' %}">All Labels</a>
-  </div>
-
-  {# ── QZ Tray status & setup ── #}
-  <div class="hero-card p-4 mb-4">
-    <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
-      <div>
-        <h2 class="h5 mb-1">Network Label Printer</h2>
-        <p class="small text-muted mb-0">Direct printing to your thermal printer via QZ Tray.</p>
-      </div>
-      <span id="qzStatus" class="badge text-bg-secondary">Checking…</span>
-    </div>
-
-    <div id="qzSetup" class="d-none mt-3">
-      <hr class="my-3">
-
-      {# Step 1 — JS library #}
-      <div id="qzStepLibrary" class="mb-3">
-        <p class="small fw-semibold mb-2">Step 1 — Install QZ Tray JS library on this server</p>
-        <div class="d-flex align-items-center gap-2 flex-wrap">
-          <button id="installQzBtn" type="button" class="btn btn-sm btn-brand">
-            Install Library
-            <span id="installQzSpinner" class="spinner-border spinner-border-sm ms-1 d-none" aria-hidden="true"></span>
-          </button>
-          <span id="installQzResult" class="small"></span>
+    <div class="container-fluid px-4 py-4 label-create-wrap">
+        <div class="d-flex align-items-center justify-content-between mb-4">
+            <div>
+                <span class="eyebrow">Shipping</span>
+                <h1 class="h3 mb-0">Generate &amp; Print Label</h1>
+            </div>
+            <a class="btn btn-sm btn-outline-dark"
+               href="{% url 'shipping:label-list' %}">All Labels</a>
         </div>
-      </div>
-
-      {# Step 2 — Desktop app #}
-      <div class="mb-3">
-        <p class="small fw-semibold mb-2">Step 2 — Install QZ Tray desktop app on this workstation</p>
-        <a href="https://qz.io/download" target="_blank" rel="noopener noreferrer" class="btn btn-sm btn-outline-dark">
-          Download QZ Tray App ↗
-        </a>
-        <p class="form-text mt-1">
-          QZ Tray runs in the system tray and bridges this page to your label printer.
-          Once installed, this page connects to it automatically.
-        </p>
-      </div>
-
-      {# Step 3 — Printer name #}
-      <p class="small text-muted mb-0">
-        Step 3 — Set your printer name in
-        <a href="{% url 'dashboards:operational-settings' %}">Operational Settings</a>
-        (must match exactly how it appears in the OS print manager).
-      </p>
+        {# ── QZ Tray status & setup ── #}
+        <div class="hero-card p-4 mb-4">
+            <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
+                <div>
+                    <h2 class="h5 mb-1">Network Label Printer</h2>
+                    <p class="small text-muted mb-0">Direct printing to your thermal printer via QZ Tray.</p>
+                </div>
+                <span id="qzStatus" class="badge text-bg-secondary">Checking…</span>
+            </div>
+            <div id="qzSetup" class="d-none mt-3">
+                <hr class="my-3">
+                {# Step 1 — JS library #}
+                <div id="qzStepLibrary" class="mb-3">
+                    <p class="small fw-semibold mb-2">Step 1 — Install QZ Tray JS library on this server</p>
+                    <div class="d-flex align-items-center gap-2 flex-wrap">
+                        <button id="installQzBtn" type="button" class="btn btn-sm btn-brand">
+                            Install Library
+                            <span id="installQzSpinner"
+                                  class="spinner-border spinner-border-sm ms-1 d-none"
+                                  aria-hidden="true"></span>
+                        </button>
+                        <span id="installQzResult" class="small"></span>
+                    </div>
+                </div>
+                {# Step 2 — Desktop app #}
+                <div class="mb-3">
+                    <p class="small fw-semibold mb-2">Step 2 — Install QZ Tray desktop app on this workstation</p>
+                    <a href="https://qz.io/download"
+                       target="_blank"
+                       rel="noopener noreferrer"
+                       class="btn btn-sm btn-outline-dark">Download QZ Tray App ↗</a>
+                    <p class="form-text mt-1">
+                        QZ Tray runs in the system tray and bridges this page to your label printer.
+                        Once installed, this page connects to it automatically.
+                    </p>
+                </div>
+                {# Step 3 — Printer name #}
+                <p class="small text-muted mb-0">
+                    Step 3 — Set your printer name in
+                    <a href="{% url 'dashboards:operational-settings' %}">Operational Settings</a>
+                    (must match exactly how it appears in the OS print manager).
+                </p>
+            </div>
+        </div>
+        {# ── Generate form ── #}
+        <div class="hero-card p-4 mb-4">
+            <h2 class="h5 mb-3">Label Details</h2>
+            <div class="mb-3">
+                <label class="form-label fw-semibold" for="orderRef">Order</label>
+                <select id="orderRef" class="form-select">
+                    <option value="">— Select an order —</option>
+                    {% for order in eligible_orders %}
+                        <option value="{{ order.order_number|default:order.id }}">
+                            {{ order.order_number|default:order.id }}
+                            {% if order.shipping_recipient_name %}— {{ order.shipping_recipient_name }}{% endif %}
+                            ({{ order.status }})
+                        </option>
+                    {% endfor %}
+                </select>
+                <div class="form-text">Only paid and later-stage orders are shown.</div>
+            </div>
+            <div class="mb-4">
+                <label class="form-label fw-semibold" for="carrierSelect">Carrier &amp; Service</label>
+                <select id="carrierSelect" class="form-select">
+                    {% for key, label in carrier_choices %}<option value="{{ key }}">{{ label }}</option>{% endfor %}
+                </select>
+            </div>
+            <div id="labelError" class="alert alert-danger d-none" role="alert"></div>
+            <button id="generateBtn" type="button" class="btn btn-brand px-4">
+                <span id="generateBtnLabel">Generate &amp; Print</span>
+                <span id="generateBtnSpinner"
+                      class="spinner-border spinner-border-sm ms-2 d-none"
+                      aria-hidden="true"></span>
+            </button>
+        </div>
+        {# ── Success / result panel ── #}
+        <div id="resultPanel" class="hero-card p-4 mb-4 d-none">
+            <h2 class="h5 mb-3">Label Created</h2>
+            <dl class="row mb-3">
+                <dt class="col-sm-4">Tracking Number</dt>
+                <dd class="col-sm-8 fw-semibold" id="resTn">
+                </dd>
+                <dt class="col-sm-4">Carrier / Service</dt>
+                <dd class="col-sm-8" id="resCarrier">
+                </dd>
+                <dt class="col-sm-4">Cost</dt>
+                <dd class="col-sm-8" id="resCost">
+                </dd>
+            </dl>
+            <div id="draftAlert" class="alert alert-warning d-none" role="alert">
+                <strong>Draft label only.</strong>
+                The carrier API was unavailable — this label has no tracking number.
+                Print it and affix to the package. Generate a new label once the carrier is reachable to get a real tracking number.
+            </div>
+            <div id="noPrinterAlert" class="alert alert-warning d-none" role="alert">
+                <strong>Printer not found.</strong>
+                Download the PDF to print manually, or connect your label printer and click <strong>Print Again</strong>.
+            </div>
+            <div class="d-flex gap-2 flex-wrap">
+                <button id="printAgainBtn" type="button" class="btn btn-gold">Print Again</button>
+                <a id="downloadLink" href="#" class="btn btn-outline-dark">Download PDF</a>
+                <a id="trackLink"
+                   href="#"
+                   target="_blank"
+                   rel="noopener noreferrer"
+                   class="btn btn-outline-secondary">Track Shipment</a>
+            </div>
+        </div>
+        {# ── Hidden print iframe ── #}
+        <iframe id="labelFrame"
+                title="Shipping Label"
+                class="label-print-frame"
+                aria-hidden="true"></iframe>
     </div>
-  </div>
-
-  {# ── Generate form ── #}
-  <div class="hero-card p-4 mb-4">
-    <h2 class="h5 mb-3">Label Details</h2>
-
-    <div class="mb-3">
-      <label class="form-label fw-semibold" for="orderRef">Order</label>
-      <select id="orderRef" class="form-select">
-        <option value="">— Select an order —</option>
-        {% for order in eligible_orders %}
-          <option value="{{ order.order_number|default:order.id }}">
-            {{ order.order_number|default:order.id }}
-            {% if order.shipping_recipient_name %} — {{ order.shipping_recipient_name }}{% endif %}
-            ({{ order.status }})
-          </option>
-        {% endfor %}
-      </select>
-      <div class="form-text">Only paid and later-stage orders are shown.</div>
+    {# ── Print confirmation modal ── #}
+    <div class="modal fade"
+         id="printConfirmModal"
+         tabindex="-1"
+         aria-labelledby="printConfirmModalLabel"
+         aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="printConfirmModalLabel">Label Sent to Printer</h5>
+                    <button type="button"
+                            class="btn-close"
+                            data-bs-dismiss="modal"
+                            aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <p class="mb-1">Check your printer. Did the label print correctly?</p>
+                    <p class="small text-muted mb-0">
+                        If the print failed or the label is damaged, click <strong>Print Again</strong>.
+                        If no printer is available, <strong>Download PDF</strong> to print manually.
+                    </p>
+                </div>
+                <div class="modal-footer">
+                    <a id="modalDownloadBtn" href="#" class="btn btn-outline-dark">Download PDF</a>
+                    <button type="button"
+                            class="btn btn-outline-secondary"
+                            id="modalPrintAgainBtn">Print Again</button>
+                    <button type="button" class="btn btn-brand" data-bs-dismiss="modal">Yes, Done</button>
+                </div>
+            </div>
+        </div>
     </div>
-
-    <div class="mb-4">
-      <label class="form-label fw-semibold" for="carrierSelect">Carrier &amp; Service</label>
-      <select id="carrierSelect" class="form-select">
-        {% for key, label in carrier_choices %}
-          <option value="{{ key }}">{{ label }}</option>
-        {% endfor %}
-      </select>
-    </div>
-
-    <div id="labelError" class="alert alert-danger d-none" role="alert"></div>
-
-    <button id="generateBtn" type="button" class="btn btn-brand px-4">
-      <span id="generateBtnLabel">Generate &amp; Print</span>
-      <span id="generateBtnSpinner" class="spinner-border spinner-border-sm ms-2 d-none" aria-hidden="true"></span>
-    </button>
-  </div>
-
-  {# ── Success / result panel ── #}
-  <div id="resultPanel" class="hero-card p-4 mb-4 d-none">
-    <h2 class="h5 mb-3">Label Created</h2>
-    <dl class="row mb-3">
-      <dt class="col-sm-4">Tracking Number</dt>
-      <dd class="col-sm-8 fw-semibold" id="resTn"></dd>
-      <dt class="col-sm-4">Carrier / Service</dt>
-      <dd class="col-sm-8" id="resCarrier"></dd>
-      <dt class="col-sm-4">Cost</dt>
-      <dd class="col-sm-8" id="resCost"></dd>
-    </dl>
-
-    <div id="draftAlert" class="alert alert-warning d-none" role="alert">
-      <strong>Draft label only.</strong>
-      The carrier API was unavailable — this label has no tracking number.
-      Print it and affix to the package. Generate a new label once the carrier is reachable to get a real tracking number.
-    </div>
-
-    <div id="noPrinterAlert" class="alert alert-warning d-none" role="alert">
-      <strong>Printer not found.</strong>
-      Download the PDF to print manually, or connect your label printer and click <strong>Print Again</strong>.
-    </div>
-
-    <div class="d-flex gap-2 flex-wrap">
-      <button id="printAgainBtn" type="button" class="btn btn-gold">Print Again</button>
-      <a id="downloadLink" href="#" class="btn btn-outline-dark">Download PDF</a>
-      <a id="trackLink" href="#" target="_blank" rel="noopener noreferrer" class="btn btn-outline-secondary">Track Shipment</a>
-    </div>
-  </div>
-
-  {# ── Hidden print iframe ── #}
-  <iframe
-    id="labelFrame"
-    title="Shipping Label"
-    class="label-print-frame"
-    aria-hidden="true"
-  ></iframe>
-
-</div>
-
-{# ── Print confirmation modal ── #}
-<div class="modal fade" id="printConfirmModal" tabindex="-1" aria-labelledby="printConfirmModalLabel" aria-hidden="true">
-  <div class="modal-dialog modal-dialog-centered">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h5 class="modal-title" id="printConfirmModalLabel">Label Sent to Printer</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-      </div>
-      <div class="modal-body">
-        <p class="mb-1">Check your printer. Did the label print correctly?</p>
-        <p class="small text-muted mb-0">
-          If the print failed or the label is damaged, click <strong>Print Again</strong>.
-          If no printer is available, <strong>Download PDF</strong> to print manually.
-        </p>
-      </div>
-      <div class="modal-footer">
-        <a id="modalDownloadBtn" href="#" class="btn btn-outline-dark">Download PDF</a>
-        <button type="button" class="btn btn-outline-secondary" id="modalPrintAgainBtn">Print Again</button>
-        <button type="button" class="btn btn-brand" data-bs-dismiss="modal">Yes, Done</button>
-      </div>
-    </div>
-  </div>
-</div>
-
 {% endblock content %}
-
 {% block scripts %}
-{% load static %}
-{#
+    {% load static %}
+    {#
   QZ Tray — browser-to-thermal-printer bridge. Requires QZ Tray desktop app on the workstation.
   Self-host the library to avoid CDN dependency:
     curl -o static/js/vendor/qz-tray.js https://cdn.qz.io/qz-tray/qz-tray.js
   If the file is absent the page falls back silently to PDF/iframe printing.
 #}
-<script src="{% static 'js/vendor/qz-tray.js' %}"></script>
-<script>
+    <script src="{% static 'js/vendor/qz-tray.js' %}"></script>
+    <script>
 (function () {
   /* ── DOM refs ─────────────────────────────────────────────── */
   var csrfToken      = "{{ csrf_token }}";
@@ -482,5 +480,5 @@
     if (e.key === "Enter") { generateBtn.click(); }
   });
 }());
-</script>
+    </script>
 {% endblock scripts %}

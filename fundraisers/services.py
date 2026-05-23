@@ -40,8 +40,8 @@ class FundraiserCampaignService:
             raise PermissionDenied("You can only create campaigns for your organizations.")
 
         campaign.created_by = manager
-        campaign.status = FundraiserCampaignStatus.ACTIVE
-        campaign.is_active = True
+        campaign.status = FundraiserCampaignStatus.DRAFT
+        campaign.is_active = False
         campaign.approved_by = None
         campaign.save()
         form.save_m2m()

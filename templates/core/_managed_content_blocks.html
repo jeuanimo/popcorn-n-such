@@ -1,23 +1,29 @@
 {% if managed_blocks %}
-  <section class="py-4">
-    <div class="container">
-      <div class="row g-4">
-        {% for block in managed_blocks %}
-          <div class="col-12">
-            <article id="sc-{{ block.section_key }}" class="hero-card p-4 h-100">
-              {% if block.title %}<h3 class="h4 mb-2">{{ block.title }}</h3>{% endif %}
-              {% if block.image %}
-                <img src="{{ block.image.url }}" alt="{{ block.title|default:block.section_key }}" class="img-fluid rounded mb-3" />
-              {% endif %}
-              {% if block.body %}<p class="mb-3">{{ block.body|linebreaksbr }}</p>{% endif %}
-              {% if block.cta_text and block.cta_url %}
-                <a class="btn btn-brand btn-sm" href="{{ block.cta_url }}">{{ block.cta_text }}</a>
-              {% endif %}
-              <p class="small text-muted mb-0 mt-3">Section: <code>{{ block.section_key }}</code></p>
-            </article>
-          </div>
-        {% endfor %}
-      </div>
-    </div>
-  </section>
+    <section class="py-4">
+        <div class="container">
+            <div class="row g-4">
+                {% for block in managed_blocks %}
+                    <div class="col-12">
+                        <article id="sc-{{ block.section_key }}" class="hero-card p-4 h-100">
+                            {% if block.title %}<h3 class="h4 mb-2">{{ block.title }}</h3>{% endif %}
+                            {% if block.image %}
+                                <img src="{{ block.image.url }}"
+                                     alt="{{ block.title|default:block.section_key }}"
+                                     class="img-fluid rounded mb-3"
+                                     width="800"
+                                     height="600" />
+                            {% endif %}
+                            {% if block.body %}<p class="mb-3">{{ block.body|linebreaksbr }}</p>{% endif %}
+                            {% if block.cta_text and block.cta_url %}
+                                <a class="btn btn-brand btn-sm" href="{{ block.cta_url }}">{{ block.cta_text }}</a>
+                            {% endif %}
+                            <p class="small text-muted mb-0 mt-3">
+                                Section: <code>{{ block.section_key }}</code>
+                            </p>
+                        </article>
+                    </div>
+                {% endfor %}
+            </div>
+        </div>
+    </section>
 {% endif %}

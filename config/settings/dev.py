@@ -25,3 +25,9 @@ SHIPPING_FROM_COUNTRY = "US"
 SHIPPING_DEFAULT_WEIGHT_OZ = 16
 ESTIMATED_SHIPPING_CENTS = 899
 FREE_SHIPPING_THRESHOLD_CENTS = 7500
+
+# Run Celery tasks synchronously in dev so the site works without a Redis
+# broker or a running worker process.  Set to False and start a worker
+# if you want to test actual async behaviour locally.
+CELERY_TASK_ALWAYS_EAGER = True
+CELERY_TASK_EAGER_PROPAGATES = True

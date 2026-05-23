@@ -1,61 +1,52 @@
 {% extends "base/base.html" %}
-
-{% block title %}Create Fundraiser Request | Popcorn-N-Such{% endblock title %}
-
+{% block title %}
+    Create Fundraiser Request | Popcorn-N-Such
+{% endblock title %}
 {% block content %}
-<section class="page-hero">
-  <div class="container text-center">
-    <span class="eyebrow">Fundraising</span>
-    <h1 class="mb-2">Create your fundraiser request</h1>
-    <p class="lead mb-0">Share a few details and we will help you launch your fundraiser.</p>
-  </div>
-</section>
-
-<section class="py-5">
-  <div class="container">
-    <div class="row justify-content-center">
-      <div class="col-12 col-lg-8 col-xl-6">
-        <div class="hero-card p-4 p-md-5">
-          <form method="post" novalidate>
-            {% csrf_token %}
-
-            {% if form.non_field_errors %}
-              <div class="alert alert-danger mb-3">
-                {% for error in form.non_field_errors %}
-                  <div>{{ error }}</div>
-                {% endfor %}
-              </div>
-            {% endif %}
-
-            <div class="mb-3">
-              <label class="form-label" for="{{ form.organization_name.id_for_label }}">Organization name</label>
-              <input
-                type="text"
-                id="{{ form.organization_name.id_for_label }}"
-                name="{{ form.organization_name.html_name }}"
-                class="form-control{% if form.organization_name.errors %} is-invalid{% endif %}"
-                value="{{ form.organization_name.value|default:'' }}"
-              />
-              {% for error in form.organization_name.errors %}<div class="invalid-feedback">{{ error }}</div>{% endfor %}
-            </div>
-
-            <div class="mb-4">
-              <label class="form-label" for="{{ form.goal_description.id_for_label }}">Fundraiser details</label>
-              <textarea
-                id="{{ form.goal_description.id_for_label }}"
-                name="{{ form.goal_description.html_name }}"
-                class="form-control{% if form.goal_description.errors %} is-invalid{% endif %}"
-                rows="5"
-              >{{ form.goal_description.value|default:'' }}</textarea>
-              <div class="form-text">Tell us about your group, goals, and preferred fundraiser timing.</div>
-              {% for error in form.goal_description.errors %}<div class="invalid-feedback">{{ error }}</div>{% endfor %}
-            </div>
-
-            <button type="submit" class="btn btn-brand w-100">Submit fundraiser request</button>
-          </form>
+    <section class="page-hero">
+        <div class="container text-center">
+            <span class="eyebrow">Fundraising</span>
+            <h1 class="mb-2">Create your fundraiser request</h1>
+            <p class="lead mb-0">Share a few details and we will help you launch your fundraiser.</p>
         </div>
-      </div>
-    </div>
-  </div>
-</section>
+    </section>
+    <section class="py-5">
+        <div class="container">
+            <div class="row justify-content-center">
+                <div class="col-12 col-lg-8 col-xl-6">
+                    <div class="hero-card p-4 p-md-5">
+                        <form method="post" novalidate>
+                            {% csrf_token %}
+                            {% if form.non_field_errors %}
+                                <div class="alert alert-danger mb-3">
+                                    {% for error in form.non_field_errors %}<div>{{ error }}</div>{% endfor %}
+                                </div>
+                            {% endif %}
+                            <div class="mb-3">
+                                <label class="form-label" for="{{ form.organization_name.id_for_label }}">Organization name</label>
+                                <input type="text"
+                                       id="{{ form.organization_name.id_for_label }}"
+                                       name="{{ form.organization_name.html_name }}"
+                                       class="form-control{% if form.organization_name.errors %} is-invalid{% endif %}"
+                                       value="{{ form.organization_name.value|default:'' }}" />
+                                {% for error in form.organization_name.errors %}<div class="invalid-feedback">{{ error }}</div>{% endfor %}
+                            </div>
+                            <div class="mb-4">
+                                <label class="form-label" for="{{ form.goal_description.id_for_label }}">Fundraiser details</label>
+                                <textarea id="{{ form.goal_description.id_for_label }}"
+                                          name="{{ form.goal_description.html_name }}"
+                                          class="form-control{% if form.goal_description.errors %} is-invalid{% endif %}"
+                                          rows="5">{{ form.goal_description.value|default:'' }}</textarea>
+                                <div class="form-text">Tell us about your group, goals, and preferred fundraiser timing.</div>
+                                {% for error in form.goal_description.errors %}
+                                    <div class="invalid-feedback">{{ error }}</div>
+                                {% endfor %}
+                            </div>
+                            <button type="submit" class="btn btn-brand w-100">Submit fundraiser request</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
 {% endblock content %}

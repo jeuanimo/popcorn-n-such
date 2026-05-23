@@ -12,6 +12,7 @@ services:
     buildCommand: |
       pip install -r requirements.txt &&
       python manage.py collectstatic --noinput
+    preDeployCommand: python manage.py migrate --noinput
     startCommand: >-
       gunicorn config.wsgi:application
       --bind 0.0.0.0:$PORT
@@ -51,6 +52,74 @@ services:
       # Add remaining secrets via Render dashboard or render.yaml envVars:
       # PAYMENTS_WEBHOOK_SECRET, SHIPPO_API_KEY, SENTRY_DSN, etc.
       # See .env.example for the full list.
+
+  - type: worker
+    name: popcorn-n-such-worker
+    runtime: python
+    region: ohio
+    plan: starter
+    buildCommand: pip install -r requirements.txt
+    startCommand: celery -A config worker -l info --concurrency 2
+    envVars:
+      - key: DJANGO_SETTINGS_MODULE
+        value: config.settings.prod
+      - key: DJANGO_SECRET_KEY
+        fromService:
+          name: popcorn-n-such
+          type: web
+          envVarKey: DJANGO_SECRET_KEY
+      - key: DATABASE_URL
+        fromDatabase:
+          name: popcorn-n-such-db
+          property: connectionString
+      - key: REDIS_URL
+        fromService:
+          name: popcorn-n-such-redis
+          type: redis
+          property: connectionString
+      - key: DB_SSL_REQUIRE
+        value: "true"
+      - key: DJANGO_DEBUG
+        value: "false"
+      - key: DJANGO_ALLOWED_HOSTS
+        value: popcorn-n-such.onrender.com
+      - key: SITE_BASE_URL
+        value: https://popcorn-n-such.onrender.com
+
+  - type: worker
+    name: popcorn-n-such-beat
+    runtime: python
+    region: ohio
+    plan: starter
+    buildCommand: pip install -r requirements.txt
+    startCommand: >-
+      celery -A config beat -l info
+      --scheduler django_celery_beat.schedulers:DatabaseScheduler
+    envVars:
+      - key: DJANGO_SETTINGS_MODULE
+        value: config.settings.prod
+      - key: DJANGO_SECRET_KEY
+        fromService:
+          name: popcorn-n-such
+          type: web
+          envVarKey: DJANGO_SECRET_KEY
+      - key: DATABASE_URL
+        fromDatabase:
+          name: popcorn-n-such-db
+          property: connectionString
+      - key: REDIS_URL
+        fromService:
+          name: popcorn-n-such-redis
+          type: redis
+          property: connectionString
+      - key: DB_SSL_REQUIRE
+        value: "true"
+      - key: DJANGO_DEBUG
+        value: "false"
+      - key: DJANGO_ALLOWED_HOSTS
+        value: popcorn-n-such.onrender.com
+      - key: SITE_BASE_URL
+        value: https://popcorn-n-such.onrender.com
 
   - type: redis
     name: popcorn-n-such-redis

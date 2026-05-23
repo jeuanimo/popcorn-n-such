@@ -1,9 +1,14 @@
 {% extends "staff/base.html" %}
-
-{% block title %}{% if object %}Edit{% else %}Add{% endif %} Site Content | Popcorn-N-Such{% endblock title %}
-
+{% block title %}
+    {% if object %}
+        Edit
+    {% else %}
+        Add
+    {% endif %}
+    Site Content | Popcorn-N-Such
+{% endblock title %}
 {% block head %}
-<style>
+    <style>
   .sc-layout {
     display: grid;
     grid-template-columns: 1fr 1fr;
@@ -26,119 +31,126 @@
     background: #fff;
   }
   .sc-img-thumb { max-height: 110px; border-radius: 6px; margin-top: .5rem; }
-</style>
+    </style>
 {% endblock head %}
-
 {% block content %}
-
-<div class="d-flex justify-content-between align-items-center mb-3">
-  <h1 class="h3 mb-0">{% if object %}Edit{% else %}Add{% endif %} Site Content Block</h1>
-  <a href="{% url 'site-config-list' %}" class="btn btn-outline-dark btn-sm">Back</a>
-</div>
-
-<div class="sc-layout">
-
-  <!-- ── Left: edit form ───────────────────────────────────── -->
-  <div class="hero-card p-4">
-    <form method="post" enctype="multipart/form-data" id="siteContentEditorForm">
-      {% csrf_token %}
-
-      <div class="row g-3">
-        <div class="col-12 col-sm-5">
-          <label class="form-label" for="{{ form.page_key.id_for_label }}">{{ form.page_key.label }}</label>
-          {{ form.page_key }}
-          {% if form.page_key.errors %}<div class="invalid-feedback d-block">{{ form.page_key.errors.0 }}</div>{% endif %}
-        </div>
-        <div class="col-12 col-sm-7">
-          <label class="form-label" for="sectionKeySelect">Section</label>
-          <select id="sectionKeySelect" class="form-select">
-            <option value="">— pick a page first —</option>
-          </select>
-          {# hidden field carries the actual value on POST #}
-          <input type="hidden" name="section_key" id="id_section_key" value="{{ form.section_key.value|default:'' }}" />
-          {% if form.section_key.errors %}<div class="invalid-feedback d-block">{{ form.section_key.errors.0 }}</div>{% endif %}
-        </div>
-        <div class="col-12">
-          <label class="form-label" for="{{ form.title.id_for_label }}">{{ form.title.label }}</label>
-          {{ form.title }}
-          {% if form.title.errors %}<div class="invalid-feedback d-block">{{ form.title.errors.0 }}</div>{% endif %}
-        </div>
-        <div class="col-12">
-          <label class="form-label" for="{{ form.body.id_for_label }}">{{ form.body.label }}</label>
-          {{ form.body }}
-          {% if form.body.errors %}<div class="invalid-feedback d-block">{{ form.body.errors.0 }}</div>{% endif %}
-        </div>
-        <div class="col-12 col-sm-6">
-          <label class="form-label" for="{{ form.cta_text.id_for_label }}">{{ form.cta_text.label }}</label>
-          {{ form.cta_text }}
-        </div>
-        <div class="col-12 col-sm-6">
-          <label class="form-label" for="{{ form.cta_url.id_for_label }}">{{ form.cta_url.label }}</label>
-          {{ form.cta_url }}
-        </div>
-        <div class="col-12 col-sm-6">
-          <label class="form-label" for="{{ form.image.id_for_label }}">{{ form.image.label }}</label>
-          {{ form.image }}
-          {% if object and object.image %}
-            <img src="{{ object.image.url }}" alt="{{ object.title|default:object.section_key }}" class="sc-img-thumb" width="110" height="110" />
-          {% endif %}
-        </div>
-        <div class="col-6 col-sm-3">
-          <label class="form-label" for="{{ form.sort_order.id_for_label }}">{{ form.sort_order.label }}</label>
-          {{ form.sort_order }}
-        </div>
-        <div class="col-6 col-sm-3 d-flex align-items-end pb-1">
-          <div class="form-check">
-            {{ form.is_active }}
-            <label class="form-check-label" for="{{ form.is_active.id_for_label }}">{{ form.is_active.label }}</label>
-          </div>
-        </div>
-        <div class="col-12">
-          <button type="submit" class="btn btn-brand w-100">
-            {% if object %}Save Changes{% else %}Create Block{% endif %}
-          </button>
-        </div>
-      </div>
-
-    </form>
-  </div>
-
-  <!-- ── Right: live preview ───────────────────────────────── -->
-  <div class="hero-card p-4">
-
-    <div class="sc-preview-header">
-      <h2 class="h6 fw-bold mb-0">Live Page Preview</h2>
-      <select id="previewPageSelect" class="form-select form-select-sm sc-preview-select">
-        {% for key, label in managed_pages %}
-          <option value="{{ key }}" {% if key == selected_page_key %}selected{% endif %}>{{ label }}</option>
-        {% endfor %}
-      </select>
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h1 class="h3 mb-0">
+            {% if object %}
+                Edit
+            {% else %}
+                Add
+            {% endif %}
+            Site Content Block
+        </h1>
+        <a href="{% url 'site-config-list' %}"
+           class="btn btn-outline-dark btn-sm">Back</a>
     </div>
-
-    <div class="mb-3 p-3 border rounded bg-light small">
-      <div class="fw-semibold mb-1">Editable sections on this page:</div>
-      <ul class="mb-0 ps-3" id="editableSectionsList">
-        <li class="text-muted">Loading…</li>
-      </ul>
+    <div class="sc-layout">
+        <!-- ── Left: edit form ───────────────────────────────────── -->
+        <div class="hero-card p-4">
+            <form method="post"
+                  enctype="multipart/form-data"
+                  id="siteContentEditorForm">
+                {% csrf_token %}
+                <div class="row g-3">
+                    <div class="col-12 col-sm-5">
+                        <label class="form-label" for="{{ form.page_key.id_for_label }}">{{ form.page_key.label }}</label>
+                        {{ form.page_key }}
+                        {% if form.page_key.errors %}<div class="invalid-feedback d-block">{{ form.page_key.errors.0 }}</div>{% endif %}
+                    </div>
+                    <div class="col-12 col-sm-7">
+                        <label class="form-label" for="sectionKeySelect">Section</label>
+                        <select id="sectionKeySelect" class="form-select">
+                            <option value="">— pick a page first —</option>
+                        </select>
+                        {# hidden field carries the actual value on POST #}
+                        <input type="hidden"
+                               name="section_key"
+                               id="id_section_key"
+                               value="{{ form.section_key.value|default:'' }}" />
+                        {% if form.section_key.errors %}<div class="invalid-feedback d-block">{{ form.section_key.errors.0 }}</div>{% endif %}
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label" for="{{ form.title.id_for_label }}">{{ form.title.label }}</label>
+                        {{ form.title }}
+                        {% if form.title.errors %}<div class="invalid-feedback d-block">{{ form.title.errors.0 }}</div>{% endif %}
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label" for="{{ form.body.id_for_label }}">{{ form.body.label }}</label>
+                        {{ form.body }}
+                        {% if form.body.errors %}<div class="invalid-feedback d-block">{{ form.body.errors.0 }}</div>{% endif %}
+                    </div>
+                    <div class="col-12 col-sm-6">
+                        <label class="form-label" for="{{ form.cta_text.id_for_label }}">{{ form.cta_text.label }}</label>
+                        {{ form.cta_text }}
+                    </div>
+                    <div class="col-12 col-sm-6">
+                        <label class="form-label" for="{{ form.cta_url.id_for_label }}">{{ form.cta_url.label }}</label>
+                        {{ form.cta_url }}
+                    </div>
+                    <div class="col-12 col-sm-6">
+                        <label class="form-label" for="{{ form.image.id_for_label }}">{{ form.image.label }}</label>
+                        {{ form.image }}
+                        {% if object and object.image %}
+                            <img src="{{ object.image.url }}"
+                                 alt="{{ object.title|default:object.section_key }}"
+                                 class="sc-img-thumb"
+                                 width="110"
+                                 height="110" />
+                        {% endif %}
+                    </div>
+                    <div class="col-6 col-sm-3">
+                        <label class="form-label" for="{{ form.sort_order.id_for_label }}">{{ form.sort_order.label }}</label>
+                        {{ form.sort_order }}
+                    </div>
+                    <div class="col-6 col-sm-3 d-flex align-items-end pb-1">
+                        <div class="form-check">
+                            {{ form.is_active }}
+                            <label class="form-check-label" for="{{ form.is_active.id_for_label }}">{{ form.is_active.label }}</label>
+                        </div>
+                    </div>
+                    <div class="col-12">
+                        <button type="submit" class="btn btn-brand w-100">
+                            {% if object %}
+                                Save Changes
+                            {% else %}
+                                Create Block
+                            {% endif %}
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+        <!-- ── Right: live preview ───────────────────────────────── -->
+        <div class="hero-card p-4">
+            <div class="sc-preview-header">
+                <h2 class="h6 fw-bold mb-0">Live Page Preview</h2>
+                <select id="previewPageSelect"
+                        class="form-select form-select-sm sc-preview-select">
+                    {% for key, label in managed_pages %}
+                        <option value="{{ key }}"
+                                {% if key == selected_page_key %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="mb-3 p-3 border rounded bg-light small">
+                <div class="fw-semibold mb-1">Editable sections on this page:</div>
+                <ul class="mb-0 ps-3" id="editableSectionsList">
+                    <li class="text-muted">Loading…</li>
+                </ul>
+            </div>
+            <iframe id="livePagePreviewFrame"
+                    title="Live page preview"
+                    src=""
+                    sandbox="allow-same-origin allow-scripts allow-forms"
+                    class="sc-iframe"></iframe>
+        </div>
     </div>
-
-    <iframe
-      id="livePagePreviewFrame"
-      title="Live page preview"
-      src=""
-      sandbox="allow-same-origin allow-scripts allow-forms"
-      class="sc-iframe"
-    ></iframe>
-
-  </div>
-
-</div>
-
-{{ page_preview_urls_script }}
-{{ page_sections_map_script }}
-{{ page_sections_script }}
-
-<script>
+    {{ page_preview_urls_script }}
+    {{ page_sections_map_script }}
+    {{ page_sections_script }}
+    <script>
 (function () {
   var pageKeyEl       = document.getElementById('id_page_key');
   var sectionSelect   = document.getElementById('sectionKeySelect');
@@ -258,6 +270,5 @@
   populateSectionDropdown(initialPage, initialSection);
   loadPreview(initialPage);
 }());
-</script>
-
+    </script>
 {% endblock content %}

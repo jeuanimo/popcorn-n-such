@@ -15,11 +15,12 @@ from sharing.services import ShareLinkService
 from teams.models import Team
 
 User = get_user_model()
+TEST_LOGIN_SECRET = "test-secret-sharing"
 
 
 class ShareLinkRedirectTests(TestCase):
     def setUp(self):
-        self.manager = User.objects.create_user(username="mgr", password="pw")
+        self.manager = User.objects.create_user(username="mgr", password=TEST_LOGIN_SECRET)
         org = Organization.objects.create(name="Org", manager=self.manager)
         self.campaign = FundraiserCampaign.objects.create(
             organization=org,
@@ -32,7 +33,7 @@ class ShareLinkRedirectTests(TestCase):
             created_by=self.manager,
             is_active=True,
         )
-        self.captain = User.objects.create_user(username="capt", password="pw")
+        self.captain = User.objects.create_user(username="capt", password=TEST_LOGIN_SECRET)
         self.team = Team.objects.create(
             organization=org,
             captain=self.captain,
@@ -41,7 +42,7 @@ class ShareLinkRedirectTests(TestCase):
             slug="team-a",
             is_active=True,
         )
-        self.seller_user = User.objects.create_user(username="seller", password="pw")
+        self.seller_user = User.objects.create_user(username="seller", password=TEST_LOGIN_SECRET)
         self.store = SellerStore.objects.create(
             seller=self.seller_user,
             team=self.team,

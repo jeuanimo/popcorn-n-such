@@ -11,6 +11,7 @@ from organizations.models import Organization
 from teams.models import Team
 
 User = get_user_model()
+TEST_LOGIN_SECRET = "test-secret-reports"
 
 
 class ReportsAccessTests(TestCase):
@@ -19,13 +20,13 @@ class ReportsAccessTests(TestCase):
         self.org_manager_role, _ = Role.objects.get_or_create(key=UserRole.ORGANIZATION_MANAGER)
         self.team_captain_role, _ = Role.objects.get_or_create(key=UserRole.TEAM_CAPTAIN)
 
-        self.staff = User.objects.create_user(username="staff_r", password="pw", is_staff=True)
+        self.staff = User.objects.create_user(username="staff_r", password=TEST_LOGIN_SECRET, is_staff=True)
         self.staff.roles.add(self.staff_role)
 
-        self.manager = User.objects.create_user(username="mgr_r", password="pw")
+        self.manager = User.objects.create_user(username="mgr_r", password=TEST_LOGIN_SECRET)
         self.manager.roles.add(self.org_manager_role)
 
-        self.other_manager = User.objects.create_user(username="mgr_other", password="pw")
+        self.other_manager = User.objects.create_user(username="mgr_other", password=TEST_LOGIN_SECRET)
         self.other_manager.roles.add(self.org_manager_role)
 
         self.org = Organization.objects.create(name="School PTO", manager=self.manager)
@@ -55,7 +56,7 @@ class ReportsAccessTests(TestCase):
             is_active=True,
         )
 
-        self.captain = User.objects.create_user(username="capt_r", password="pw")
+        self.captain = User.objects.create_user(username="capt_r", password=TEST_LOGIN_SECRET)
         self.captain.roles.add(self.team_captain_role)
         self.team = Team.objects.create(
             organization=self.org,

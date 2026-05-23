@@ -19,6 +19,8 @@ from .services import TeamService
 # Helpers
 # ---------------------------------------------------------------------------
 
+TEAM_FORM_TEMPLATE = "teams/team_form.html"
+
 def _is_staff_or_admin(user) -> bool:
     return user.is_staff or user.is_superuser or user.has_any_role("staff", "admin")
 
@@ -28,6 +30,20 @@ def _active_member_or_staff(user, team) -> bool:
     if _is_staff_or_admin(user):
         return True
     return TeamMembership.objects.filter(team=team, member=user, is_active=True).exists()
+
+
+def _resolve_team_organization(request, *, has_staff_access: bool, existing_org=None):
+    if existing_org is not None:
+        return existing_org, None
+    if not has_staff_access:
+        return None, "No organization found for your account."
+
+    from organizations.models import Organization
+
+    org_id = request.POST.get("organization")
+    if not org_id:
+        return None, "Please specify an organization."
+    return get_object_or_404(Organization, pk=org_id), None
 
 
 # ---------------------------------------------------------------------------
@@ -173,7 +189,8 @@ class TeamCaptainTeamListView(RoleRequiredMixin, TeamCaptainQuerysetMixin, ListV
 
 @login_required
 def team_create_view(request):
-    if not (request.user.has_any_role("team_captain", "organization_manager") or _is_staff_or_admin(request.user)):
+    has_staff_access = _is_staff_or_admin(request.user)
+    if not (request.user.has_any_role("team_captain", "organization_manager") or has_staff_access):
         raise PermissionDenied("You do not have permission to create a team.")
 
     organization = None
@@ -183,21 +200,20 @@ def team_create_view(request):
 
     form = TeamCreateForm(request.POST or None, request.FILES or None, user=request.user)
     if request.method == "POST" and form.is_valid():
-        if organization is None and not _is_staff_or_admin(request.user):
-            messages.error(request, "No organization found for your account.")
-            return render(request, "teams/team_form.html", {"form": form})
-        if organization is None:
-            from organizations.models import Organization
-            org_id = request.POST.get("organization")
-            organization = get_object_or_404(Organization, pk=org_id) if org_id else None
-            if organization is None:
-                messages.error(request, "Please specify an organization.")
-                return render(request, "teams/team_form.html", {"form": form})
+        organization, org_error = _resolve_team_organization(
+            request,
+            has_staff_access=has_staff_access,
+            existing_org=organization,
+        )
+        if org_error:
+            messages.error(request, org_error)
+            return render(request, TEAM_FORM_TEMPLATE, {"form": form})
+
         team = TeamService.create_team(user=request.user, organization=organization, form=form)
         messages.success(request, f"Team '{team.name}' created.")
         return redirect("teams:dashboard", slug=team.slug)
 
-    return render(request, "teams/team_form.html", {"form": form})
+    return render(request, TEAM_FORM_TEMPLATE, {"form": form})
 
 
 # ---------------------------------------------------------------------------

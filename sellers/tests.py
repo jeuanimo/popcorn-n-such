@@ -14,6 +14,7 @@ from teams.models import Team, TeamMembership, TeamMemberRole
 from .models import SellerStore
 
 User = get_user_model()
+TEST_LOGIN_SECRET = "test-secret-sellers"
 
 
 # ---------------------------------------------------------------------------
@@ -21,7 +22,7 @@ User = get_user_model()
 # ---------------------------------------------------------------------------
 
 def _make_user(username, role_key=None):
-    user = User.objects.create_user(username=username, password="pw", email=f"{username}@test.com")
+    user = User.objects.create_user(username=username, password=TEST_LOGIN_SECRET, email=f"{username}@test.com")
     if role_key:
         role, _ = Role.objects.get_or_create(key=role_key)
         user.roles.add(role)

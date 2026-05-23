@@ -14,12 +14,13 @@ from payments.services import handle_payment_failure, handle_payment_success
 from products.models import Product, ProductCategory, SKU
 
 User = get_user_model()
+TEST_LOGIN_SECRET = "test-secret-payments"
 
 
 @override_settings(EMAIL_BACKEND="django.core.mail.backends.locmem.EmailBackend")
 class PaymentConfirmationAlertTests(TestCase):
     def setUp(self):
-        self.staff = User.objects.create_user(username="staff", password="pw", email="staff@example.com", is_staff=True)
+        self.staff = User.objects.create_user(username="staff", password=TEST_LOGIN_SECRET, email="staff@example.com", is_staff=True)
         cat = ProductCategory.objects.create(key="pop", name="Popcorn")
         product = Product.objects.create(name="P", slug="p", category=cat, flavor="plain", is_active=True)
         sku = SKU.objects.create(
@@ -57,8 +58,10 @@ class PaymentConfirmationAlertTests(TestCase):
             fundraiser_eligible=True,
         )
 
-    @patch("notifications.alerts.send_mail")
-    def test_payment_confirmed_triggers_staff_internal_alert(self, _send_mail):
+    @override_settings(CELERY_TASK_ALWAYS_EAGER=True, CELERY_TASK_EAGER_PROPAGATES=True)
+    @patch("notifications.alerts.send_runtime_mail")
+    @patch("django.db.transaction.on_commit", side_effect=lambda func, **kw: func())
+    def test_payment_confirmed_triggers_staff_internal_alert(self, _on_commit, _send_mail):
         tx = PaymentTransaction.objects.create(
             provider=PaymentProvider.GODADDY,
             status=TxStatus.CREATED,
@@ -77,8 +80,10 @@ class PaymentConfirmationAlertTests(TestCase):
         ).first()
         self.assertIsNotNone(delivery)
 
-    @patch("notifications.alerts.send_mail")
-    def test_payment_failed_triggers_staff_internal_alert(self, _send_mail):
+    @override_settings(CELERY_TASK_ALWAYS_EAGER=True, CELERY_TASK_EAGER_PROPAGATES=True)
+    @patch("notifications.alerts.send_runtime_mail")
+    @patch("django.db.transaction.on_commit", side_effect=lambda func, **kw: func())
+    def test_payment_failed_triggers_staff_internal_alert(self, _on_commit, _send_mail):
         tx = PaymentTransaction.objects.create(
             provider=PaymentProvider.GODADDY,
             status=TxStatus.CREATED,

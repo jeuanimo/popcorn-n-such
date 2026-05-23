@@ -17,6 +17,7 @@ from .models import FundraiserCampaign, FundraiserCampaignStatus
 from .services import FundraiserCampaignService
 
 User = get_user_model()
+TEST_LOGIN_SECRET = "test-secret-fundraisers"
 
 
 class FundraiserCampaignFeatureTests(TestCase):
@@ -24,15 +25,15 @@ class FundraiserCampaignFeatureTests(TestCase):
 		self.org_manager_role, _ = Role.objects.get_or_create(key=UserRole.ORGANIZATION_MANAGER)
 		self.staff_role, _ = Role.objects.get_or_create(key=UserRole.STAFF)
 
-		self.manager = User.objects.create_user(username="manager", password="S3cretPass123!")
+		self.manager = User.objects.create_user(username="manager", password=TEST_LOGIN_SECRET)
 		self.manager.roles.add(self.org_manager_role)
 
-		self.staff = User.objects.create_user(username="staff", password="S3cretPass123!", is_staff=True)
+		self.staff = User.objects.create_user(username="staff", password=TEST_LOGIN_SECRET, is_staff=True)
 		self.staff.roles.add(self.staff_role)
 
-		self.customer = User.objects.create_user(username="customer", password="S3cretPass123!")
-		self.captain = User.objects.create_user(username="captain", password="S3cretPass123!")
-		self.seller_user = User.objects.create_user(username="seller1", password="S3cretPass123!")
+		self.customer = User.objects.create_user(username="customer", password=TEST_LOGIN_SECRET)
+		self.captain = User.objects.create_user(username="captain", password=TEST_LOGIN_SECRET)
+		self.seller_user = User.objects.create_user(username="seller1", password=TEST_LOGIN_SECRET)
 
 		self.organization = Organization.objects.create(name="School PTO", manager=self.manager)
 		self.team = Team.objects.create(name="Team A", captain=self.captain, organization=self.organization)
@@ -67,7 +68,7 @@ class FundraiserCampaignFeatureTests(TestCase):
 		self.seller_store.save(update_fields=["campaign", "updated_at"])
 
 	def test_org_manager_can_create_campaign_request(self):
-		self.client.login(username="manager", password="S3cretPass123!")
+		self.client.login(username="manager", password=TEST_LOGIN_SECRET)
 		response = self.client.post(
 			reverse("fundraisers:manager-campaign-create"),
 			{
@@ -96,7 +97,7 @@ class FundraiserCampaignFeatureTests(TestCase):
 		self.campaign.status = FundraiserCampaignStatus.DRAFT
 		self.campaign.save(update_fields=["status", "updated_at"])
 
-		self.client.login(username="staff", password="S3cretPass123!")
+		self.client.login(username="staff", password=TEST_LOGIN_SECRET)
 		response = self.client.post(
 			reverse("fundraisers:staff-campaign-approve", args=[self.campaign.slug]),
 			{
@@ -148,10 +149,10 @@ class FundraiserCampaignFeatureTests(TestCase):
 			total_cents=25000,
 		)
 
-		self.client.login(username="manager", password="S3cretPass123!")
+		self.client.login(username="manager", password=TEST_LOGIN_SECRET)
 		response = self.client.get(reverse("fundraisers:campaign-dashboard", args=[self.campaign.slug]))
 		self.assertEqual(response.status_code, 200)
-		self.assertContains(response, "40000")
+		self.assertContains(response, "400.00")
 		self.assertContains(response, self.team.name)
 		self.assertContains(response, self.seller_store.display_name)
 

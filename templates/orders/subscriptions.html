@@ -1,115 +1,109 @@
 {% extends "base/base.html" %}
-
-{% block title %}My Subscriptions | Popcorn-N-Such{% endblock title %}
-
+{% block title %}
+    My Subscriptions | Popcorn-N-Such
+{% endblock title %}
 {% block content %}
-<section class="py-5">
-  <div class="container">
-
-    <div class="d-flex align-items-center justify-content-between mb-4 flex-wrap gap-2">
-      <h1 class="mb-0">My Subscriptions</h1>
-      <a class="btn btn-sm btn-outline-dark" href="{% url 'orders:my-orders' %}">Back to Orders</a>
-    </div>
-
-    {% if messages %}
-      {% for message in messages %}
-        <div class="alert alert-{{ message.tags|default:'info' }} alert-dismissible fade show" role="alert">
-          {{ message }}
-          <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-        </div>
-      {% endfor %}
-    {% endif %}
-
-    {% if subscriptions %}
-      <div class="row g-4">
-        {% for sub in subscriptions %}
-          <div class="col-12">
-            <div class="hero-card p-4">
-
-              <div class="d-flex justify-content-between align-items-start flex-wrap gap-2 mb-3">
-                <div>
-                  <p class="mb-1 fw-semibold">{{ sub.get_interval_display }} subscription</p>
-                  <p class="mb-0 small text-muted">
-                    Started {{ sub.created_at|date:"M d, Y" }}
-                    {% if sub.source_order %}
-                      &nbsp;·&nbsp; Based on order {{ sub.source_order.order_number|default:sub.source_order_id }}
-                    {% endif %}
-                  </p>
-                </div>
-                <div>
-                  {% if sub.status == "active" %}
-                    <span class="badge text-bg-success">Active</span>
-                  {% elif sub.status == "paused" %}
-                    <span class="badge text-bg-warning text-dark">Paused</span>
-                  {% else %}
-                    <span class="badge text-bg-secondary">Cancelled</span>
-                  {% endif %}
-                </div>
-              </div>
-
-              {# Items #}
-              <div class="mb-3">
-                <p class="small text-muted mb-2">Items</p>
-                {% for item in sub.items.all %}
-                  <div class="d-flex align-items-center gap-2 mb-1">
-                    <span class="badge text-bg-light text-dark border">{{ item.quantity }}×</span>
-                    <span class="small">{{ item.sku.product.name }} ({{ item.sku.size }})</span>
-                  </div>
-                {% empty %}
-                  <p class="small text-muted mb-0">No items.</p>
-                {% endfor %}
-              </div>
-
-              {# Next order date #}
-              {% if sub.status == "active" %}
-                <p class="small mb-3">
-                  Next order: <strong>{{ sub.next_order_date|date:"M d, Y" }}</strong>
-                </p>
-              {% elif sub.status == "paused" %}
-                <p class="small mb-3 text-muted">
-                  Paused {{ sub.paused_at|date:"M d, Y" }}. Resume to set next order date.
-                </p>
-              {% endif %}
-
-              {# Actions #}
-              {% if sub.status != "cancelled" %}
-                <div class="d-flex gap-2 flex-wrap">
-                  {% if sub.status == "active" %}
-                    <form method="post" action="{% url 'orders:subscription-pause' sub.id %}">
-                      {% csrf_token %}
-                      <button class="btn btn-sm btn-outline-secondary" type="submit">Pause</button>
-                    </form>
-                  {% elif sub.status == "paused" %}
-                    <form method="post" action="{% url 'orders:subscription-resume' sub.id %}">
-                      {% csrf_token %}
-                      <button class="btn btn-sm btn-brand" type="submit">Resume</button>
-                    </form>
-                  {% endif %}
-                  <form method="post" action="{% url 'orders:subscription-cancel' sub.id %}">
-                    {% csrf_token %}
-                    <button
-                      class="btn btn-sm btn-outline-danger"
-                      type="submit"
-                      onclick="return confirm('Cancel this subscription? This cannot be undone.');"
-                    >Cancel</button>
-                  </form>
-                </div>
-              {% endif %}
-
+    <section class="py-5">
+        <div class="container">
+            <div class="d-flex align-items-center justify-content-between mb-4 flex-wrap gap-2">
+                <h1 class="mb-0">My Subscriptions</h1>
+                <a class="btn btn-sm btn-outline-dark"
+                   href="{% url 'orders:my-orders' %}">Back to Orders</a>
             </div>
-          </div>
-        {% endfor %}
-      </div>
-    {% else %}
-      <div class="hero-card p-5 text-center">
-        <p class="text-muted mb-3">You have no active subscriptions.</p>
-        <p class="small text-muted mb-4">
-          Go to any order and click <strong>Subscribe</strong> to set up automatic repeat orders.
-        </p>
-        <a class="btn btn-brand" href="{% url 'orders:my-orders' %}">View My Orders</a>
-      </div>
-    {% endif %}
-
-  </div>
-</section>
+            {% if messages %}
+                {% for message in messages %}
+                    <div class="alert alert-{{ message.tags|default:'info' }} alert-dismissible fade show"
+                         role="alert">
+                        {{ message }}
+                        <button type="button"
+                                class="btn-close"
+                                data-bs-dismiss="alert"
+                                aria-label="Close"></button>
+                    </div>
+                {% endfor %}
+            {% endif %}
+            {% if subscriptions %}
+                <div class="row g-4">
+                    {% for sub in subscriptions %}
+                        <div class="col-12">
+                            <div class="hero-card p-4">
+                                <div class="d-flex justify-content-between align-items-start flex-wrap gap-2 mb-3">
+                                    <div>
+                                        <p class="mb-1 fw-semibold">{{ sub.get_interval_display }} subscription</p>
+                                        <p class="mb-0 small text-muted">
+                                            Started {{ sub.created_at|date:"M d, Y" }}
+                                            {% if sub.source_order %}
+                                                &nbsp;·&nbsp; Based on order {{ sub.source_order.order_number|default:sub.source_order_id }}
+                                            {% endif %}
+                                        </p>
+                                    </div>
+                                    <div>
+                                        {% if sub.status == "active" %}
+                                            <span class="badge text-bg-success">Active</span>
+                                        {% elif sub.status == "paused" %}
+                                            <span class="badge text-bg-warning text-dark">Paused</span>
+                                        {% else %}
+                                            <span class="badge text-bg-secondary">Cancelled</span>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                {# Items #}
+                                <div class="mb-3">
+                                    <p class="small text-muted mb-2">Items</p>
+                                    {% for item in sub.items.all %}
+                                        <div class="d-flex align-items-center gap-2 mb-1">
+                                            <span class="badge text-bg-light text-dark border">{{ item.quantity }}×</span>
+                                            <span class="small">{{ item.sku.product.name }} ({{ item.sku.size }})</span>
+                                        </div>
+                                    {% empty %}
+                                        <p class="small text-muted mb-0">No items.</p>
+                                    {% endfor %}
+                                </div>
+                                {# Next order date #}
+                                {% if sub.status == "active" %}
+                                    <p class="small mb-3">
+                                        Next order: <strong>{{ sub.next_order_date|date:"M d, Y" }}</strong>
+                                    </p>
+                                {% elif sub.status == "paused" %}
+                                    <p class="small mb-3 text-muted">Paused {{ sub.paused_at|date:"M d, Y" }}. Resume to set next order date.</p>
+                                {% endif %}
+                                {# Actions #}
+                                {% if sub.status != "cancelled" %}
+                                    <div class="d-flex gap-2 flex-wrap">
+                                        {% if sub.status == "active" %}
+                                            <form method="post" action="{% url 'orders:subscription-pause' sub.id %}">
+                                                {% csrf_token %}
+                                                <button class="btn btn-sm btn-outline-secondary" type="submit">Pause</button>
+                                            </form>
+                                        {% elif sub.status == "paused" %}
+                                            <form method="post" action="{% url 'orders:subscription-resume' sub.id %}">
+                                                {% csrf_token %}
+                                                <button class="btn btn-sm btn-brand" type="submit">Resume</button>
+                                            </form>
+                                        {% endif %}
+                                        <form method="post" action="{% url 'orders:subscription-cancel' sub.id %}">
+                                            {% csrf_token %}
+                                            <button class="btn btn-sm btn-outline-danger"
+                                                    type="submit"
+                                                    onclick="return confirm('Cancel this subscription? This cannot be undone.');">
+                                                Cancel
+                                            </button>
+                                        </form>
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <div class="hero-card p-5 text-center">
+                    <p class="text-muted mb-3">You have no active subscriptions.</p>
+                    <p class="small text-muted mb-4">
+                        Go to any order and click <strong>Subscribe</strong> to set up automatic repeat orders.
+                    </p>
+                    <a class="btn btn-brand" href="{% url 'orders:my-orders' %}">View My Orders</a>
+                </div>
+            {% endif %}
+        </div>
+    </section>
 {% endblock content %}

@@ -1,10 +1,12 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
-<head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Draft Label — {{ order.order_number|default:order.id }}</title>
-  <style>
+    <head>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <meta name="description" content="Draft shipping label for Popcorn-N-Such order." />
+        <meta name="keywords" content="popcorn, shipping, order" />
+        <title>Draft Label — {{ order.order_number|default:order.id }}</title>
+        <style>
     /* ── Screen preview ──────────────────────────────────── */
     body {
       margin: 0;
@@ -126,60 +128,53 @@
         margin: 0;
       }
     }
-  </style>
-</head>
-<body>
-  <div class="label-wrap">
-
-    <div class="draft-banner">Draft — No Tracking Number</div>
-
-    {# FROM #}
-    <div class="label-from">
-      <div class="section-title">From</div>
-      <strong>{{ from_addr.recipient_name }}</strong><br />
-      {{ from_addr.address_line_1 }}{% if from_addr.address_line_2 %}, {{ from_addr.address_line_2 }}{% endif %}<br />
-      {{ from_addr.city }}, {{ from_addr.state }} {{ from_addr.postal_code }}<br />
-      {{ from_addr.country }}
-    </div>
-
-    {# TO #}
-    <div class="label-to">
-      <div class="section-title">Ship To</div>
-      <div class="recipient-name">{{ order.shipping_recipient_name|default:"—" }}</div>
-      <div class="address-line">{{ order.shipping_address_line_1|default:"" }}</div>
-      {% if order.shipping_address_line_2 %}
-        <div class="address-line">{{ order.shipping_address_line_2 }}</div>
-      {% endif %}
-      <div class="address-line">
-        {{ order.shipping_city }}, {{ order.shipping_state }} {{ order.shipping_postal_code }}
-      </div>
-      {% if order.shipping_country and order.shipping_country != "US" %}
-        <div class="address-line">{{ order.shipping_country }}</div>
-      {% endif %}
-    </div>
-
-    {# Barcode placeholder — replace with actual tracking when carrier label is generated #}
-    <div class="barcode-placeholder">[ Carrier tracking barcode printed here ]</div>
-
-    {# Footer #}
-    <div class="label-footer">
-      <div class="row">
-        <span><strong>Order:</strong> {{ order.order_number|default:order.id }}</span>
-        <span><strong>Date:</strong> {{ label.created_at|date:"M d, Y" }}</span>
-      </div>
-      <div class="row">
-        <span><strong>Carrier:</strong> To be determined</span>
-        <span><strong>Prints:</strong> {{ label.print_count }}</span>
-      </div>
-    </div>
-
-  </div>
-
-  <script>
+        </style>
+    </head>
+    <body>
+        <div class="label-wrap">
+            <div class="draft-banner">Draft — No Tracking Number</div>
+            {# FROM #}
+            <div class="label-from">
+                <div class="section-title">From</div>
+                <strong>{{ from_addr.recipient_name }}</strong>
+                <br />
+                {{ from_addr.address_line_1 }}
+                {% if from_addr.address_line_2 %}, {{ from_addr.address_line_2 }}{% endif %}
+                <br />
+                {{ from_addr.city }}, {{ from_addr.state }} {{ from_addr.postal_code }}
+                <br />
+                {{ from_addr.country }}
+            </div>
+            {# TO #}
+            <div class="label-to">
+                <div class="section-title">Ship To</div>
+                <div class="recipient-name">{{ order.shipping_recipient_name|default:"—" }}</div>
+                <div class="address-line">{{ order.shipping_address_line_1|default:"" }}</div>
+                {% if order.shipping_address_line_2 %}<div class="address-line">{{ order.shipping_address_line_2 }}</div>{% endif %}
+                <div class="address-line">{{ order.shipping_city }}, {{ order.shipping_state }} {{ order.shipping_postal_code }}</div>
+                {% if order.shipping_country and order.shipping_country != "US" %}
+                    <div class="address-line">{{ order.shipping_country }}</div>
+                {% endif %}
+            </div>
+            {# Barcode placeholder — replace with actual tracking when carrier label is generated #}
+            <div class="barcode-placeholder">[ Carrier tracking barcode printed here ]</div>
+            {# Footer #}
+            <div class="label-footer">
+                <div class="row">
+                    <span><strong>Order:</strong> {{ order.order_number|default:order.id }}</span>
+                    <span><strong>Date:</strong> {{ label.created_at|date:"M d, Y" }}</span>
+                </div>
+                <div class="row">
+                    <span><strong>Carrier:</strong> To be determined</span>
+                    <span><strong>Prints:</strong> {{ label.print_count }}</span>
+                </div>
+            </div>
+        </div>
+        <script>
     /* Auto-trigger print dialog when loaded in the label iframe */
     window.addEventListener("load", function () {
       window.print();
     });
-  </script>
-</body>
+        </script>
+    </body>
 </html>

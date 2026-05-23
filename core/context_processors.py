@@ -47,6 +47,7 @@ def staff_nav(request):
         getattr(user, "is_superuser", False)
         or (hasattr(user, "has_role") and user.has_role("admin"))
     )
+    site_ops_section = "Site Operations"
 
     low_sku = 0
     low_supplies = 0
@@ -77,11 +78,11 @@ def staff_nav(request):
         {"section": "Catalog", "label": "Suppliers", "url": "/suppliers/"},
         {"section": "Catalog", "label": "Reorder Suggestions", "url": "/purchase-orders/reorder-suggestions/", "badge": low_supplies, "badge_variant": "warning"},
 
-        {"section": "Site Operations", "label": "Site Configuration", "url": "/site-config/"},
-        {"section": "Site Operations", "label": "Operational Settings", "url": "/dashboard/portal/operational-settings/"},
-        {"section": "Site Operations", "label": "Staff How-To", "url": "/dashboard/portal/how-to/"},
+        {"section": site_ops_section, "label": "Site Configuration", "url": "/site-config/"},
+        {"section": site_ops_section, "label": "Operational Settings", "url": "/dashboard/portal/operational-settings/"},
+        {"section": site_ops_section, "label": "Staff How-To", "url": "/dashboard/portal/how-to/"},
         *(
-            [{"section": "Site Operations", "label": "Create User", "url": "/accounts/staff/create-user/"}]
+            [{"section": site_ops_section, "label": "Create User", "url": "/accounts/staff/create-user/"}]
             if can_create_users
             else []
         ),

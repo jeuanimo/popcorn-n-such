@@ -1,137 +1,171 @@
 {% extends "staff/base.html" %}
-
-{% block title %}{{ contact.display_name }} | CRM{% endblock title %}
-
+{% block title %}
+    {{ contact.display_name }} | CRM
+{% endblock title %}
 {% block content %}
-<div class="d-flex align-items-center gap-3 mb-3">
-  <a href="{% url 'crm:dashboard' %}" class="btn btn-sm btn-outline-dark">&larr; CRM</a>
-  <h1 class="h4 mb-0">{{ contact.display_name }}</h1>
-  <span class="badge text-bg-secondary">{{ contact.get_relationship_status_display }}</span>
-</div>
-
-<div class="row g-4">
-  {# ---- Contact info + status ---- #}
-  <div class="col-12 col-md-4">
-    <div class="card mb-3">
-      <div class="card-header fw-semibold">Contact Info</div>
-      <div class="card-body small">
-        {% if contact.email %}<p class="mb-1"><strong>Email:</strong> <a href="mailto:{{ contact.email }}">{{ contact.email }}</a></p>{% endif %}
-        {% if contact.phone %}<p class="mb-1"><strong>Phone:</strong> {{ contact.phone }}</p>{% endif %}
-        {% if contact.follow_up_date %}<p class="mb-1"><strong>Follow-up:</strong> {{ contact.follow_up_date }}</p>{% endif %}
-        {% if contact.assigned_to %}<p class="mb-1"><strong>Assigned:</strong> {{ contact.assigned_to.get_full_name|default:contact.assigned_to.username }}</p>{% endif %}
-        {% if contact.customer %}<p class="mb-1"><strong>Customer:</strong> {{ contact.customer.get_full_name|default:contact.customer.username }}</p>{% endif %}
-        {% if contact.organization %}<p class="mb-1"><strong>Org:</strong> {{ contact.organization.name }}</p>{% endif %}
-        {% if contact.notes %}<p class="mb-0 mt-2 text-muted">{{ contact.notes }}</p>{% endif %}
-      </div>
+    <div class="d-flex align-items-center gap-3 mb-3">
+        <a href="{% url 'crm:dashboard' %}" class="btn btn-sm btn-outline-dark">← CRM</a>
+        <h1 class="h4 mb-0">{{ contact.display_name }}</h1>
+        <span class="badge text-bg-secondary">{{ contact.get_relationship_status_display }}</span>
     </div>
-
-    <div class="card">
-      <div class="card-header fw-semibold">Update Status</div>
-      <div class="card-body">
-        <form method="post">
-          {% csrf_token %}
-          <input type="hidden" name="action" value="update_status" />
-          <select name="relationship_status" class="form-select form-select-sm mb-2">
-            {% for value, label in status_choices %}
-              <option value="{{ value }}" {% if contact.relationship_status == value %}selected{% endif %}>{{ label }}</option>
-            {% endfor %}
-          </select>
-          <button type="submit" class="btn btn-sm btn-outline-dark w-100">Save</button>
-        </form>
-      </div>
-    </div>
-  </div>
-
-  {# ---- Tasks ---- #}
-  <div class="col-12 col-md-8">
-    <div class="card mb-3">
-      <div class="card-header fw-semibold d-flex justify-content-between align-items-center">
-        <span>Tasks</span>
-        <button class="btn btn-sm btn-outline-dark" type="button" data-bs-toggle="collapse" data-bs-target="#addTaskForm">+ Add</button>
-      </div>
-      <div class="collapse" id="addTaskForm">
-        <div class="card-body border-bottom">
-          <form method="post" class="row g-2">
-            {% csrf_token %}
-            <input type="hidden" name="action" value="add_task" />
-            <div class="col-12 col-sm-6">
-              <input type="text" name="title" class="form-control form-control-sm" placeholder="Task title" required />
+    <div class="row g-4">
+        {# ---- Contact info + status ---- #}
+        <div class="col-12 col-md-4">
+            <div class="card mb-3">
+                <div class="card-header fw-semibold">Contact Info</div>
+                <div class="card-body small">
+                    {% if contact.email %}
+                        <p class="mb-1">
+                            <strong>Email:</strong> <a href="mailto:{{ contact.email }}">{{ contact.email }}</a>
+                        </p>
+                    {% endif %}
+                    {% if contact.phone %}
+                        <p class="mb-1">
+                            <strong>Phone:</strong> {{ contact.phone }}
+                        </p>
+                    {% endif %}
+                    {% if contact.follow_up_date %}
+                        <p class="mb-1">
+                            <strong>Follow-up:</strong> {{ contact.follow_up_date }}
+                        </p>
+                    {% endif %}
+                    {% if contact.assigned_to %}
+                        <p class="mb-1">
+                            <strong>Assigned:</strong> {{ contact.assigned_to.get_full_name|default:contact.assigned_to.username }}
+                        </p>
+                    {% endif %}
+                    {% if contact.customer %}
+                        <p class="mb-1">
+                            <strong>Customer:</strong> {{ contact.customer.get_full_name|default:contact.customer.username }}
+                        </p>
+                    {% endif %}
+                    {% if contact.organization %}
+                        <p class="mb-1">
+                            <strong>Org:</strong> {{ contact.organization.name }}
+                        </p>
+                    {% endif %}
+                    {% if contact.notes %}<p class="mb-0 mt-2 text-muted">{{ contact.notes }}</p>{% endif %}
+                </div>
             </div>
-            <div class="col-12 col-sm-4">
-              <input type="date" name="due_date" class="form-control form-control-sm" />
+            <div class="card">
+                <div class="card-header fw-semibold">Update Status</div>
+                <div class="card-body">
+                    <form method="post">
+                        {% csrf_token %}
+                        <input type="hidden" name="action" value="update_status" />
+                        <select name="relationship_status" class="form-select form-select-sm mb-2">
+                            {% for value, label in status_choices %}
+                                <option value="{{ value }}"
+                                        {% if contact.relationship_status == value %}selected{% endif %}>
+                                    {{ label }}
+                                </option>
+                            {% endfor %}
+                        </select>
+                        <button type="submit" class="btn btn-sm btn-outline-dark w-100">Save</button>
+                    </form>
+                </div>
             </div>
-            <div class="col-12 col-sm-2">
-              <button type="submit" class="btn btn-sm btn-brand w-100">Add</button>
-            </div>
-          </form>
         </div>
-      </div>
-      <ul class="list-group list-group-flush">
-        {% for task in tasks %}
-        <li class="list-group-item py-2 d-flex justify-content-between align-items-start gap-2">
-          <div>
-            <div class="small fw-semibold">{{ task.title }}</div>
-            <div class="small text-muted">
-              {{ task.get_status_display }}
-              {% if task.due_date %} · Due {{ task.due_date }}{% endif %}
-              {% if task.assigned_to %} · {{ task.assigned_to.get_full_name|default:task.assigned_to.username }}{% endif %}
+        {# ---- Tasks ---- #}
+        <div class="col-12 col-md-8">
+            <div class="card mb-3">
+                <div class="card-header fw-semibold d-flex justify-content-between align-items-center">
+                    <span>Tasks</span>
+                    <button class="btn btn-sm btn-outline-dark"
+                            type="button"
+                            data-bs-toggle="collapse"
+                            data-bs-target="#addTaskForm">+ Add</button>
+                </div>
+                <div class="collapse" id="addTaskForm">
+                    <div class="card-body border-bottom">
+                        <form method="post" class="row g-2">
+                            {% csrf_token %}
+                            <input type="hidden" name="action" value="add_task" />
+                            <div class="col-12 col-sm-6">
+                                <input type="text"
+                                       name="title"
+                                       class="form-control form-control-sm"
+                                       placeholder="Task title"
+                                       required />
+                            </div>
+                            <div class="col-12 col-sm-4">
+                                <input type="date" name="due_date" class="form-control form-control-sm" />
+                            </div>
+                            <div class="col-12 col-sm-2">
+                                <button type="submit" class="btn btn-sm btn-brand w-100">Add</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+                <ul class="list-group list-group-flush">
+                    {% for task in tasks %}
+                        <li class="list-group-item py-2 d-flex justify-content-between align-items-start gap-2">
+                            <div>
+                                <div class="small fw-semibold">{{ task.title }}</div>
+                                <div class="small text-muted">
+                                    {{ task.get_status_display }}
+                                    {% if task.due_date %}· Due {{ task.due_date }}{% endif %}
+                                    {% if task.assigned_to %}· {{ task.assigned_to.get_full_name|default:task.assigned_to.username }}{% endif %}
+                                </div>
+                            </div>
+                            {% if task.status != "completed" and task.status != "canceled" %}
+                                <form method="post" class="ms-2">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="action" value="close_task" />
+                                    <input type="hidden" name="task_id" value="{{ task.pk }}" />
+                                    <button type="submit" class="btn btn-sm btn-outline-success">Done</button>
+                                </form>
+                            {% endif %}
+                        </li>
+                    {% empty %}
+                        <li class="list-group-item text-muted small p-3">No tasks yet.</li>
+                    {% endfor %}
+                </ul>
             </div>
-          </div>
-          {% if task.status != "completed" and task.status != "canceled" %}
-          <form method="post" class="ms-2">
-            {% csrf_token %}
-            <input type="hidden" name="action" value="close_task" />
-            <input type="hidden" name="task_id" value="{{ task.pk }}" />
-            <button type="submit" class="btn btn-sm btn-outline-success">Done</button>
-          </form>
-          {% endif %}
-        </li>
-        {% empty %}
-        <li class="list-group-item text-muted small p-3">No tasks yet.</li>
-        {% endfor %}
-      </ul>
+            {# ---- Notes ---- #}
+            <div class="card mb-3">
+                <div class="card-header fw-semibold">Add Note</div>
+                <div class="card-body">
+                    <form method="post">
+                        {% csrf_token %}
+                        <input type="hidden" name="action" value="add_note" />
+                        <textarea name="note"
+                                  class="form-control form-control-sm mb-2"
+                                  rows="2"
+                                  placeholder="Internal note..."></textarea>
+                        <button type="submit" class="btn btn-sm btn-outline-dark">Save note</button>
+                    </form>
+                </div>
+                {% if notes %}
+                    <ul class="list-group list-group-flush">
+                        {% for note in notes %}
+                            <li class="list-group-item py-2">
+                                <p class="mb-1 small">{{ note.note }}</p>
+                                <div class="small text-muted">
+                                    {{ note.created_by.get_full_name|default:note.created_by.username|default:"—" }} · {{ note.created_at|date:"M j, Y" }}
+                                </div>
+                            </li>
+                        {% endfor %}
+                    </ul>
+                {% endif %}
+            </div>
+            {# ---- Activity log ---- #}
+            <div class="card">
+                <div class="card-header fw-semibold">Activity Log</div>
+                <ul class="list-group list-group-flush">
+                    {% for activity in activities %}
+                        <li class="list-group-item py-2 d-flex justify-content-between align-items-start">
+                            <div class="small">
+                                <span class="badge text-bg-light border">{{ activity.activity_type }}</span>
+                                {{ activity.summary }}
+                            </div>
+                            <div class="small text-muted text-nowrap ms-2">{{ activity.occurred_at|date:"M j, Y" }}</div>
+                        </li>
+                    {% empty %}
+                        <li class="list-group-item text-muted small p-3">No activity logged.</li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
     </div>
-
-    {# ---- Notes ---- #}
-    <div class="card mb-3">
-      <div class="card-header fw-semibold">Add Note</div>
-      <div class="card-body">
-        <form method="post">
-          {% csrf_token %}
-          <input type="hidden" name="action" value="add_note" />
-          <textarea name="note" class="form-control form-control-sm mb-2" rows="2" placeholder="Internal note..."></textarea>
-          <button type="submit" class="btn btn-sm btn-outline-dark">Save note</button>
-        </form>
-      </div>
-      {% if notes %}
-      <ul class="list-group list-group-flush">
-        {% for note in notes %}
-        <li class="list-group-item py-2">
-          <p class="mb-1 small">{{ note.note }}</p>
-          <div class="small text-muted">{{ note.created_by.get_full_name|default:note.created_by.username|default:"—" }} · {{ note.created_at|date:"M j, Y" }}</div>
-        </li>
-        {% endfor %}
-      </ul>
-      {% endif %}
-    </div>
-
-    {# ---- Activity log ---- #}
-    <div class="card">
-      <div class="card-header fw-semibold">Activity Log</div>
-      <ul class="list-group list-group-flush">
-        {% for activity in activities %}
-        <li class="list-group-item py-2 d-flex justify-content-between align-items-start">
-          <div class="small">
-            <span class="badge text-bg-light border">{{ activity.activity_type }}</span>
-            {{ activity.summary }}
-          </div>
-          <div class="small text-muted text-nowrap ms-2">{{ activity.occurred_at|date:"M j, Y" }}</div>
-        </li>
-        {% empty %}
-        <li class="list-group-item text-muted small p-3">No activity logged.</li>
-        {% endfor %}
-      </ul>
-    </div>
-  </div>
-</div>
 {% endblock content %}

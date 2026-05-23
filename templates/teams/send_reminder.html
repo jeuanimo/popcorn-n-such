@@ -1,28 +1,31 @@
 {% extends "base/base.html" %}
-{% block title %}Send Reminder — {{ team.name }}{% endblock title %}
+{% block title %}
+    Send Reminder — {{ team.name }}
+{% endblock title %}
 {% block content %}
-<section class="py-5">
-  <div class="container" style="max-width:640px">
-    <div class="mb-4">
-      <a class="btn btn-outline-secondary btn-sm" href="{% url 'teams:members' team.slug %}">&larr; Back to Members</a>
-    </div>
-    <h1 class="mb-4">Send Reminder to {{ team.name }}</h1>
-
-    <div class="hero-card p-4">
-      <form method="post" novalidate>
-        {% csrf_token %}
-        {% for field in form %}
-          <div class="mb-3">
-            <label class="form-label fw-semibold" for="{{ field.id_for_label }}">{{ field.label }}</label>
-            {% if field.help_text %}<div class="form-text mb-1">{{ field.help_text }}</div>{% endif %}
-            {{ field }}
-            {% for error in field.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}
-          </div>
-        {% endfor %}
-        <button type="submit" class="btn btn-brand">Send Reminder</button>
-        <a class="btn btn-outline-secondary ms-2" href="{% url 'teams:members' team.slug %}">Cancel</a>
-      </form>
-    </div>
-  </div>
-</section>
+    <section class="py-5">
+        <div class="container" style="max-width:640px">
+            <div class="mb-4">
+                <a class="btn btn-outline-secondary btn-sm"
+                   href="{% url 'teams:members' team.slug %}">← Back to Members</a>
+            </div>
+            <h1 class="mb-4">Send Reminder to {{ team.name }}</h1>
+            <div class="hero-card p-4">
+                <form method="post" novalidate>
+                    {% csrf_token %}
+                    {% for field in form %}
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold" for="{{ field.id_for_label }}">{{ field.label }}</label>
+                            {% if field.help_text %}<div class="form-text mb-1">{{ field.help_text }}</div>{% endif %}
+                            {{ field }}
+                            {% for error in field.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}
+                        </div>
+                    {% endfor %}
+                    <button type="submit" class="btn btn-brand">Send Reminder</button>
+                    <a class="btn btn-outline-secondary ms-2"
+                       href="{% url 'teams:members' team.slug %}">Cancel</a>
+                </form>
+            </div>
+        </div>
+    </section>
 {% endblock content %}

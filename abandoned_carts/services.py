@@ -76,87 +76,62 @@ class AbandonedCartRecoveryService:
             "messages_skipped": 0,
             "recovered": 0,
         }
+        processed_cart_ids = cls._process_open_events(now=now, dry_run=dry_run, counters=counters)
+        cls._process_new_carts(now=now, dry_run=dry_run, counters=counters, skip_cart_ids=processed_cart_ids)
+        return counters
 
-        processed_cart_ids = set()
+    @classmethod
+    def _process_open_events(cls, *, now, dry_run: bool, counters: dict) -> set:
+        processed_cart_ids: set = set()
         open_events = AbandonedCartEvent.objects.filter(is_closed=False).select_related("cart", "cart__user")
         for event in open_events:
             processed_cart_ids.add(event.cart_id)
+            cls._process_single_event(event=event, now=now, dry_run=dry_run, counters=counters)
+        return processed_cart_ids
 
-            cls._refresh_event_snapshot(event=event)
-            changed, recovered = cls._maybe_close_or_recover(event=event, now=now)
-            if recovered:
-                counters["recovered"] += 1
-            if changed:
-                counters["events_closed"] += 1
-                if not dry_run:
-                    event.save(update_fields=cls._event_update_fields())
-                continue
-
-            if event.email_unsubscribed and (event.sms_opted_out or not event.sms_consent):
-                event.close(reason=EventCloseReason.UNSUBSCRIBED, when=now)
-                counters["events_closed"] += 1
-                if not dry_run:
-                    event.save(update_fields=["is_closed", "close_reason", "closed_at", "updated_at"])
-                continue
-
-            stage_to_send = cls._next_due_stage(event=event, now=now)
-            if stage_to_send:
-                results = cls._send_stage_reminders(event=event, stage=stage_to_send, now=now, dry_run=dry_run)
-                counters["email_sent"] += results["email_sent"]
-                counters["sms_sent"] += results["sms_sent"]
-                counters["messages_failed"] += results["messages_failed"]
-                counters["messages_skipped"] += results["messages_skipped"]
-                if not dry_run:
-                    event.mark_stage_sent(stage_to_send, when=now)
-
-            if not dry_run:
-                event.save(update_fields=cls._event_update_fields())
-
+    @classmethod
+    def _process_new_carts(cls, *, now, dry_run: bool, counters: dict, skip_cart_ids: set) -> None:
         carts = Cart.objects.filter(is_active=True).prefetch_related("items__sku", "attribution")
         for cart in carts:
-            if cart.id in processed_cart_ids:
+            if cart.id in skip_cart_ids or not cart.items.exists():
                 continue
-            if not cart.items.exists():
-                continue
-
             event, created = cls._get_or_create_event(cart=cart, now=now)
             if created:
                 counters["events_created"] += 1
+            cls._process_single_event(event=event, now=now, dry_run=dry_run, counters=counters)
 
-            cls._refresh_event_snapshot(event=event)
-            changed, recovered = cls._maybe_close_or_recover(event=event, now=now)
-            if recovered:
-                counters["recovered"] += 1
-            if changed:
-                counters["events_closed"] += 1
-                if not dry_run:
-                    event.save()
-                continue
+    @classmethod
+    def _process_single_event(cls, *, event: AbandonedCartEvent, now, dry_run: bool, counters: dict) -> None:
+        cls._refresh_event_snapshot(event=event)
 
-            if event.email_unsubscribed and (event.sms_opted_out or not event.sms_consent):
-                event.close(reason=EventCloseReason.UNSUBSCRIBED, when=now)
-                counters["events_closed"] += 1
-                if not dry_run:
-                    event.save(update_fields=["is_closed", "close_reason", "closed_at", "updated_at"])
-                continue
+        changed, recovered = cls._maybe_close_or_recover(event=event, now=now)
+        if recovered:
+            counters["recovered"] += 1
+        if changed:
+            counters["events_closed"] += 1
+            if not dry_run:
+                event.save(update_fields=cls._event_update_fields())
+            return
 
-            stage_to_send = cls._next_due_stage(event=event, now=now)
-            if not stage_to_send:
-                if not dry_run:
-                    event.save(update_fields=cls._event_update_fields())
-                continue
+        if event.email_unsubscribed and (event.sms_opted_out or not event.sms_consent):
+            event.close(reason=EventCloseReason.UNSUBSCRIBED, when=now)
+            counters["events_closed"] += 1
+            if not dry_run:
+                event.save(update_fields=["is_closed", "close_reason", "closed_at", "updated_at"])
+            return
 
+        stage_to_send = cls._next_due_stage(event=event, now=now)
+        if stage_to_send:
             results = cls._send_stage_reminders(event=event, stage=stage_to_send, now=now, dry_run=dry_run)
             counters["email_sent"] += results["email_sent"]
             counters["sms_sent"] += results["sms_sent"]
             counters["messages_failed"] += results["messages_failed"]
             counters["messages_skipped"] += results["messages_skipped"]
-
             if not dry_run:
                 event.mark_stage_sent(stage_to_send, when=now)
-                event.save(update_fields=cls._event_update_fields())
 
-        return counters
+        if not dry_run:
+            event.save(update_fields=cls._event_update_fields())
 
     @classmethod
     def _event_update_fields(cls) -> list[str]:
@@ -272,7 +247,7 @@ class AbandonedCartRecoveryService:
     def _build_recovery_token(cls, *, event: AbandonedCartEvent, purpose: str, now=None) -> str:
         now = now or timezone.now()
         raw_token = secrets.token_urlsafe(32)
-        token_record = CartRecoveryToken.objects.create(
+        CartRecoveryToken.objects.create(
             cart=event.cart,
             event=event,
             purpose=purpose,
@@ -287,8 +262,8 @@ class AbandonedCartRecoveryService:
     @classmethod
     def _build_links(cls, *, event: AbandonedCartEvent, dry_run: bool = False):
         if dry_run:
-            recover_token = "dry-run-recover-token"
-            unsubscribe_token = "dry-run-unsubscribe-token"
+            recover_token = f"dry-run-recover-{event.pk}"
+            unsubscribe_token = f"dry-run-unsubscribe-{event.pk}"
         else:
             recover_token = cls._build_recovery_token(event=event, purpose=TokenPurpose.RECOVER)
             unsubscribe_token = cls._build_recovery_token(event=event, purpose=TokenPurpose.UNSUBSCRIBE)

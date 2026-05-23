@@ -1,27 +1,35 @@
 {% extends "staff/base.html" %}
-{% block title %}Organizations | CRM{% endblock title %}
+{% block title %}
+    Organizations | CRM
+{% endblock title %}
 {% block content %}
-<div class="d-flex align-items-center justify-content-between mb-4">
-  <div>
-    <span class="eyebrow">CRM</span>
-    <h1 class="h3 mb-0">Organizations</h1>
-  </div>
-  <a class="btn btn-sm btn-outline-dark" href="{% url 'crm:dashboard' %}">CRM Dashboard</a>
-</div>
-  <div class="list-group">
-    {% for org in organizations %}
-      <a class="list-group-item list-group-item-action" href="{% url 'crm-detail' org.id %}">
-        <div class="d-flex justify-content-between">
-          <div>
-            <div class="fw-semibold">{{ org.name }}</div>
-            <div class="small text-muted">{{ org.get_org_type_display }} • {{ org.get_lead_status_display }}</div>
-          </div>
-          <div class="small text-muted">{% if org.is_active %}Active{% else %}Inactive{% endif %}</div>
+    <div class="d-flex align-items-center justify-content-between mb-4">
+        <div>
+            <span class="eyebrow">CRM</span>
+            <h1 class="h3 mb-0">Organizations</h1>
         </div>
-      </a>
-    {% empty %}
-      <div class="list-group-item">No organizations yet.</div>
-    {% endfor %}
-  </div>
+        <a class="btn btn-sm btn-outline-dark" href="{% url 'crm:dashboard' %}">CRM Dashboard</a>
+    </div>
+    <div class="list-group">
+        {% for org in organizations %}
+            <a class="list-group-item list-group-item-action"
+               href="{% url 'crm-detail' org.id %}">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <div class="fw-semibold">{{ org.name }}</div>
+                        <div class="small text-muted">{{ org.get_org_type_display }} • {{ org.get_lead_status_display }}</div>
+                    </div>
+                    <div class="small text-muted">
+                        {% if org.is_active %}
+                            Active
+                        {% else %}
+                            Inactive
+                        {% endif %}
+                    </div>
+                </div>
+            </a>
+        {% empty %}
+            <div class="list-group-item">No organizations yet.</div>
+        {% endfor %}
+    </div>
 {% endblock content %}
-

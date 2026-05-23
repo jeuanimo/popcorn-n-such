@@ -1,30 +1,37 @@
 {% extends "base/base.html" %}
-{% block title %}My Teams{% endblock title %}
+{% block title %}
+    My Teams
+{% endblock title %}
 {% block content %}
-<section class="py-5">
-  <div class="container">
-    <div class="d-flex justify-content-between align-items-center mb-4">
-      <h1 class="mb-0">My Teams</h1>
-      <a class="btn btn-brand" href="{% url 'teams:create' %}">Create Team</a>
-    </div>
-    {% if teams %}
-      <div class="row g-3">
-        {% for team in teams %}
-          <div class="col-12 col-md-6 col-lg-4">
-            <div class="hero-card p-4 h-100">
-              <h2 class="h5">{{ team.name }}</h2>
-              {% if team.campaign %}<p class="small text-muted mb-1">Campaign: {{ team.campaign.campaign_name }}</p>{% endif %}
-              <p class="small text-muted mb-2">{{ team.memberships.count }} member(s)</p>
-              <a class="btn btn-sm btn-outline-dark me-1" href="{% url 'teams:dashboard' team.slug %}">Dashboard</a>
-              <a class="btn btn-sm btn-outline-secondary me-1" href="{% url 'teams:members' team.slug %}">Members</a>
-              <a class="btn btn-sm btn-outline-primary" href="{% url 'teams:public-detail' team.slug %}">Public Page</a>
+    <section class="py-5">
+        <div class="container">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h1 class="mb-0">My Teams</h1>
+                <a class="btn btn-brand" href="{% url 'teams:create' %}">Create Team</a>
             </div>
-          </div>
-        {% endfor %}
-      </div>
-    {% else %}
-      <p>You are not captain of any teams yet. <a href="{% url 'teams:create' %}">Create one</a>.</p>
-    {% endif %}
-  </div>
-</section>
+            {% if teams %}
+                <div class="row g-3">
+                    {% for team in teams %}
+                        <div class="col-12 col-md-6 col-lg-4">
+                            <div class="hero-card p-4 h-100">
+                                <h2 class="h5">{{ team.name }}</h2>
+                                {% if team.campaign %}<p class="small text-muted mb-1">Campaign: {{ team.campaign.campaign_name }}</p>{% endif %}
+                                <p class="small text-muted mb-2">{{ team.memberships.count }} member(s)</p>
+                                <a class="btn btn-sm btn-outline-dark me-1"
+                                   href="{% url 'teams:dashboard' team.slug %}">Dashboard</a>
+                                <a class="btn btn-sm btn-outline-secondary me-1"
+                                   href="{% url 'teams:members' team.slug %}">Members</a>
+                                <a class="btn btn-sm btn-outline-primary"
+                                   href="{% url 'teams:public-detail' team.slug %}">Public Page</a>
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <p>
+                    You are not captain of any teams yet. <a href="{% url 'teams:create' %}">Create one</a>.
+                </p>
+            {% endif %}
+        </div>
+    </section>
 {% endblock content %}

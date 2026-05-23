@@ -1,60 +1,68 @@
 {% extends "base/base.html" %}
 {% load money %}
-
 {% block title %}{{ team.name }} — Member Leaderboard{% endblock %}
-
 {% block content %}
-<div class="container py-5">
-  <h1 class="fw-bold mb-1">{{ team.name }} — Member Leaderboard</h1>
-  {% if team.campaign %}<p class="text-muted">Campaign: {{ team.campaign.campaign_name }}</p>{% endif %}
-
-  {% if use_live %}
-  <div class="alert alert-info py-2">Showing live data — snapshots are being built.</div>
-  {% endif %}
-
-  {% if rows %}
-  <div class="table-responsive">
-    <table class="table table-hover align-middle">
-      <thead class="table-dark">
-        <tr>
-          <th>#</th>
-          <th>Seller</th>
-          {% if show_full_names %}<th>Name</th>{% endif %}
-          <th>Raised</th>
-          <th>Orders</th>
-          <th>Goal Progress</th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for row in rows %}
-        <tr {% if row.rank == 1 %}class="table-warning fw-bold"{% endif %}>
-          <td>
-            {% if row.rank == 1 %}🥇{% elif row.rank == 2 %}🥈{% elif row.rank == 3 %}🥉{% else %}{{ row.rank }}{% endif %}
-          </td>
-          <td>{{ row.display_name }}</td>
-          {% if show_full_names %}
-          <td>
-            {% if use_live %}{{ row.full_name }}{% else %}{{ row.display_name }}{% endif %}
-          </td>
-          {% endif %}
-          <td class="fw-semibold">${{ row.total_sales_cents|cents_to_dollars }}</td>
-          <td>{{ row.total_orders }}</td>
-          <td style="min-width:120px;">
-            <div class="progress mb-1" style="height:14px;">
-              <div class="progress-bar bg-warning text-dark" role="progressbar"
-                   style="width:{{ row.goal_progress_percent }}%"
-                   aria-valuenow="{{ row.goal_progress_percent }}" aria-valuemin="0" aria-valuemax="100">
-              </div>
+    <div class="container py-5">
+        <h1 class="fw-bold mb-1">{{ team.name }} — Member Leaderboard</h1>
+        {% if team.campaign %}<p class="text-muted">Campaign: {{ team.campaign.campaign_name }}</p>{% endif %}
+        {% if use_live %}<div class="alert alert-info py-2">Showing live data — snapshots are being built.</div>{% endif %}
+        {% if rows %}
+            <div class="table-responsive">
+                <table class="table table-hover align-middle">
+                    <thead class="table-dark">
+                        <tr>
+                            <th>#</th>
+                            <th>Seller</th>
+                            {% if show_full_names %}<th>Name</th>{% endif %}
+                            <th>Raised</th>
+                            <th>Orders</th>
+                            <th>Goal Progress</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for row in rows %}
+                            <tr {% if row.rank == 1 %}class="table-warning fw-bold"{% endif %}>
+                                <td>
+                                    {% if row.rank == 1 %}
+                                        🥇
+                                    {% elif row.rank == 2 %}
+                                        🥈
+                                    {% elif row.rank == 3 %}
+                                        🥉
+                                    {% else %}
+                                        {{ row.rank }}
+                                    {% endif %}
+                                </td>
+                                <td>{{ row.display_name }}</td>
+                                {% if show_full_names %}
+                                    <td>
+                                        {% if use_live %}
+                                            {{ row.full_name }}
+                                        {% else %}
+                                            {{ row.display_name }}
+                                        {% endif %}
+                                    </td>
+                                {% endif %}
+                                <td class="fw-semibold">${{ row.total_sales_cents|cents_to_dollars }}</td>
+                                <td>{{ row.total_orders }}</td>
+                                <td style="min-width:120px;">
+                                    <div class="progress mb-1" style="height:14px;">
+                                        <div class="progress-bar bg-warning text-dark"
+                                             role="progressbar"
+                                             style="width:{{ row.goal_progress_percent }}%"
+                                             aria-valuenow="{{ row.goal_progress_percent }}"
+                                             aria-valuemin="0"
+                                             aria-valuemax="100"></div>
+                                    </div>
+                                    <small>{{ row.goal_progress_percent }}%</small>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
             </div>
-            <small>{{ row.goal_progress_percent }}%</small>
-          </td>
-        </tr>
-        {% endfor %}
-      </tbody>
-    </table>
-  </div>
-  {% else %}
-    <div class="alert alert-info">No sales data yet — keep selling!</div>
-  {% endif %}
-</div>
+        {% else %}
+            <div class="alert alert-info">No sales data yet — keep selling!</div>
+        {% endif %}
+    </div>
 {% endblock %}

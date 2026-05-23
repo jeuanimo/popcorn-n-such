@@ -15,10 +15,11 @@ from .models import Team, TeamMembership, TeamMemberRole, TeamReminderLog
 from .services import TeamService
 
 User = get_user_model()
+TEST_LOGIN_SECRET = "test-secret-teams"
 
 
 def _create_user(username, **kwargs):
-    return User.objects.create_user(username=username, password="pass", email=f"{username}@example.com", **kwargs)
+    return User.objects.create_user(username=username, password=TEST_LOGIN_SECRET, email=f"{username}@example.com", **kwargs)
 
 
 def _create_org(manager):
@@ -313,7 +314,7 @@ class TeamDashboardViewTests(TestCase):
         )
 
     def test_member_sees_fundraising_shop_link(self):
-        self.client.login(username="member_dash", password="pass")
+        self.client.login(username="member_dash", password=TEST_LOGIN_SECRET)
         response = self.client.get(reverse("teams:dashboard", args=[self.team.slug]))
 
         self.assertEqual(response.status_code, 200)

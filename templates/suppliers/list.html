@@ -1,45 +1,72 @@
 {% extends "staff/base.html" %}
-{% block title %}Suppliers | Staff{% endblock title %}
+{% block title %}
+    Suppliers | Staff
+{% endblock title %}
 {% block content %}
-<div class="d-flex align-items-center justify-content-between mb-4">
-  <div>
-    <span class="eyebrow">Catalog</span>
-    <h1 class="h3 mb-0">Suppliers</h1>
-  </div>
-  <div class="d-flex gap-2">
-    <a class="btn btn-sm btn-brand" href="{% url 'suppliers:create' %}">Add Supplier</a>
-    <a class="btn btn-sm btn-outline-dark" href="{% url 'suppliers:import-csv' %}">Import CSV</a>
-    <a class="btn btn-sm btn-outline-dark" href="{% url 'dashboards:portal' %}">Staff Portal</a>
-  </div>
-</div>
-  <form method="post">
-    {% csrf_token %}
-    <div class="d-flex flex-wrap gap-2 mb-3">
-      <button type="submit" name="action" value="delete_selected" class="btn btn-sm btn-outline-danger" onclick="return confirm('Delete selected suppliers?');">Delete Selected</button>
-      <button type="submit" name="action" value="delete_all" class="btn btn-sm btn-danger" onclick="return confirm('Delete ALL suppliers? This cannot be undone.');">Delete All Suppliers</button>
-    </div>
-    <div class="list-group">
-      {% for supplier in suppliers %}
-        <div class="list-group-item">
-          <div class="d-flex justify-content-between align-items-start gap-3">
-            <div class="d-flex align-items-start gap-2">
-              <input class="form-check-input mt-1" type="checkbox" name="supplier_ids" value="{{ supplier.id }}" aria-label="Select {{ supplier.name }}" />
-              <div>
-                <div class="fw-semibold"><a href="{% url 'suppliers:detail' supplier.id %}">{{ supplier.name }}</a></div>
-                <div class="small text-muted">{{ supplier.get_category_display }} • {{ supplier.get_status_display }}</div>
-              </div>
-            </div>
-            <div class="d-flex align-items-center gap-2">
-              <div class="small text-muted">Rating: {{ supplier.rating }}</div>
-              <a href="{% url 'suppliers:edit' supplier.id %}" class="btn btn-sm btn-outline-dark">Edit</a>
-              <button type="submit" class="btn btn-sm btn-outline-danger" name="delete_one_id" value="{{ supplier.id }}" onclick="return confirm('Delete supplier {{ supplier.name|escapejs }}?');">Delete</button>
-            </div>
-          </div>
+    <div class="d-flex align-items-center justify-content-between mb-4">
+        <div>
+            <span class="eyebrow">Catalog</span>
+            <h1 class="h3 mb-0">Suppliers</h1>
         </div>
-      {% empty %}
-        <div class="list-group-item">No suppliers yet.</div>
-      {% endfor %}
+        <div class="d-flex gap-2">
+            <a class="btn btn-sm btn-brand" href="{% url 'suppliers:create' %}">Add Supplier</a>
+            <a class="btn btn-sm btn-outline-dark"
+               href="{% url 'suppliers:import-csv' %}">Import CSV</a>
+            <a class="btn btn-sm btn-outline-dark"
+               href="{% url 'dashboards:portal' %}">Staff Portal</a>
+        </div>
     </div>
-  </form>
+    <form method="post">
+        {% csrf_token %}
+        <div class="d-flex flex-wrap gap-2 mb-3">
+            <button type="submit"
+                    name="action"
+                    value="delete_selected"
+                    class="btn btn-sm btn-outline-danger"
+                    onclick="return confirm('Delete selected suppliers?');">Delete Selected</button>
+            <button type="submit"
+                    name="action"
+                    value="delete_all"
+                    class="btn btn-sm btn-danger"
+                    onclick="return confirm('Delete ALL suppliers? This cannot be undone.');">
+                Delete All Suppliers
+            </button>
+        </div>
+        <div class="list-group">
+            {% for supplier in suppliers %}
+                <div class="list-group-item">
+                    <div class="d-flex justify-content-between align-items-start gap-3">
+                        <div class="d-flex align-items-start gap-2">
+                            <input class="form-check-input mt-1"
+                                   type="checkbox"
+                                   name="supplier_ids"
+                                   value="{{ supplier.id }}"
+                                   aria-label="Select {{ supplier.name }}" />
+                            <div>
+                                <div class="fw-semibold">
+                                    <a href="{% url 'suppliers:detail' supplier.id %}">{{ supplier.name }}</a>
+                                </div>
+                                <div class="small text-muted">{{ supplier.get_category_display }} • {{ supplier.get_status_display }}</div>
+                            </div>
+                        </div>
+                        <div class="d-flex align-items-center gap-2">
+                            <div class="small text-muted">Rating: {{ supplier.rating }}</div>
+                            <a href="{% url 'suppliers:edit' supplier.id %}"
+                               class="btn btn-sm btn-outline-dark">Edit</a>
+                            <button type="submit"
+                                    class="btn btn-sm btn-outline-danger"
+                                    name="delete_one_id"
+                                    value="{{ supplier.id }}"
+                                    onclick="return confirm('Delete supplier {{ supplier.name|escapejs }}?');">
+                                Delete
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            {% empty %}
+                <div class="list-group-item">No suppliers yet.</div>
+            {% endfor %}
+        </div>
+    </form>
 </div>
 {% endblock content %}

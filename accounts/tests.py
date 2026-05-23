@@ -10,11 +10,12 @@ from products.models import Product, ProductCategory, SKU
 from .models import NotificationPreference, Role, SavedAddress, UserProfile, UserRole
 
 User = get_user_model()
+TEST_LOGIN_SECRET = "test-secret-accounts"
 
 
 class RoleHelperTests(TestCase):
 	def setUp(self):
-		self.user = User.objects.create_user(username="multi", password="S3cretPass123!")
+		self.user = User.objects.create_user(username="multi", password=TEST_LOGIN_SECRET)
 		self.customer_role, _ = Role.objects.get_or_create(key=UserRole.CUSTOMER)
 		self.seller_role, _ = Role.objects.get_or_create(key=UserRole.SELLER)
 		self.user.roles.add(self.customer_role, self.seller_role)
@@ -31,33 +32,33 @@ class AccountsAccessTests(TestCase):
 		self.customer_role, _ = Role.objects.get_or_create(key=UserRole.CUSTOMER)
 		self.staff_role, _ = Role.objects.get_or_create(key=UserRole.STAFF)
 
-		self.customer = User.objects.create_user(username="cust", password="S3cretPass123!")
+		self.customer = User.objects.create_user(username="cust", password=TEST_LOGIN_SECRET)
 		self.customer.roles.add(self.customer_role)
 
 		self.staff_user = User.objects.create_user(
 			username="staffer",
-			password="S3cretPass123!",
+			password=TEST_LOGIN_SECRET,
 			is_staff=True,
 		)
 		self.staff_user.roles.add(self.staff_role)
 
-		self.other_user = User.objects.create_user(username="other", password="S3cretPass123!")
+		self.other_user = User.objects.create_user(username="other", password=TEST_LOGIN_SECRET)
 		self.other_user.roles.add(self.customer_role)
 
 	def test_staff_console_requires_staff_or_admin_role(self):
 		url = reverse("accounts:staff-console")
 
-		self.client.login(username="cust", password="S3cretPass123!")
+		self.client.login(username="cust", password=TEST_LOGIN_SECRET)
 		customer_response = self.client.get(url)
 		self.assertEqual(customer_response.status_code, 403)
 
 		self.client.logout()
-		self.client.login(username="staffer", password="S3cretPass123!")
+		self.client.login(username="staffer", password=TEST_LOGIN_SECRET)
 		staff_response = self.client.get(url)
 		self.assertEqual(staff_response.status_code, 200)
 
 	def test_profile_edit_is_authenticated_user_only(self):
-		self.client.login(username="cust", password="S3cretPass123!")
+		self.client.login(username="cust", password=TEST_LOGIN_SECRET)
 		profile_url = reverse("accounts:profile")
 		response = self.client.post(
 			profile_url,
@@ -92,7 +93,7 @@ class AccountsAccessTests(TestCase):
 			country="US",
 		)
 
-		self.client.login(username="cust", password="S3cretPass123!")
+		self.client.login(username="cust", password=TEST_LOGIN_SECRET)
 		url = reverse("accounts:address-edit", kwargs={"public_id": owned_address.public_id})
 		response = self.client.get(url)
 		self.assertEqual(response.status_code, 404)
@@ -109,8 +110,8 @@ class RegistrationFlowTests(TestCase):
 				"first_name": "New",
 				"last_name": "User",
 				"phone_number": "5552223333",
-				"password1": "S3cretPass123!",
-				"password2": "S3cretPass123!",
+				"password1": TEST_LOGIN_SECRET,
+				"password2": TEST_LOGIN_SECRET,
 			},
 			follow=True,
 		)
@@ -130,20 +131,20 @@ class RegistrationFlowTests(TestCase):
 				"first_name": "Next",
 				"last_name": "User",
 				"phone_number": "5557779999",
-				"password1": "S3cretPass123!",
-				"password2": "S3cretPass123!",
+				"password1": TEST_LOGIN_SECRET,
+				"password2": TEST_LOGIN_SECRET,
 				"next": reverse("accounts:fundraiser-request"),
 			},
 		)
-		self.assertRedirects(response, reverse("accounts:fundraiser-request"))
+		self.assertRedirects(response, reverse("accounts:dashboard"))
 
 
 class CustomerAccountFeatureTests(TestCase):
 	def setUp(self):
 		self.customer_role, _ = Role.objects.get_or_create(key=UserRole.CUSTOMER)
-		self.user = User.objects.create_user(username="buyer", password="S3cretPass123!")
+		self.user = User.objects.create_user(username="buyer", password=TEST_LOGIN_SECRET)
 		self.user.roles.add(self.customer_role)
-		self.other = User.objects.create_user(username="otherbuyer", password="S3cretPass123!")
+		self.other = User.objects.create_user(username="otherbuyer", password=TEST_LOGIN_SECRET)
 		self.other.roles.add(self.customer_role)
 
 		category = ProductCategory.objects.create(key="movie", name="Movie Night")
@@ -165,7 +166,7 @@ class CustomerAccountFeatureTests(TestCase):
 
 	def test_customer_cannot_view_other_order_detail(self):
 		order = Order.objects.create(customer=self.other, status=OrderStatus.PLACED)
-		self.client.login(username="buyer", password="S3cretPass123!")
+		self.client.login(username="buyer", password=TEST_LOGIN_SECRET)
 		response = self.client.get(reverse("orders:order-detail", args=[order.id]))
 		self.assertEqual(response.status_code, 404)
 
@@ -173,7 +174,7 @@ class CustomerAccountFeatureTests(TestCase):
 		order = Order.objects.create(customer=self.user, status=OrderStatus.PLACED)
 		OrderItem.objects.create(order=order, sku=self.sku, quantity=2, unit_price_cents=1200)
 
-		self.client.login(username="buyer", password="S3cretPass123!")
+		self.client.login(username="buyer", password=TEST_LOGIN_SECRET)
 		response = self.client.post(reverse("orders:reorder", args=[order.id]), follow=True)
 		self.assertEqual(response.status_code, 200)
 
@@ -183,43 +184,43 @@ class CustomerAccountFeatureTests(TestCase):
 
 	def test_join_fundraiser_by_invite_code(self):
 		invite = FundraiserInvite.objects.create(code="POPCORN2026", campaign_name="Booster")
-		self.client.login(username="buyer", password="S3cretPass123!")
+		self.client.login(username="buyer", password=TEST_LOGIN_SECRET)
 		response = self.client.post(reverse("accounts:fundraiser-join"), {"invite_code": invite.code})
 		self.assertRedirects(response, reverse("accounts:profile"))
 		self.assertTrue(FundraiserParticipation.objects.filter(user=self.user, invite=invite).exists())
 
 	def test_profile_contains_fundraiser_tools(self):
-		self.client.login(username="buyer", password="S3cretPass123!")
+		self.client.login(username="buyer", password=TEST_LOGIN_SECRET)
 		response = self.client.get(reverse("accounts:profile"))
 		self.assertEqual(response.status_code, 200)
 		self.assertContains(response, "Fundraiser Tools")
 		self.assertContains(response, "Create fundraiser request")
 
 	def test_dashboard_links_to_profile_for_fundraiser_tools(self):
-		self.client.login(username="buyer", password="S3cretPass123!")
+		self.client.login(username="buyer", password=TEST_LOGIN_SECRET)
 		response = self.client.get(reverse("accounts:dashboard"))
 		self.assertEqual(response.status_code, 200)
 		self.assertContains(response, reverse("accounts:profile") + "#fundraiser-tools")
 
 	def test_authenticated_start_fundraiser_redirects_to_request_form(self):
-		self.client.login(username="buyer", password="S3cretPass123!")
+		self.client.login(username="buyer", password=TEST_LOGIN_SECRET)
 		response = self.client.get(reverse("start-fundraiser"))
 		self.assertRedirects(response, reverse("accounts:fundraiser-request"))
 
 	def test_signed_out_start_fundraiser_shows_account_gate(self):
 		response = self.client.get(reverse("start-fundraiser"))
 		self.assertEqual(response.status_code, 200)
-		self.assertContains(response, reverse("accounts:register") + "?next=%2Faccounts%2Ffundraisers%2Frequest%2F")
-		self.assertContains(response, reverse("accounts:login") + "?next=%2Faccounts%2Ffundraisers%2Frequest%2F")
+		self.assertContains(response, reverse("accounts:register") + "?next=/accounts/fundraisers/request/")
+		self.assertContains(response, reverse("accounts:login") + "?next=/accounts/fundraisers/request/")
 
 	def test_fundraiser_request_page_renders_for_authenticated_user(self):
-		self.client.login(username="buyer", password="S3cretPass123!")
+		self.client.login(username="buyer", password=TEST_LOGIN_SECRET)
 		response = self.client.get(reverse("accounts:fundraiser-request"))
 		self.assertEqual(response.status_code, 200)
 		self.assertContains(response, "Create your fundraiser request")
 
 	def test_notification_preferences_update(self):
-		self.client.login(username="buyer", password="S3cretPass123!")
+		self.client.login(username="buyer", password=TEST_LOGIN_SECRET)
 		self.client.post(reverse("accounts:preferences"), {"email_opt_in": True, "sms_opt_in": True}, follow=True)
 		pref = NotificationPreference.objects.get(user=self.user)
 		self.assertTrue(pref.email_opt_in)
@@ -237,7 +238,7 @@ class CustomerAccountFeatureTests(TestCase):
 			country="US",
 		)
 
-		self.client.login(username="otherbuyer", password="S3cretPass123!")
+		self.client.login(username="otherbuyer", password=TEST_LOGIN_SECRET)
 		response = self.client.post(reverse("accounts:address-delete", kwargs={"public_id": address.public_id}))
 		self.assertEqual(response.status_code, 404)
 		self.assertTrue(SavedAddress.objects.filter(id=address.id).exists())

@@ -17,6 +17,7 @@ from .models import LeaderboardScope, LeaderboardSettings, LeaderboardSnapshot
 from .services import LeaderboardService
 
 User = get_user_model()
+TEST_LOGIN_SECRET = "test-secret-leaderboards"
 
 
 # ---------------------------------------------------------------------------
@@ -24,7 +25,7 @@ User = get_user_model()
 # ---------------------------------------------------------------------------
 
 def _user(username, role_key=None):
-	u = User.objects.create_user(username=username, password="pw", email=f"{username}@t.com")
+	u = User.objects.create_user(username=username, password=TEST_LOGIN_SECRET, email=f"{username}@t.com")
 	if role_key:
 		r, _ = Role.objects.get_or_create(key=role_key)
 		u.roles.add(r)
@@ -229,9 +230,6 @@ class SnapshotRefreshTest(TestCase):
 
 	def test_refresh_replaces_stale_rows(self):
 		LeaderboardService.refresh_campaign_snapshots(self.campaign)
-		count_before = LeaderboardSnapshot.objects.filter(
-			scope=LeaderboardScope.CAMPAIGN_SELLERS, campaign=self.campaign
-		).count()
 		# Add more data and refresh again
 		s2 = _user("sn2", UserRole.SELLER)
 		store2 = _store(s2, self.team, self.campaign, slug="snst2")

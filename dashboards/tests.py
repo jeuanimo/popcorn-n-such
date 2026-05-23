@@ -8,6 +8,7 @@ from accounts.models import Role, UserRole
 from organizations.models import Organization
 
 User = get_user_model()
+TEST_LOGIN_SECRET = "test-secret-dashboards"
 
 
 class DashboardAccessControlTests(TestCase):
@@ -16,17 +17,17 @@ class DashboardAccessControlTests(TestCase):
         self.admin_role, _ = Role.objects.get_or_create(key=UserRole.ADMIN)
         self.org_manager_role, _ = Role.objects.get_or_create(key=UserRole.ORGANIZATION_MANAGER)
 
-        self.staff = User.objects.create_user(username="staff_d", password="pw", is_staff=True)
+        self.staff = User.objects.create_user(username="staff_d", password=TEST_LOGIN_SECRET, is_staff=True)
         self.staff.roles.add(self.staff_role)
 
-        self.admin = User.objects.create_user(username="admin_d", password="pw")
+        self.admin = User.objects.create_user(username="admin_d", password=TEST_LOGIN_SECRET)
         self.admin.roles.add(self.admin_role)
 
-        self.manager = User.objects.create_user(username="mgr_d", password="pw")
+        self.manager = User.objects.create_user(username="mgr_d", password=TEST_LOGIN_SECRET)
         self.manager.roles.add(self.org_manager_role)
         Organization.objects.create(name="Org", manager=self.manager)
 
-        self.customer = User.objects.create_user(username="cust_d", password="pw")
+        self.customer = User.objects.create_user(username="cust_d", password=TEST_LOGIN_SECRET)
 
     def test_owner_dashboard_requires_admin(self):
         self.client.force_login(self.customer)

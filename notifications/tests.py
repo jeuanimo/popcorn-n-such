@@ -7,12 +7,13 @@ from notifications.models import Notification, NotificationType
 
 
 User = get_user_model()
+TEST_LOGIN_SECRET = "test-secret-notifications"
 
 
 class NotificationCenterSecurityTests(TestCase):
     def setUp(self):
-        self.u1 = User.objects.create_user(username="u1", password="pw", email="u1@example.com")
-        self.u2 = User.objects.create_user(username="u2", password="pw", email="u2@example.com")
+        self.u1 = User.objects.create_user(username="u1", password=TEST_LOGIN_SECRET, email="u1@example.com")
+        self.u2 = User.objects.create_user(username="u2", password=TEST_LOGIN_SECRET, email="u2@example.com")
         NotificationCenterService.notify(
             user=self.u1,
             notification_type=NotificationType.DELIVERY_UPDATE,
@@ -36,5 +37,3 @@ class NotificationCenterSecurityTests(TestCase):
         self.client.force_login(self.u2)
         resp = self.client.post(reverse("notifications:inbox-mark-read", args=[n.id]))
         self.assertEqual(resp.status_code, 404)
-
-# Create your tests here.

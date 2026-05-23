@@ -10,7 +10,7 @@ from accounts.models import Role, User, UserRole
 from .models import CSVImportBatch, CSVImportBatchStatus, Product, ProductCategory, SKU
 
 
-TEST_PASSWORD = f"test-{uuid4()}"
+TEST_LOGIN_SECRET = f"test-{uuid4()}"
 
 
 class ProductVisibilityTests(TestCase):
@@ -115,7 +115,7 @@ class ProductSKUCSVImportTests(TestCase):
 		self.staff_role, _ = Role.objects.get_or_create(key=UserRole.STAFF)
 		self.staff_user = User.objects.create_user(
 			username="staff_csv",
-			password=TEST_PASSWORD,
+			password=TEST_LOGIN_SECRET,
 			is_staff=True,
 		)
 		self.staff_user.roles.add(self.staff_role)
@@ -147,7 +147,7 @@ class ProductSKUCSVImportTests(TestCase):
 		return SimpleUploadedFile(name=name, content=content.encode("utf-8"), content_type=content_type)
 
 	def test_preview_shows_row_level_errors(self):
-		self.client.login(username="staff_csv", password=TEST_PASSWORD)
+		self.client.login(username="staff_csv", password=TEST_LOGIN_SECRET)
 		csv_payload = (
 			"sku,product_name,category,flavor,size,description,cost_price,retail_price,inventory_count,low_stock_threshold,weight_oz,is_active,fundraiser_eligible,standalone_store_eligible,image_url\n"
 			"DUP-1,Cheddar Pop,Savory,Cheddar,Small,Good,2.00,5.00,12,3,4.00,true,true,true,\n"
@@ -166,7 +166,7 @@ class ProductSKUCSVImportTests(TestCase):
 		self.assertContains(response, "Duplicate SKU within uploaded CSV")
 
 	def test_commit_creates_and_updates_skus(self):
-		self.client.login(username="staff_csv", password=TEST_PASSWORD)
+		self.client.login(username="staff_csv", password=TEST_LOGIN_SECRET)
 		csv_payload = (
 			"sku,product_name,category,flavor,size,description,cost_price,retail_price,inventory_count,low_stock_threshold,weight_oz,is_active,fundraiser_eligible,standalone_store_eligible,image_url\n"
 			"EXIST-001,Legacy Product,Classic,Butter,Medium,Updated item,2.50,6.00,20,4,5.50,true,true,true,\n"
@@ -200,7 +200,7 @@ class ProductSKUCSVImportTests(TestCase):
 		self.assertTrue(SKU.objects.filter(sku_code="NEW-001").exists())
 
 	def test_rollback_last_import(self):
-		self.client.login(username="staff_csv", password=TEST_PASSWORD)
+		self.client.login(username="staff_csv", password=TEST_LOGIN_SECRET)
 		csv_payload = (
 			"sku,product_name,category,flavor,size,description,cost_price,retail_price,inventory_count,low_stock_threshold,weight_oz,is_active,fundraiser_eligible,standalone_store_eligible,image_url\n"
 			"EXIST-001,Legacy Product,Classic,Butter,XL,Updated item,2.20,5.90,15,2,4.50,true,true,true,\n"
@@ -230,7 +230,7 @@ class ProductAdminManagementTests(TestCase):
 		self.staff_role, _ = Role.objects.get_or_create(key=UserRole.STAFF)
 		self.staff_user = User.objects.create_user(
 			username="staff_manager",
-			password=TEST_PASSWORD,
+			password=TEST_LOGIN_SECRET,
 			is_staff=True,
 		)
 		self.staff_user.roles.add(self.staff_role)
@@ -244,7 +244,7 @@ class ProductAdminManagementTests(TestCase):
 		)
 
 	def test_staff_can_create_product(self):
-		self.client.login(username="staff_manager", password=TEST_PASSWORD)
+		self.client.login(username="staff_manager", password=TEST_LOGIN_SECRET)
 		response = self.client.post(
 			reverse("products:admin-create"),
 			{
@@ -267,7 +267,7 @@ class ProductAdminManagementTests(TestCase):
 		self.assertContains(response, "Product created successfully.")
 
 	def test_staff_can_edit_product(self):
-		self.client.login(username="staff_manager", password=TEST_PASSWORD)
+		self.client.login(username="staff_manager", password=TEST_LOGIN_SECRET)
 		response = self.client.post(
 			reverse("products:admin-edit", args=[self.product.id]),
 			{
@@ -300,7 +300,7 @@ class ProductAdminManagementTests(TestCase):
 			inventory_quantity=10,
 			low_stock_threshold=2,
 		)
-		self.client.login(username="staff_manager", password=TEST_PASSWORD)
+		self.client.login(username="staff_manager", password=TEST_LOGIN_SECRET)
 		response = self.client.post(reverse("products:admin-delete", args=[self.product.id]), follow=True)
 
 		self.assertEqual(response.status_code, 200)

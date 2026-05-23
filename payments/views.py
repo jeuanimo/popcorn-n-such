@@ -4,7 +4,6 @@ import json
 
 from django.http import HttpRequest, HttpResponse, JsonResponse
 from django.utils import timezone
-from django.views.decorators.csrf import csrf_exempt
 
 from payments.gateways.registry import get_payment_gateway
 from payments.models import PaymentEventLog, PaymentTransaction
@@ -21,7 +20,6 @@ def _header_dict(request: HttpRequest) -> dict[str, str]:
     return headers
 
 
-@csrf_exempt
 def payment_webhook(request: HttpRequest, provider: str) -> HttpResponse:
     gateway = get_payment_gateway(provider)
     body = request.body or b""

@@ -1,50 +1,80 @@
 {% extends "staff/base.html" %}
-
-{% block title %}Reports{% endblock title %}
-
+{% block title %}
+    Reports
+{% endblock title %}
 {% block content %}
-<div class="container py-4">
-  <div class="d-flex justify-content-between align-items-center mb-3">
-    <h1 class="h3 mb-0">Reports</h1>
-    <a class="btn btn-outline-dark" href="{% url 'reports:my-dashboard' %}">My exports</a>
-  </div>
-
-  <div class="row g-3">
-    <div class="col-12 col-lg-6">
-      <div class="card">
-        <div class="card-body">
-          <h2 class="h6">Sales</h2>
-          <ul class="mb-0">
-            <li><a href="{% url 'reports:sales-by-date' %}">Sales by date range</a></li>
-            <li><a href="{% url 'reports:sales-by-product' %}">Sales by product</a></li>
-            <li><a href="{% url 'reports:sales-by-sku' %}">Sales by SKU</a></li>
-            <li><a href="{% url 'reports:sales-by-fundraiser' %}">Sales by fundraiser</a></li>
-            <li><a href="{% url 'reports:sales-by-team' %}">Sales by team</a></li>
-            <li><a href="{% url 'reports:sales-by-seller' %}">Sales by seller</a></li>
-            <li><a href="{% url 'reports:sales-by-organization' %}">Sales by organization</a></li>
-            <li><a href="{% url 'reports:sales-by-channel' %}">Sales by channel</a></li>
-          </ul>
+    <div class="container py-4">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h1 class="h3 mb-0">Reports</h1>
+            <a class="btn btn-outline-dark" href="{% url 'reports:my-dashboard' %}">My exports</a>
         </div>
-      </div>
-    </div>
-
-    <div class="col-12 col-lg-6">
-      <div class="card">
-        <div class="card-body">
-          <h2 class="h6">Operations</h2>
-          <ul class="mb-0">
-            <li><a href="{% url 'reports:tax' %}">Tax report</a></li>
-            <li><a href="{% url 'reports:shipping' %}">Shipping report</a></li>
-            <li><a href="{% url 'reports:inventory' %}">Inventory report</a></li>
-            <li><a href="{% url 'reports:supplies' %}">Supply report</a></li>
-            <li><a href="{% url 'reports:low-stock' %}">Low stock report</a></li>
-            <li><a href="{% url 'reports:customers' %}">Customer report (aggregate)</a></li>
-            <li><a href="{% url 'reports:supplier-purchases' %}">Supplier purchase report</a></li>
-            <li><a href="{% url 'reports:fundraiser-payouts' %}">Fundraiser payout estimate</a></li>
-          </ul>
+        <div class="row g-3">
+            <div class="col-12 col-lg-6">
+                <div class="card">
+                    <div class="card-body">
+                        <h2 class="h6">Sales</h2>
+                        <ul class="mb-0">
+                            <li>
+                                <a href="{% url 'reports:sales-by-date' %}">Sales by date range</a>
+                            </li>
+                            <li>
+                                <a href="{% url 'reports:sales-by-product' %}">Sales by product</a>
+                            </li>
+                            <li>
+                                <a href="{% url 'reports:sales-by-sku' %}">Sales by SKU</a>
+                            </li>
+                            <li>
+                                <a href="{% url 'reports:sales-by-fundraiser' %}">Sales by fundraiser</a>
+                            </li>
+                            <li>
+                                <a href="{% url 'reports:sales-by-team' %}">Sales by team</a>
+                            </li>
+                            <li>
+                                <a href="{% url 'reports:sales-by-seller' %}">Sales by seller</a>
+                            </li>
+                            <li>
+                                <a href="{% url 'reports:sales-by-organization' %}">Sales by organization</a>
+                            </li>
+                            <li>
+                                <a href="{% url 'reports:sales-by-channel' %}">Sales by channel</a>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            <div class="col-12 col-lg-6">
+                <div class="card">
+                    <div class="card-body">
+                        <h2 class="h6">Operations</h2>
+                        <ul class="mb-0">
+                            <li>
+                                <a href="{% url 'reports:tax' %}">Tax report</a>
+                            </li>
+                            <li>
+                                <a href="{% url 'reports:shipping' %}">Shipping report</a>
+                            </li>
+                            <li>
+                                <a href="{% url 'reports:inventory' %}">Inventory report</a>
+                            </li>
+                            <li>
+                                <a href="{% url 'reports:supplies' %}">Supply report</a>
+                            </li>
+                            <li>
+                                <a href="{% url 'reports:low-stock' %}">Low stock report</a>
+                            </li>
+                            <li>
+                                <a href="{% url 'reports:customers' %}">Customer report (aggregate)</a>
+                            </li>
+                            <li>
+                                <a href="{% url 'reports:supplier-purchases' %}">Supplier purchase report</a>
+                            </li>
+                            <li>
+                                <a href="{% url 'reports:fundraiser-payouts' %}">Fundraiser payout estimate</a>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
         </div>
-      </div>
     </div>
-  </div>
-</div>
 {% endblock content %}

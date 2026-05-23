@@ -1,23 +1,37 @@
 {% extends "base.html" %}
 {% load money %}
 {% block content %}
-<div class="container py-4">
-  <h1 class="h4">My Account</h1>
-  <div class="row g-3">
-    <div class="col-md-6">
-      <div class="card"><div class="card-header">Recent orders</div>
-        <div class="card-body"><ul class="mb-0">
-          {% for o in orders %}<li>{{ o.order_number }} — {{ o.status }} — ${{ o.total_cents|cents_to_dollars }}</li>{% empty %}<li class="text-muted">No orders.</li>{% endfor %}
-        </ul></div>
-      </div>
+    <div class="container py-4">
+        <h1 class="h4">My Account</h1>
+        <div class="row g-3">
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header">Recent orders</div>
+                    <div class="card-body">
+                        <ul class="mb-0">
+                            {% for o in orders %}
+                                <li>{{ o.order_number }} — {{ o.status }} — ${{ o.total_cents|cents_to_dollars }}</li>
+                            {% empty %}
+                                <li class="text-muted">No orders.</li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header">Saved addresses</div>
+                    <div class="card-body">
+                        <ul class="mb-0">
+                            {% for a in addresses %}
+                                <li>{{ a.label }} — {{ a.city }}, {{ a.state }}</li>
+                            {% empty %}
+                                <li class="text-muted">No saved addresses.</li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
-    <div class="col-md-6">
-      <div class="card"><div class="card-header">Saved addresses</div>
-        <div class="card-body"><ul class="mb-0">
-          {% for a in addresses %}<li>{{ a.label }} — {{ a.city }}, {{ a.state }}</li>{% empty %}<li class="text-muted">No saved addresses.</li>{% endfor %}
-        </ul></div>
-      </div>
-    </div>
-  </div>
-</div>
 {% endblock %}

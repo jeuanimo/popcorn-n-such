@@ -13,7 +13,6 @@ from core.security import RoleRequiredMixin
 
 from .forms import ContactForm, SiteContentBlockForm
 from .models import SiteContentBlock
-from django.core.mail import send_mail
 
 from products.models import Product
 
@@ -36,6 +35,9 @@ MANAGED_PAGE_LABELS = {
     "faq": "FAQ",
 }
 
+HERO_SECTION_LABEL = "① Hero — Page banner & headline"
+CTA_SECTION_LABEL = "④ CTA — Call-to-action strip"
+
 MANAGED_PAGE_SECTIONS = {
     "home": [
         ("hero",         "① Hero — Top banner & headline"),
@@ -45,22 +47,22 @@ MANAGED_PAGE_SECTIONS = {
         ("cta",          "⑤ CTA — Call-to-action strip"),
     ],
     "about": [
-        ("hero",   "① Hero — Page banner & headline"),
+        ("hero",   HERO_SECTION_LABEL),
         ("story",  "② Our Story — Company history"),
         ("values", "③ Values / Team — Middle section"),
-        ("cta",    "④ CTA — Call-to-action strip"),
+        ("cta",    CTA_SECTION_LABEL),
     ],
     "fundraising": [
-        ("hero",          "① Hero — Page banner & headline"),
+        ("hero",          HERO_SECTION_LABEL),
         ("how-it-works",  "② How It Works — Step-by-step"),
         ("benefits",      "③ Benefits — Why choose us"),
-        ("cta",           "④ CTA — Call-to-action strip"),
+        ("cta",           CTA_SECTION_LABEL),
     ],
     "corporate_gifts": [
-        ("hero",          "① Hero — Page banner & headline"),
+        ("hero",          HERO_SECTION_LABEL),
         ("intro",         "② Intro — Overview section"),
         ("custom-orders", "③ Custom Orders — Ordering info"),
-        ("cta",           "④ CTA — Call-to-action strip"),
+        ("cta",           CTA_SECTION_LABEL),
     ],
     "contact": [
         ("hero",         "① Hero — Page banner"),
@@ -129,12 +131,9 @@ class ContactView(View):
 	def post(self, request):
 		form = ContactForm(request.POST)
 		if form.is_valid():
-			# For now, just print or send email
 			name = form.cleaned_data["name"]
 			email = form.cleaned_data["email"]
 			message = form.cleaned_data["message"]
-			# Example: send_mail or print
-			# send_mail(f"Contact Form: {name}", message, email, ["hello@popcornnsuch.com"])
 			print(f"Contact form submitted by {name} <{email}>: {message}")
 			messages.success(request, "Thank you for reaching out! We'll get back to you soon.")
 			return redirect("core:contact")

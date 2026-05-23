@@ -34,7 +34,9 @@ DJANGO_APPS = [
     "django.contrib.staticfiles",
 ]
 
-THIRD_PARTY_APPS = []
+THIRD_PARTY_APPS = [
+    "django_celery_beat",
+]
 
 LOCAL_APPS = [
     "accounts",
@@ -268,5 +270,42 @@ LOGGING = {
             "level": "INFO",
             "propagate": False,
         },
+    },
+}
+
+# ---------------------------------------------------------------------------
+# Celery
+# ---------------------------------------------------------------------------
+
+_redis_url = os.getenv("REDIS_URL", "redis://localhost:6379/0")
+
+CELERY_BROKER_URL = _redis_url
+CELERY_RESULT_BACKEND = _redis_url
+
+CELERY_ACCEPT_CONTENT = ["json"]
+CELERY_TASK_SERIALIZER = "json"
+CELERY_RESULT_SERIALIZER = "json"
+CELERY_TIMEZONE = "UTC"
+
+# Track task state so the admin and monitoring can show started/running.
+CELERY_TASK_TRACK_STARTED = True
+
+# Hard and soft time limits prevent runaway tasks from blocking workers.
+CELERY_TASK_TIME_LIMIT = 300        # 5 min — SIGKILL
+CELERY_TASK_SOFT_TIME_LIMIT = 240   # 4 min — raises SoftTimeLimitExceeded
+
+# Prevent workers from pre-fetching more tasks than they can handle.
+CELERY_WORKER_PREFETCH_MULTIPLIER = 1
+
+# Use the database-backed Beat scheduler so schedules survive restarts
+# and can be edited in the Django admin.
+CELERY_BEAT_SCHEDULER = "django_celery_beat.schedulers:DatabaseScheduler"
+
+# Default periodic schedule.  Additional entries can be created in the
+# Django admin under Periodic Tasks without a deploy.
+CELERY_BEAT_SCHEDULE = {
+    "process-abandoned-carts": {
+        "task": "abandoned_carts.tasks.process_abandoned_carts",
+        "schedule": 1800.0,  # every 30 minutes
     },
 }

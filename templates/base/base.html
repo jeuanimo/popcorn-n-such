@@ -1,178 +1,260 @@
 {% load static %}
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="utf-8" />
-    <meta http-equiv="x-ua-compatible" content="ie=edge" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>{% block title %}Popcorn-N-Such{% endblock title %}</title>
-    <link rel="icon" type="image/x-icon" href="{% static 'images/favicon.ico' %}" />
-    <link rel="apple-touch-icon" href="{% static 'images/apple-touch-icon.png' %}" />
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600&family=Source+Sans+3:wght@400;500;600;700&display=swap" rel="stylesheet" />
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous" />
-    <link rel="stylesheet" href="{% static 'css/theme.css' %}" />
-    {% block head %}{% endblock head %}
-  </head>
-  <body>
-    <header class="brand-header sticky-top">
-      <nav class="navbar navbar-expand-lg navbar-dark py-3">
-        <div class="container">
-          <a class="navbar-brand" href="{% url 'home' %}">
-            <img src="{% static 'images/logo.png' %}" alt="Popcorn-N-Such" class="navbar-logo" />
-          </a>
-          <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#siteNav" aria-controls="siteNav" aria-expanded="false" aria-label="Toggle navigation">
-            <span class="navbar-toggler-icon"></span>
-          </button>
-          <div class="collapse navbar-collapse" id="siteNav">
-            <ul class="navbar-nav ms-auto mb-2 mb-lg-0 align-items-lg-center gap-lg-1">
-              <li class="nav-item"><a class="nav-link" href="{% url 'home' %}">Home</a></li>
-              <li class="nav-item"><a class="nav-link" href="{% url 'products:list' %}">Shop</a></li>
-              <li class="nav-item"><a class="nav-link" href="{% url 'fundraising-landing' %}">Fundraising</a></li>
-              <li class="nav-item"><a class="nav-link" href="{% url 'corporate-gifts' %}">Corporate Gifts</a></li>
-              <li class="nav-item"><a class="nav-link" href="{% url 'about' %}">About</a></li>
-              <li class="nav-item"><a class="nav-link" href="{% url 'contact' %}">Contact</a></li>
-              {% if user.is_authenticated %}
-              <li class="nav-item dropdown">
-                <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                  {{ user.first_name|default:user.username }}
-                </a>
-                <ul class="dropdown-menu dropdown-menu-end">
-                  <li><a class="dropdown-item" href="{% url 'accounts:dashboard' %}">Dashboard</a></li>
-                  <li><a class="dropdown-item" href="{% url 'accounts:profile' %}">Profile</a></li>
-                  {% if user.is_staff or user.is_superuser %}
-                  <li><a class="dropdown-item" href="/crm/">CRM</a></li>
-                  <li><a class="dropdown-item" href="/dashboard/portal/">Staff Portal</a></li>
-                  {% endif %}
-                  <li><hr class="dropdown-divider"></li>
-                  <li>
-                    <form method="post" action="{% url 'accounts:logout' %}">
-                      {% csrf_token %}
-                      <button type="submit" class="dropdown-item">Sign out</button>
-                    </form>
-                  </li>
-                </ul>
-              </li>
-              {% else %}
-              <li class="nav-item"><a class="nav-link" href="{% url 'accounts:login' %}">Sign in</a></li>
-              <li class="nav-item"><a class="btn btn-sm btn-outline-light ms-lg-1" href="{% url 'accounts:register' %}">Register</a></li>
-              {% endif %}
-              <li class="nav-item ms-lg-2">
-                <a class="btn btn-sm btn-gold cart-link" href="{% url 'cart:view' %}">
-                  <svg class="cart-link-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                    <circle cx="9" cy="20" r="1.5"></circle>
-                    <circle cx="18" cy="20" r="1.5"></circle>
-                    <path d="M3 4h2l2.2 10.2a1 1 0 0 0 1 .8h9.8a1 1 0 0 0 1-.8L21 8H7"></path>
-                  </svg>
-                  <span>Cart</span>
-                  {% if cart_item_count %}<span class="cart-count-badge">{{ cart_item_count }}</span>{% endif %}
-                </a>
-              </li>
-            </ul>
-          </div>
-        </div>
-      </nav>
-    </header>
-
-    <main>
-      {% block content %}{% endblock content %}
-    </main>
-
-    {% if messages %}
-      <div class="modal fade" id="siteMessageModal" tabindex="-1" aria-labelledby="siteMessageModalLabel" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered">
-          <div class="modal-content">
-            <div class="modal-header">
-              <h5 class="modal-title" id="siteMessageModalLabel">Update</h5>
-              <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+    <head>
+        <meta charset="utf-8" />
+        <meta http-equiv="x-ua-compatible" content="ie=edge" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <meta name="description"
+              content="Popcorn-N-Such storefront for small-batch popcorn, fundraising programs, and corporate gifting." />
+        <meta name="keywords" content="popcorn, fundraising, ecommerce, gifts" />
+        <title>
+            {% block title %}
+                Popcorn-N-Such
+            {% endblock title %}
+        </title>
+        <link rel="icon"
+              type="image/x-icon"
+              href="{% static 'images/favicon.ico' %}" />
+        <link rel="apple-touch-icon"
+              href="{% static 'images/apple-touch-icon.png' %}" />
+        <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
+              rel="stylesheet"
+              integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH"
+              crossorigin="anonymous" />
+        <link rel="stylesheet" href="{% static 'css/theme.css' %}" />
+        {% block head %}
+        {% endblock head %}
+    </head>
+    <body>
+        <header class="brand-header sticky-top">
+            <nav class="navbar navbar-expand-lg navbar-dark py-3">
+                <div class="container">
+                    <a class="navbar-brand" href="{% url 'home' %}">
+                        <img src="{% static 'images/logo.png' %}"
+                             alt="Popcorn-N-Such"
+                             class="navbar-logo"
+                             width="160"
+                             height="48" />
+                    </a>
+                    <button class="navbar-toggler"
+                            type="button"
+                            data-bs-toggle="collapse"
+                            data-bs-target="#siteNav"
+                            aria-controls="siteNav"
+                            aria-expanded="false"
+                            aria-label="Toggle navigation">
+                        <span class="navbar-toggler-icon"></span>
+                    </button>
+                    <div class="collapse navbar-collapse" id="siteNav">
+                        <ul class="navbar-nav ms-auto mb-2 mb-lg-0 align-items-lg-center gap-lg-1">
+                            <li class="nav-item">
+                                <a class="nav-link" href="{% url 'home' %}">Home</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" href="{% url 'products:list' %}">Shop</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" href="{% url 'fundraising-landing' %}">Fundraising</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" href="{% url 'corporate-gifts' %}">Corporate Gifts</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" href="{% url 'about' %}">About</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" href="{% url 'contact' %}">Contact</a>
+                            </li>
+                            {% if user.is_authenticated %}
+                                <li class="nav-item dropdown">
+                                    <button class="nav-link dropdown-toggle"
+                                            type="button"
+                                            data-bs-toggle="dropdown"
+                                            aria-expanded="false">{{ user.first_name|default:user.username }}</button>
+                                    <ul class="dropdown-menu dropdown-menu-end">
+                                        <li>
+                                            <a class="dropdown-item" href="{% url 'accounts:dashboard' %}">Dashboard</a>
+                                        </li>
+                                        <li>
+                                            <a class="dropdown-item" href="{% url 'accounts:profile' %}">Profile</a>
+                                        </li>
+                                        {% if user.is_staff or user.is_superuser %}
+                                            <li>
+                                                <a class="dropdown-item" href="{% url 'crm:dashboard' %}">CRM</a>
+                                            </li>
+                                            <li>
+                                                <a class="dropdown-item" href="{% url 'dashboards:portal' %}">Staff Portal</a>
+                                            </li>
+                                        {% endif %}
+                                        <li>
+                                            <hr class="dropdown-divider">
+                                        </li>
+                                        <li>
+                                            <form method="post" action="{% url 'accounts:logout' %}">
+                                                {% csrf_token %}
+                                                <button type="submit" class="dropdown-item">Sign out</button>
+                                            </form>
+                                        </li>
+                                    </ul>
+                                </li>
+                            {% else %}
+                                <li class="nav-item">
+                                    <a class="nav-link" href="{% url 'accounts:login' %}">Sign in</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="btn btn-sm btn-outline-light ms-lg-1"
+                                       href="{% url 'accounts:register' %}">Register</a>
+                                </li>
+                            {% endif %}
+                            <li class="nav-item ms-lg-2">
+                                <a class="btn btn-sm btn-gold cart-link" href="{% url 'cart:view' %}">
+                                    <svg class="cart-link-icon"
+                                         viewBox="0 0 24 24"
+                                         aria-hidden="true"
+                                         focusable="false">
+                                        <circle cx="9" cy="20" r="1.5"></circle>
+                                        <circle cx="18" cy="20" r="1.5"></circle>
+                                        <path d="M3 4h2l2.2 10.2a1 1 0 0 0 1 .8h9.8a1 1 0 0 0 1-.8L21 8H7"></path>
+                                    </svg>
+                                    <span>Cart</span>
+                                    {% if cart_item_count %}<span class="cart-count-badge">{{ cart_item_count }}</span>{% endif %}
+                                </a>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </nav>
+        </header>
+        <main>
+            {% block content %}
+            {% endblock content %}
+        </main>
+        {% if messages %}
+            <div class="modal fade"
+                 id="siteMessageModal"
+                 tabindex="-1"
+                 aria-labelledby="siteMessageModalLabel"
+                 aria-hidden="true">
+                <div class="modal-dialog modal-dialog-centered">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title" id="siteMessageModalLabel">Update</h5>
+                            <button type="button"
+                                    class="btn-close"
+                                    data-bs-dismiss="modal"
+                                    aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body">
+                            {% for message in messages %}
+                                <div class="alert alert-{{ message.tags|default:'info' }} mb-2"
+                                     role="alert">{{ message }}</div>
+                            {% endfor %}
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-brand" data-bs-dismiss="modal">OK</button>
+                        </div>
+                    </div>
+                </div>
             </div>
-            <div class="modal-body">
-              {% for message in messages %}
-                <div class="alert alert-{{ message.tags|default:'info' }} mb-2" role="alert">{{ message }}</div>
-              {% endfor %}
+        {% endif %}
+        <footer class="site-footer pt-5 pb-4 mt-5">
+            <div class="container">
+                <div class="row g-4 mb-4">
+                    <!-- Brand -->
+                    <div class="col-12 col-md-4 col-lg-4">
+                        <p class="h5 fw-bold text-uppercase mb-2 footer-brand-title">Popcorn-N-Such</p>
+                        <p class="footer-brand-copy">
+                            Small-batch popcorn with a big mission — helping schools, teams, and communities raise more.
+                        </p>
+                    </div>
+                    <!-- Shop -->
+                    <div class="col-6 col-md-2 col-lg-2">
+                        <p class="small text-uppercase fw-bold mb-2 footer-section-title">Shop</p>
+                        <ul class="list-unstyled mb-0 footer-link-list">
+                            <li>
+                                <a href="{% url 'products:list' %}" class="footer-link">All Products</a>
+                            </li>
+                            <li>
+                                <a href="{% url 'products:list' %}?store=fundraiser" class="footer-link">Fundraiser Items</a>
+                            </li>
+                            <li>
+                                <a href="{% url 'cart:view' %}" class="footer-link">My Cart</a>
+                            </li>
+                        </ul>
+                    </div>
+                    <!-- Programs -->
+                    <div class="col-6 col-md-2 col-lg-2">
+                        <p class="small text-uppercase fw-bold mb-2 footer-section-title">Programs</p>
+                        <ul class="list-unstyled mb-0 footer-link-list">
+                            <li>
+                                <a href="{% url 'fundraising-landing' %}" class="footer-link">Fundraising</a>
+                            </li>
+                            <li>
+                                <a href="{% url 'corporate-gifts' %}" class="footer-link">Corporate Gifts</a>
+                            </li>
+                        </ul>
+                    </div>
+                    <!-- Company -->
+                    <div class="col-6 col-md-2 col-lg-2">
+                        <p class="small text-uppercase fw-bold mb-2 footer-section-title">Company</p>
+                        <ul class="list-unstyled mb-0 footer-link-list">
+                            <li>
+                                <a href="{% url 'about' %}" class="footer-link">About</a>
+                            </li>
+                            <li>
+                                <a href="{% url 'contact' %}" class="footer-link">Contact</a>
+                            </li>
+                        </ul>
+                    </div>
+                    <!-- Account -->
+                    <div class="col-6 col-md-2 col-lg-2">
+                        <p class="small text-uppercase fw-bold mb-2 footer-section-title">Account</p>
+                        <ul class="list-unstyled mb-0 footer-link-list">
+                            {% if user.is_authenticated %}
+                                <li>
+                                    <a href="{% url 'accounts:dashboard' %}" class="footer-link">Dashboard</a>
+                                </li>
+                                <li>
+                                    <a href="{% url 'orders:my-orders' %}" class="footer-link">My Orders</a>
+                                </li>
+                            {% else %}
+                                <li>
+                                    <a href="{% url 'accounts:login' %}" class="footer-link">Sign In</a>
+                                </li>
+                                <li>
+                                    <a href="{% url 'accounts:register' %}" class="footer-link">Register</a>
+                                </li>
+                            {% endif %}
+                        </ul>
+                    </div>
+                </div>
+                <!-- Bottom bar -->
+                <div class="d-flex flex-column flex-md-row justify-content-between align-items-center gap-2 footer-bottom-bar">
+                    <p class="mb-0 small footer-meta">Copyright {% now "Y" %} Popcorn-N-Such. All rights reserved.</p>
+                    <p class="mb-0 small footer-meta-muted">Fundraising-powered ecommerce platform.</p>
+                    <p class="mb-0 small footer-meta">
+                        Created by <a href="https://mitchelltechgroup.com"
+    target="_blank"
+    rel="noopener noreferrer">MitchellTechnologyGroup</a>
+                    </p>
+                </div>
             </div>
-            <div class="modal-footer">
-              <button type="button" class="btn btn-brand" data-bs-dismiss="modal">OK</button>
-            </div>
-          </div>
-        </div>
-      </div>
-    {% endif %}
-
-    <footer class="site-footer pt-5 pb-4 mt-5">
-      <div class="container">
-        <div class="row g-4 mb-4">
-          <!-- Brand -->
-          <div class="col-12 col-md-4 col-lg-4">
-            <p class="h5 fw-bold text-uppercase mb-2" style="font-family:'Oswald',sans-serif;letter-spacing:.08em;color:#fff;">
-              Popcorn-N-Such
-            </p>
-            <p style="font-size:.88rem;color:rgba(255,255,255,.75);line-height:1.6;max-width:240px;">
-              Small-batch popcorn with a big mission — helping schools, teams, and communities raise more.
-            </p>
-          </div>
-          <!-- Shop -->
-          <div class="col-6 col-md-2 col-lg-2">
-            <p class="small text-uppercase fw-bold mb-2" style="letter-spacing:.1em;color:var(--butter-gold);opacity:.9;">Shop</p>
-            <ul class="list-unstyled mb-0" style="display:flex;flex-direction:column;gap:.4rem;">
-              <li><a href="{% url 'products:list' %}" style="font-size:.88rem;">All Products</a></li>
-              <li><a href="{% url 'products:list' %}?store=fundraiser" style="font-size:.88rem;">Fundraiser Items</a></li>
-              <li><a href="{% url 'cart:view' %}" style="font-size:.88rem;">My Cart</a></li>
-            </ul>
-          </div>
-          <!-- Programs -->
-          <div class="col-6 col-md-2 col-lg-2">
-            <p class="small text-uppercase fw-bold mb-2" style="letter-spacing:.1em;color:var(--butter-gold);opacity:.9;">Programs</p>
-            <ul class="list-unstyled mb-0" style="display:flex;flex-direction:column;gap:.4rem;">
-              <li><a href="{% url 'fundraising-landing' %}" style="font-size:.88rem;">Fundraising</a></li>
-              <li><a href="{% url 'corporate-gifts' %}" style="font-size:.88rem;">Corporate Gifts</a></li>
-            </ul>
-          </div>
-          <!-- Company -->
-          <div class="col-6 col-md-2 col-lg-2">
-            <p class="small text-uppercase fw-bold mb-2" style="letter-spacing:.1em;color:var(--butter-gold);opacity:.9;">Company</p>
-            <ul class="list-unstyled mb-0" style="display:flex;flex-direction:column;gap:.4rem;">
-              <li><a href="{% url 'about' %}" style="font-size:.88rem;">About</a></li>
-              <li><a href="{% url 'contact' %}" style="font-size:.88rem;">Contact</a></li>
-            </ul>
-          </div>
-          <!-- Account -->
-          <div class="col-6 col-md-2 col-lg-2">
-            <p class="small text-uppercase fw-bold mb-2" style="letter-spacing:.1em;color:var(--butter-gold);opacity:.9;">Account</p>
-            <ul class="list-unstyled mb-0" style="display:flex;flex-direction:column;gap:.4rem;">
-              {% if user.is_authenticated %}
-                <li><a href="{% url 'accounts:dashboard' %}" style="font-size:.88rem;">Dashboard</a></li>
-                <li><a href="{% url 'orders:my-orders' %}" style="font-size:.88rem;">My Orders</a></li>
-              {% else %}
-                <li><a href="{% url 'accounts:login' %}" style="font-size:.88rem;">Sign In</a></li>
-                <li><a href="{% url 'accounts:register' %}" style="font-size:.88rem;">Register</a></li>
-              {% endif %}
-            </ul>
-          </div>
-        </div>
-        <!-- Bottom bar -->
-        <div class="d-flex flex-column flex-md-row justify-content-between align-items-center gap-2"
-             style="border-top:1px solid rgba(255,255,255,.2);padding-top:1.25rem;">
-          <p class="mb-0 small" style="color:rgba(255,255,255,.55);">&copy; {% now "Y" %} Popcorn-N-Such. All rights reserved.</p>
-          <p class="mb-0 small" style="color:rgba(255,255,255,.4);">Fundraising-powered ecommerce platform.</p>
-          <p class="mb-0 small" style="color:rgba(255,255,255,.55);">Created by <a href="https://mitchelltechgroup.com" target="_blank" rel="noopener noreferrer">MitchellTechnologyGroup</a></p>
-        </div>
-      </div>
-    </footer>
-
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
-    {% if messages %}
-      <script>
+        </footer>
+        <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"
+                integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz"
+                crossorigin="anonymous"></script>
+        {% if messages %}
+            <script>
         document.addEventListener("DOMContentLoaded", function () {
           var modalEl = document.getElementById("siteMessageModal");
           if (!modalEl || typeof bootstrap === "undefined") return;
           var msgModal = new bootstrap.Modal(modalEl);
           msgModal.show();
         });
-      </script>
-    {% endif %}
-    <script>
+            </script>
+        {% endif %}
+        <script>
     (function () {
       document.querySelectorAll('.qty-stepper').forEach(function (stepper) {
         var input = stepper.querySelector('.qty-input');
@@ -201,7 +283,8 @@
         refresh();
       });
     }());
-    </script>
-    {% block scripts %}{% endblock scripts %}
-  </body>
+        </script>
+        {% block scripts %}
+        {% endblock scripts %}
+    </body>
 </html>

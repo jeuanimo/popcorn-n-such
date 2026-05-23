@@ -1,29 +1,31 @@
 {% extends "base/base.html" %}
-{% block title %}Move Seller Between Teams{% endblock title %}
+{% block title %}
+    Move Seller Between Teams
+{% endblock title %}
 {% block content %}
-<section class="py-5">
-  <div class="container" style="max-width:540px">
-    <div class="mb-4">
-      <a class="btn btn-outline-secondary btn-sm" href="{% url 'teams:staff-list' %}">&larr; Back to Teams</a>
-    </div>
-    <h1 class="mb-4">Move Seller Between Teams</h1>
-    <div class="hero-card p-4">
-      <form method="post" novalidate>
-        {% csrf_token %}
-        {% for field in form %}
-          <div class="mb-3">
-            <label class="form-label fw-semibold" for="{{ field.id_for_label }}">{{ field.label }}</label>
-            {{ field }}
-            {% for error in field.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}
-          </div>
-        {% endfor %}
-        {% if form.non_field_errors %}
-          <div class="alert alert-danger">{{ form.non_field_errors }}</div>
-        {% endif %}
-        <button type="submit" class="btn btn-brand">Move Seller</button>
-        <a class="btn btn-outline-secondary ms-2" href="{% url 'teams:staff-list' %}">Cancel</a>
-      </form>
-    </div>
-  </div>
-</section>
+    <section class="py-5">
+        <div class="container" style="max-width:540px">
+            <div class="mb-4">
+                <a class="btn btn-outline-secondary btn-sm"
+                   href="{% url 'teams:staff-list' %}">← Back to Teams</a>
+            </div>
+            <h1 class="mb-4">Move Seller Between Teams</h1>
+            <div class="hero-card p-4">
+                <form method="post" novalidate>
+                    {% csrf_token %}
+                    {% for field in form %}
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold" for="{{ field.id_for_label }}">{{ field.label }}</label>
+                            {{ field }}
+                            {% for error in field.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}
+                        </div>
+                    {% endfor %}
+                    {% if form.non_field_errors %}<div class="alert alert-danger">{{ form.non_field_errors }}</div>{% endif %}
+                    <button type="submit" class="btn btn-brand">Move Seller</button>
+                    <a class="btn btn-outline-secondary ms-2"
+                       href="{% url 'teams:staff-list' %}">Cancel</a>
+                </form>
+            </div>
+        </div>
+    </section>
 {% endblock content %}

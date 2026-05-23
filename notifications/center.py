@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from django.db import transaction
 from django.utils import timezone
 
 from notifications.models import (
@@ -136,11 +137,12 @@ class NotificationCenterService:
         if pref.enabled and pref.receive_in_app:
             cls._log_internal(notification=notification, user=user)
 
-        if send_email and pref.enabled and pref.receive_email:
-            cls._deliver_email(notification=notification, user=user, title=title, message=message)
-
-        if send_sms and pref.enabled and cls._sms_allowed(user=user, pref=pref):
-            cls._deliver_sms(notification=notification, user=user, title=title, message=message)
+        _do_email = send_email and pref.enabled and pref.receive_email
+        _do_sms = send_sms and pref.enabled and cls._sms_allowed(user=user, pref=pref)
+        if _do_email or _do_sms:
+            from notifications.tasks import deliver_notification
+            _nid = notification.id
+            transaction.on_commit(lambda: deliver_notification.delay(_nid, _do_email, _do_sms))
 
         return notification
 

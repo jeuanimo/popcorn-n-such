@@ -8,6 +8,10 @@ from django.conf import settings
 from django.db import transaction
 from django.utils import timezone
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 from notifications.models import (
     NotificationDeliveryChannel,
     NotificationDeliveryLog,
@@ -105,7 +109,8 @@ class NotificationService:
             dedupe_key=dedupe_key,
         )
 
-        cls.deliver_event(event=event, actor=actor, request=request)
+        from notifications.tasks import deliver_staff_event
+        transaction.on_commit(lambda: deliver_staff_event.delay(event.id))
         return event
 
     @classmethod

@@ -17,6 +17,8 @@ from accounts.models import Role, UserRole
 from orders.models import Order
 
 User = get_user_model()
+TEST_LOGIN_SECRET = "test-secret-orders"
+TEST_LOGIN_SECRET_ALT = "test-secret-orders-alt"
 
 
 @dataclass(frozen=True)
@@ -33,7 +35,7 @@ class _FakeTaxProvider:
 
 class CheckoutServiceTests(TestCase):
     def setUp(self):
-        self.user = User.objects.create_user(username="buyer", password="pw", email="b@example.com")
+        self.user = User.objects.create_user(username="buyer", password=TEST_LOGIN_SECRET, email="b@example.com")
         cat = ProductCategory.objects.create(key="pop", name="Popcorn")
         self.product = Product.objects.create(
             name="Butter Pop",
@@ -56,8 +58,9 @@ class CheckoutServiceTests(TestCase):
         self.cart = Cart.objects.create(user=self.user, session_key="s", is_active=True)
         CartItem.objects.create(cart=self.cart, sku=self.sku, quantity=2)  # $20
 
+    @patch("orders.services.CheckoutService._estimate_shipping_cents", return_value=0)
     @patch("orders.services.get_tax_provider", return_value=_FakeTaxProvider())
-    def test_checkout_totals_recalculated_server_side(self, _mock_tp):
+    def test_checkout_totals_recalculated_server_side(self, _mock_tp, _mock_ship):
         service = CheckoutService()
         summary = service.calculate_totals(self.cart, "IL")
         self.assertEqual(summary.subtotal_cents, 2000)
@@ -105,9 +108,9 @@ class CheckoutServiceTests(TestCase):
 class OrderAccessControlTests(TestCase):
     def setUp(self):
         self.customer_role, _ = Role.objects.get_or_create(key=UserRole.CUSTOMER)
-        self.user1 = User.objects.create_user(username="u1", password="pw1", email="u1@example.com")
+        self.user1 = User.objects.create_user(username="u1", password=TEST_LOGIN_SECRET, email="u1@example.com")
         self.user1.roles.add(self.customer_role)
-        self.user2 = User.objects.create_user(username="u2", password="pw2", email="u2@example.com")
+        self.user2 = User.objects.create_user(username="u2", password=TEST_LOGIN_SECRET_ALT, email="u2@example.com")
         self.user2.roles.add(self.customer_role)
 
         self.order_user1 = Order.objects.create(
@@ -132,13 +135,13 @@ class OrderAccessControlTests(TestCase):
         )
 
     def test_customer_order_list_only_shows_own_orders(self):
-        self.client.login(username="u1", password="pw1")
+        self.client.login(username="u1", password=TEST_LOGIN_SECRET)
         resp = self.client.get(reverse("orders:my-orders"))
         self.assertEqual(resp.status_code, 200)
         orders = list(resp.context["object_list"])
         self.assertEqual([o.id for o in orders], [self.order_user1.id])
 
     def test_customer_cannot_view_other_customers_order_detail(self):
-        self.client.login(username="u1", password="pw1")
+        self.client.login(username="u1", password=TEST_LOGIN_SECRET)
         resp = self.client.get(reverse("orders:order-detail", args=[self.order_user2.id]))
         self.assertEqual(resp.status_code, 404)

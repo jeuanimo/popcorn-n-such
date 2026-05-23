@@ -1,262 +1,287 @@
 {% extends "staff/base.html" %}
-
-{% block title %}Operational Settings | Popcorn-N-Such{% endblock title %}
-
+{% block title %}
+    Operational Settings | Popcorn-N-Such
+{% endblock title %}
 {% block content %}
-<div class="d-flex justify-content-between align-items-center mb-4">
-  <div>
-    <span class="eyebrow">Configuration</span>
-    <h1 class="h3 mb-0">Operational Settings</h1>
-  </div>
-  <a class="btn btn-sm btn-outline-dark" href="{% url 'dashboards:portal' %}">Back to Portal</a>
-</div>
-
-<div class="hero-card p-4 mb-3">
-  <p class="mb-1"><strong>Security:</strong> Secret fields are never shown back in this form.</p>
-  <p class="mb-0">If you leave a secret field blank, the current secret value is kept as-is.</p>
-</div>
-
-<form method="post" class="d-grid gap-3">
-  {% csrf_token %}
-
-  <div class="hero-card p-4">
-    <h2 class="h6 fw-bold mb-3">Shipping</h2>
-    <div class="row g-3">
-      <div class="col-12 col-md-4">
-        <label class="form-label" for="{{ form.shipping_provider.id_for_label }}">Shipping Provider</label>
-        {{ form.shipping_provider }}
-        <div class="form-text">Use Pitney Bowes for live rates, or Flat Rate for a fixed charge.</div>
-      </div>
-      <div class="col-12 col-md-4">
-        <label class="form-label" for="{{ form.shipping_default_weight_oz.id_for_label }}">Default Package Weight (oz)</label>
-        {{ form.shipping_default_weight_oz }}
-        <div class="form-text">Fallback weight (oz) used per item when its SKU has no weight set. Also the minimum package weight.</div>
-      </div>
-      <div class="col-12 col-md-4">
-        <label class="form-label" for="{{ form.estimated_shipping_cents.id_for_label }}">Flat / Fallback Rate (cents)</label>
-        {{ form.estimated_shipping_cents }}
-        <div class="form-text">Charged when using Flat Rate, or when the live API fails. 899 = $8.99</div>
-      </div>
-      <div class="col-12 col-md-4">
-        <label class="form-label" for="{{ form.shipping_markup_percent.id_for_label }}">Carrier Rate Markup (%)</label>
-        {{ form.shipping_markup_percent }}
-        <div class="form-text">Added on top of the live carrier rate. 10 = add 10%. Does not apply to Flat Rate.</div>
-      </div>
-    </div>
-
-    <hr class="my-3">
-    <h3 class="h6 fw-semibold mb-3">Business / Ship-From Address</h3>
-    <p class="small text-muted mb-3">
-      This address prints in the <strong>FROM</strong> field on every shipping label.
-      Enter your store or warehouse address exactly as it should appear on the label.
-    </p>
-    <div class="row g-3">
-      <div class="col-12 col-md-6">
-        <label class="form-label" for="{{ form.shipping_from_name.id_for_label }}">Business Name</label>
-        {{ form.shipping_from_name }}
-      </div>
-      <div class="col-12 col-md-6">
-        <label class="form-label" for="{{ form.shipping_from_address_line_1.id_for_label }}">Street Address</label>
-        {{ form.shipping_from_address_line_1 }}
-      </div>
-      <div class="col-12 col-md-6">
-        <label class="form-label" for="{{ form.shipping_from_address_line_2.id_for_label }}">Suite / Unit <span class="text-muted fw-normal">(optional)</span></label>
-        {{ form.shipping_from_address_line_2 }}
-      </div>
-      <div class="col-12 col-md-6">
-        <label class="form-label" for="{{ form.shipping_from_city.id_for_label }}">City</label>
-        {{ form.shipping_from_city }}
-      </div>
-      <div class="col-6 col-md-3">
-        <label class="form-label" for="{{ form.shipping_from_state.id_for_label }}">State</label>
-        {{ form.shipping_from_state }}
-        <div class="form-text">2-letter code, e.g. IL</div>
-      </div>
-      <div class="col-6 col-md-3">
-        <label class="form-label" for="{{ form.shipping_from_postal_code.id_for_label }}">ZIP Code</label>
-        {{ form.shipping_from_postal_code }}
-      </div>
-      <div class="col-12 col-md-6">
-        <label class="form-label" for="{{ form.shipping_from_country.id_for_label }}">Country</label>
-        {{ form.shipping_from_country }}
-        <div class="form-text">2-letter code, e.g. US</div>
-      </div>
-    </div>
-  </div>
-
-  <div class="hero-card p-4">
-    <h2 class="h6 fw-bold mb-3">Label Printer (QZ Tray)</h2>
-    <p class="small text-muted mb-3">
-      Used by the browser-based QZ Tray client to route print jobs.
-      The <strong>Printer Name</strong> must match exactly how the printer appears in the OS print spooler or QZ Tray.
-    </p>
-    <div class="row g-3">
-      <div class="col-12 col-md-6">
-        <label class="form-label" for="{{ form.label_printer_name.id_for_label }}">Printer Name</label>
-        {{ form.label_printer_name }}
-        <div class="form-text">e.g. ZDesigner GK420d, Rollo Printer, DYMO LabelWriter 4XL</div>
-      </div>
-      <div class="col-12 col-md-6">
-        <label class="form-label" for="{{ form.label_printer_ip.id_for_label }}">Printer IP Address</label>
-        {{ form.label_printer_ip }}
-        <div class="form-text">Network IP for reference; configure this in QZ Tray's printer settings.</div>
-      </div>
-    </div>
-  </div>
-
-  <div class="hero-card p-4">
-    <h2 class="h6 fw-bold mb-3">USPS Direct API</h2>
-    <p class="small text-muted mb-3">
-      Client credentials from the <strong>USPS Developer Portal</strong>. Select <em>USPS (live rates)</em> above to use USPS for rate quotes and labels.
-      The markup percent above is applied to the live USPS rate before charging the customer.
-    </p>
-    <div class="row g-3">
-      <div class="col-12 col-md-6">
-        <label class="form-label" for="{{ form.usps_client_id.id_for_label }}">Client ID</label>
-        {{ form.usps_client_id }}
-      </div>
-      <div class="col-12 col-md-6">
-        <label class="form-label" for="{{ form.usps_client_secret.id_for_label }}">Client Secret</label>
-        {{ form.usps_client_secret }}
-      </div>
-      <div class="col-12 col-md-4">
-        <label class="form-label" for="{{ form.usps_env.id_for_label }}">Environment</label>
-        {{ form.usps_env }}
-      </div>
-      <div class="col-12 col-md-4">
-        <label class="form-label" for="{{ form.usps_base_url_sandbox.id_for_label }}">Sandbox Base URL</label>
-        {{ form.usps_base_url_sandbox }}
-      </div>
-      <div class="col-12 col-md-4">
-        <label class="form-label" for="{{ form.usps_base_url_prod.id_for_label }}">Production Base URL</label>
-        {{ form.usps_base_url_prod }}
-      </div>
-    </div>
-  </div>
-
-  <div class="hero-card p-4">
-    <h2 class="h6 fw-bold mb-3">Pitney Bowes API</h2>
-    <div class="row g-3">
-      <div class="col-12 col-md-6">
-        <label class="form-label" for="{{ form.pitney_bowes_api_key.id_for_label }}">API Key</label>
-        {{ form.pitney_bowes_api_key }}
-      </div>
-      <div class="col-12 col-md-6">
-        <label class="form-label" for="{{ form.pitney_bowes_api_secret.id_for_label }}">API Secret</label>
-        {{ form.pitney_bowes_api_secret }}
-      </div>
-      <div class="col-12 col-md-4">
-        <label class="form-label" for="{{ form.pitney_bowes_env.id_for_label }}">Environment</label>
-        {{ form.pitney_bowes_env }}
-      </div>
-      <div class="col-12 col-md-4">
-        <label class="form-label" for="{{ form.pitney_bowes_base_url_sandbox.id_for_label }}">Sandbox URL</label>
-        {{ form.pitney_bowes_base_url_sandbox }}
-      </div>
-      <div class="col-12 col-md-4">
-        <label class="form-label" for="{{ form.pitney_bowes_base_url_prod.id_for_label }}">Production URL</label>
-        {{ form.pitney_bowes_base_url_prod }}
-      </div>
-    </div>
-  </div>
-
-  <div class="hero-card p-4">
-    <h2 class="h6 fw-bold mb-3">GoDaddy Payments</h2>
-    <div class="row g-3">
-      <div class="col-12 col-md-4">
-        <label class="form-label" for="{{ form.godaddy_api_key.id_for_label }}">API Key</label>
-        {{ form.godaddy_api_key }}
-      </div>
-      <div class="col-12 col-md-4">
-        <label class="form-label" for="{{ form.godaddy_api_secret.id_for_label }}">API Secret</label>
-        {{ form.godaddy_api_secret }}
-        <div class="form-text">Used in <code>sso-key {key}:{secret}</code> auth header. Never shown after save.</div>
-      </div>
-      <div class="col-12 col-md-4">
-        <label class="form-label" for="{{ form.godaddy_merchant_id.id_for_label }}">Merchant ID</label>
-        {{ form.godaddy_merchant_id }}
-      </div>
-      <div class="col-12 col-md-4">
-        <label class="form-label" for="{{ form.godaddy_payments_webhook_secret.id_for_label }}">Webhook Secret</label>
-        {{ form.godaddy_payments_webhook_secret }}
-      </div>
-      <div class="col-12 col-md-6">
-        <label class="form-label" for="{{ form.godaddy_payments_base_url.id_for_label }}">API Base URL</label>
-        {{ form.godaddy_payments_base_url }}
-      </div>
-      <div class="col-12 col-md-6">
-        <label class="form-label" for="{{ form.godaddy_payments_create_session_path.id_for_label }}">Create Session Path</label>
-        {{ form.godaddy_payments_create_session_path }}
-      </div>
-      <div class="col-12 col-md-6">
-        <label class="form-label" for="{{ form.godaddy_payments_verify_path.id_for_label }}">Verify Payment Path</label>
-        {{ form.godaddy_payments_verify_path }}
-      </div>
-      <div class="col-12 col-md-6">
-        <label class="form-label" for="{{ form.godaddy_payments_refund_path.id_for_label }}">Refund Path</label>
-        {{ form.godaddy_payments_refund_path }}
-      </div>
-      <div class="col-12 col-md-6">
-        <label class="form-label" for="{{ form.godaddy_payments_test_path.id_for_label }}">Connection Test Path</label>
-        {{ form.godaddy_payments_test_path }}
-      </div>
-      <div class="col-12 col-md-6">
-        <label class="form-label" for="{{ form.godaddy_payments_test_method.id_for_label }}">Connection Test Method</label>
-        {{ form.godaddy_payments_test_method }}
-      </div>
-      <div class="col-12">
-        <label class="form-label" for="{{ form.godaddy_payments_allowed_redirect_hosts.id_for_label }}">Allowed Redirect Hosts</label>
-        {{ form.godaddy_payments_allowed_redirect_hosts }}
-        <div class="form-text">Comma-separated hostnames from GoDaddy checkout redirects.</div>
-      </div>
-      <div class="col-12">
-        <div class="small text-muted">
-          Webhook URL to configure in GoDaddy:
-          <strong>{{ request.scheme }}://{{ request.get_host }}{% url 'payments:webhook' provider='godaddy' %}</strong>
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <span class="eyebrow">Configuration</span>
+            <h1 class="h3 mb-0">Operational Settings</h1>
         </div>
-      </div>
+        <a class="btn btn-sm btn-outline-dark"
+           href="{% url 'dashboards:portal' %}">Back to Portal</a>
     </div>
-  </div>
-
-  <div class="hero-card p-4">
-    <h2 class="h6 fw-bold mb-3">Mail & Contact</h2>
-    <div class="row g-3">
-      <div class="col-12 col-md-4">
-        <label class="form-label" for="{{ form.contact_email.id_for_label }}">Contact Email</label>
-        {{ form.contact_email }}
-      </div>
-      <div class="col-12 col-md-4">
-        <label class="form-label" for="{{ form.default_from_email.id_for_label }}">Default From Email</label>
-        {{ form.default_from_email }}
-      </div>
-      <div class="col-12 col-md-4 d-flex align-items-end">
-        <div class="form-check">
-          {{ form.email_use_tls }}
-          <label class="form-check-label" for="{{ form.email_use_tls.id_for_label }}">Use TLS</label>
+    <div class="hero-card p-4 mb-3">
+        <p class="mb-1">
+            <strong>Security:</strong> Secret fields are never shown back in this form.
+        </p>
+        <p class="mb-0">If you leave a secret field blank, the current secret value is kept as-is.</p>
+    </div>
+    <form method="post" class="d-grid gap-3">
+        {% csrf_token %}
+        <div class="hero-card p-4">
+            <h2 class="h6 fw-bold mb-3">Shipping</h2>
+            <div class="row g-3">
+                <div class="col-12 col-md-4">
+                    <label class="form-label" for="{{ form.shipping_provider.id_for_label }}">Shipping Provider</label>
+                    {{ form.shipping_provider }}
+                    <div class="form-text">Use Pitney Bowes for live rates, or Flat Rate for a fixed charge.</div>
+                </div>
+                <div class="col-12 col-md-4">
+                    <label class="form-label"
+                           for="{{ form.shipping_default_weight_oz.id_for_label }}">Default Package Weight (oz)</label>
+                    {{ form.shipping_default_weight_oz }}
+                    <div class="form-text">
+                        Fallback weight (oz) used per item when its SKU has no weight set. Also the minimum package weight.
+                    </div>
+                </div>
+                <div class="col-12 col-md-4">
+                    <label class="form-label"
+                           for="{{ form.estimated_shipping_cents.id_for_label }}">Flat / Fallback Rate (cents)</label>
+                    {{ form.estimated_shipping_cents }}
+                    <div class="form-text">Charged when using Flat Rate, or when the live API fails. 899 = $8.99</div>
+                </div>
+                <div class="col-12 col-md-4">
+                    <label class="form-label"
+                           for="{{ form.shipping_markup_percent.id_for_label }}">Carrier Rate Markup (%)</label>
+                    {{ form.shipping_markup_percent }}
+                    <div class="form-text">Added on top of the live carrier rate. 10 = add 10%. Does not apply to Flat Rate.</div>
+                </div>
+            </div>
+            <hr class="my-3">
+            <h3 class="h6 fw-semibold mb-3">Business / Ship-From Address</h3>
+            <p class="small text-muted mb-3">
+                This address prints in the <strong>FROM</strong> field on every shipping label.
+                Enter your store or warehouse address exactly as it should appear on the label.
+            </p>
+            <div class="row g-3">
+                <div class="col-12 col-md-6">
+                    <label class="form-label" for="{{ form.shipping_from_name.id_for_label }}">Business Name</label>
+                    {{ form.shipping_from_name }}
+                </div>
+                <div class="col-12 col-md-6">
+                    <label class="form-label"
+                           for="{{ form.shipping_from_address_line_1.id_for_label }}">Street Address</label>
+                    {{ form.shipping_from_address_line_1 }}
+                </div>
+                <div class="col-12 col-md-6">
+                    <label class="form-label"
+                           for="{{ form.shipping_from_address_line_2.id_for_label }}">
+                        Suite / Unit <span class="text-muted fw-normal">(optional)</span>
+                    </label>
+                    {{ form.shipping_from_address_line_2 }}
+                </div>
+                <div class="col-12 col-md-6">
+                    <label class="form-label" for="{{ form.shipping_from_city.id_for_label }}">City</label>
+                    {{ form.shipping_from_city }}
+                </div>
+                <div class="col-6 col-md-3">
+                    <label class="form-label" for="{{ form.shipping_from_state.id_for_label }}">State</label>
+                    {{ form.shipping_from_state }}
+                    <div class="form-text">2-letter code, e.g. IL</div>
+                </div>
+                <div class="col-6 col-md-3">
+                    <label class="form-label"
+                           for="{{ form.shipping_from_postal_code.id_for_label }}">ZIP Code</label>
+                    {{ form.shipping_from_postal_code }}
+                </div>
+                <div class="col-12 col-md-6">
+                    <label class="form-label"
+                           for="{{ form.shipping_from_country.id_for_label }}">Country</label>
+                    {{ form.shipping_from_country }}
+                    <div class="form-text">2-letter code, e.g. US</div>
+                </div>
+            </div>
         </div>
-      </div>
-      <div class="col-12 col-md-3">
-        <label class="form-label" for="{{ form.email_host.id_for_label }}">SMTP Host</label>
-        {{ form.email_host }}
-      </div>
-      <div class="col-12 col-md-2">
-        <label class="form-label" for="{{ form.email_port.id_for_label }}">SMTP Port</label>
-        {{ form.email_port }}
-      </div>
-      <div class="col-12 col-md-3">
-        <label class="form-label" for="{{ form.email_host_user.id_for_label }}">SMTP User</label>
-        {{ form.email_host_user }}
-      </div>
-      <div class="col-12 col-md-4">
-        <label class="form-label" for="{{ form.email_host_password.id_for_label }}">SMTP Password</label>
-        {{ form.email_host_password }}
-      </div>
-    </div>
-  </div>
-
-  <div>
-    <button type="submit" name="action" value="save" class="btn btn-brand">Save Operational Settings</button>
-    <button type="submit" name="action" value="test-godaddy" class="btn btn-outline-dark ms-2">Test GoDaddy Connection</button>
-  </div>
-</form>
+        <div class="hero-card p-4">
+            <h2 class="h6 fw-bold mb-3">Label Printer (QZ Tray)</h2>
+            <p class="small text-muted mb-3">
+                Used by the browser-based QZ Tray client to route print jobs.
+                The <strong>Printer Name</strong> must match exactly how the printer appears in the OS print spooler or QZ Tray.
+            </p>
+            <div class="row g-3">
+                <div class="col-12 col-md-6">
+                    <label class="form-label" for="{{ form.label_printer_name.id_for_label }}">Printer Name</label>
+                    {{ form.label_printer_name }}
+                    <div class="form-text">e.g. ZDesigner GK420d, Rollo Printer, DYMO LabelWriter 4XL</div>
+                </div>
+                <div class="col-12 col-md-6">
+                    <label class="form-label" for="{{ form.label_printer_ip.id_for_label }}">Printer IP Address</label>
+                    {{ form.label_printer_ip }}
+                    <div class="form-text">Network IP for reference; configure this in QZ Tray's printer settings.</div>
+                </div>
+            </div>
+        </div>
+        <div class="hero-card p-4">
+            <h2 class="h6 fw-bold mb-3">USPS Direct API</h2>
+            <p class="small text-muted mb-3">
+                Client credentials from the <strong>USPS Developer Portal</strong>. Select <em>USPS (live rates)</em> above to use USPS for rate quotes and labels.
+                The markup percent above is applied to the live USPS rate before charging the customer.
+            </p>
+            <div class="row g-3">
+                <div class="col-12 col-md-6">
+                    <label class="form-label" for="{{ form.usps_client_id.id_for_label }}">Client ID</label>
+                    {{ form.usps_client_id }}
+                </div>
+                <div class="col-12 col-md-6">
+                    <label class="form-label" for="{{ form.usps_client_secret.id_for_label }}">Client Secret</label>
+                    {{ form.usps_client_secret }}
+                </div>
+                <div class="col-12 col-md-4">
+                    <label class="form-label" for="{{ form.usps_env.id_for_label }}">Environment</label>
+                    {{ form.usps_env }}
+                </div>
+                <div class="col-12 col-md-4">
+                    <label class="form-label"
+                           for="{{ form.usps_base_url_sandbox.id_for_label }}">Sandbox Base URL</label>
+                    {{ form.usps_base_url_sandbox }}
+                </div>
+                <div class="col-12 col-md-4">
+                    <label class="form-label" for="{{ form.usps_base_url_prod.id_for_label }}">Production Base URL</label>
+                    {{ form.usps_base_url_prod }}
+                </div>
+            </div>
+        </div>
+        <div class="hero-card p-4">
+            <h2 class="h6 fw-bold mb-3">Pitney Bowes API</h2>
+            <div class="row g-3">
+                <div class="col-12 col-md-6">
+                    <label class="form-label" for="{{ form.pitney_bowes_api_key.id_for_label }}">API Key</label>
+                    {{ form.pitney_bowes_api_key }}
+                </div>
+                <div class="col-12 col-md-6">
+                    <label class="form-label"
+                           for="{{ form.pitney_bowes_api_secret.id_for_label }}">API Secret</label>
+                    {{ form.pitney_bowes_api_secret }}
+                </div>
+                <div class="col-12 col-md-4">
+                    <label class="form-label" for="{{ form.pitney_bowes_env.id_for_label }}">Environment</label>
+                    {{ form.pitney_bowes_env }}
+                </div>
+                <div class="col-12 col-md-4">
+                    <label class="form-label"
+                           for="{{ form.pitney_bowes_base_url_sandbox.id_for_label }}">Sandbox URL</label>
+                    {{ form.pitney_bowes_base_url_sandbox }}
+                </div>
+                <div class="col-12 col-md-4">
+                    <label class="form-label"
+                           for="{{ form.pitney_bowes_base_url_prod.id_for_label }}">Production URL</label>
+                    {{ form.pitney_bowes_base_url_prod }}
+                </div>
+            </div>
+        </div>
+        <div class="hero-card p-4">
+            <h2 class="h6 fw-bold mb-3">GoDaddy Payments</h2>
+            <div class="row g-3">
+                <div class="col-12 col-md-4">
+                    <label class="form-label" for="{{ form.godaddy_api_key.id_for_label }}">API Key</label>
+                    {{ form.godaddy_api_key }}
+                </div>
+                <div class="col-12 col-md-4">
+                    <label class="form-label" for="{{ form.godaddy_api_secret.id_for_label }}">API Secret</label>
+                    {{ form.godaddy_api_secret }}
+                    <div class="form-text">
+                        Used in <code>sso-key {key}:{secret}</code> auth header. Never shown after save.
+                    </div>
+                </div>
+                <div class="col-12 col-md-4">
+                    <label class="form-label" for="{{ form.godaddy_merchant_id.id_for_label }}">Merchant ID</label>
+                    {{ form.godaddy_merchant_id }}
+                </div>
+                <div class="col-12 col-md-4">
+                    <label class="form-label"
+                           for="{{ form.godaddy_payments_webhook_secret.id_for_label }}">Webhook Secret</label>
+                    {{ form.godaddy_payments_webhook_secret }}
+                </div>
+                <div class="col-12 col-md-6">
+                    <label class="form-label"
+                           for="{{ form.godaddy_payments_base_url.id_for_label }}">API Base URL</label>
+                    {{ form.godaddy_payments_base_url }}
+                </div>
+                <div class="col-12 col-md-6">
+                    <label class="form-label"
+                           for="{{ form.godaddy_payments_create_session_path.id_for_label }}">
+                        Create Session Path
+                    </label>
+                    {{ form.godaddy_payments_create_session_path }}
+                </div>
+                <div class="col-12 col-md-6">
+                    <label class="form-label"
+                           for="{{ form.godaddy_payments_verify_path.id_for_label }}">Verify Payment Path</label>
+                    {{ form.godaddy_payments_verify_path }}
+                </div>
+                <div class="col-12 col-md-6">
+                    <label class="form-label"
+                           for="{{ form.godaddy_payments_refund_path.id_for_label }}">Refund Path</label>
+                    {{ form.godaddy_payments_refund_path }}
+                </div>
+                <div class="col-12 col-md-6">
+                    <label class="form-label"
+                           for="{{ form.godaddy_payments_test_path.id_for_label }}">Connection Test Path</label>
+                    {{ form.godaddy_payments_test_path }}
+                </div>
+                <div class="col-12 col-md-6">
+                    <label class="form-label"
+                           for="{{ form.godaddy_payments_test_method.id_for_label }}">Connection Test Method</label>
+                    {{ form.godaddy_payments_test_method }}
+                </div>
+                <div class="col-12">
+                    <label class="form-label"
+                           for="{{ form.godaddy_payments_allowed_redirect_hosts.id_for_label }}">
+                        Allowed Redirect Hosts
+                    </label>
+                    {{ form.godaddy_payments_allowed_redirect_hosts }}
+                    <div class="form-text">Comma-separated hostnames from GoDaddy checkout redirects.</div>
+                </div>
+                <div class="col-12">
+                    <div class="small text-muted">
+                        Webhook URL to configure in GoDaddy:
+                        <strong>{{ request.scheme }}://{{ request.get_host }}{% url 'payments:webhook' provider='godaddy' %}</strong>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="hero-card p-4">
+            <h2 class="h6 fw-bold mb-3">Mail & Contact</h2>
+            <div class="row g-3">
+                <div class="col-12 col-md-4">
+                    <label class="form-label" for="{{ form.contact_email.id_for_label }}">Contact Email</label>
+                    {{ form.contact_email }}
+                </div>
+                <div class="col-12 col-md-4">
+                    <label class="form-label" for="{{ form.default_from_email.id_for_label }}">Default From Email</label>
+                    {{ form.default_from_email }}
+                </div>
+                <div class="col-12 col-md-4 d-flex align-items-end">
+                    <div class="form-check">
+                        {{ form.email_use_tls }}
+                        <label class="form-check-label" for="{{ form.email_use_tls.id_for_label }}">Use TLS</label>
+                    </div>
+                </div>
+                <div class="col-12 col-md-3">
+                    <label class="form-label" for="{{ form.email_host.id_for_label }}">SMTP Host</label>
+                    {{ form.email_host }}
+                </div>
+                <div class="col-12 col-md-2">
+                    <label class="form-label" for="{{ form.email_port.id_for_label }}">SMTP Port</label>
+                    {{ form.email_port }}
+                </div>
+                <div class="col-12 col-md-3">
+                    <label class="form-label" for="{{ form.email_host_user.id_for_label }}">SMTP User</label>
+                    {{ form.email_host_user }}
+                </div>
+                <div class="col-12 col-md-4">
+                    <label class="form-label" for="{{ form.email_host_password.id_for_label }}">SMTP Password</label>
+                    {{ form.email_host_password }}
+                </div>
+            </div>
+        </div>
+        <div>
+            <button type="submit" name="action" value="save" class="btn btn-brand">Save Operational Settings</button>
+            <button type="submit"
+                    name="action"
+                    value="test-godaddy"
+                    class="btn btn-outline-dark ms-2">Test GoDaddy Connection</button>
+        </div>
+    </form>
 {% endblock content %}

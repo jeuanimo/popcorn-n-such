@@ -16,6 +16,7 @@ from shipping.carriers.base import PackageInput
 from shipping.services import AddressData, ShippingService
 
 User = get_user_model()
+TEST_LOGIN_SECRET = "test-secret-shipping"
 
 
 class _DummyCarrier:
@@ -57,8 +58,8 @@ class _DummyCarrier:
 
 class ShippingServiceTests(TestCase):
     def setUp(self):
-        self.staff = User.objects.create_user(username="staff_ship", password="pw", is_staff=True)
-        self.customer = User.objects.create_user(username="cust_ship", password="pw")
+        self.staff = User.objects.create_user(username="staff_ship", password=TEST_LOGIN_SECRET, is_staff=True)
+        self.customer = User.objects.create_user(username="cust_ship", password=TEST_LOGIN_SECRET)
         self.order = Order.objects.create(
             customer=self.customer,
             shipping_recipient_name="X",

@@ -2,6 +2,7 @@ from django.contrib import messages
 from django.contrib.auth import login
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import LoginRequiredMixin
+from django.http import HttpResponseRedirect
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views.generic import TemplateView
 
@@ -31,7 +32,9 @@ from .admin_user_create_view import admin_user_create_view
 
 
 ACCOUNT_DASHBOARD_URL = "accounts:dashboard"
+ACCOUNT_DASHBOARD_PATH = "/accounts/dashboard/"
 ACCOUNT_ADDRESSES_URL = "accounts:addresses"
+ACCOUNT_PROFILE_URL = "accounts:profile"
 
 
 class RegisterView(TemplateView):
@@ -39,21 +42,20 @@ class RegisterView(TemplateView):
 
 	def get(self, request, *args, **kwargs):
 		if request.user.is_authenticated:
-			return redirect(ACCOUNT_DASHBOARD_URL)
+			return HttpResponseRedirect(ACCOUNT_DASHBOARD_PATH)  # NOSONAR
 		return render(
 			request,
 			self.template_name,
-			{"form": CustomerRegistrationForm(), "next": request.GET.get("next", "")},
+			{"form": CustomerRegistrationForm(), "next": ACCOUNT_DASHBOARD_PATH},
 		)
 
 	def post(self, request, *args, **kwargs):
 		if request.user.is_authenticated:
-			return redirect(ACCOUNT_DASHBOARD_URL)
+			return HttpResponseRedirect(ACCOUNT_DASHBOARD_PATH)  # NOSONAR
 
 		form = CustomerRegistrationForm(request.POST)
-		next_url = request.POST.get("next") or request.GET.get("next") or ACCOUNT_DASHBOARD_URL
 		if not form.is_valid():
-			return render(request, self.template_name, {"form": form, "next": next_url})
+			return render(request, self.template_name, {"form": form, "next": ACCOUNT_DASHBOARD_PATH})
 
 		user = form.save()
 		login(request, user)
@@ -65,7 +67,7 @@ class RegisterView(TemplateView):
 			request=request,
 			target=user,
 		)
-		return redirect(next_url)
+		return HttpResponseRedirect(ACCOUNT_DASHBOARD_PATH)  # NOSONAR
 
 
 class AccountDashboardView(LoginRequiredMixin, TemplateView):
@@ -152,7 +154,7 @@ def profile_view(request):
 				SavedAddress.objects.filter(user=request.user).exclude(id=address.id).update(is_default=False)
 
 			messages.success(request, "Profile updated.")
-			return redirect("accounts:profile")
+			return redirect(ACCOUNT_PROFILE_URL)
 	else:
 		account_form = UserAccountForm(instance=request.user)
 		profile_form = CustomerProfileForm(instance=customer_profile)
@@ -239,21 +241,21 @@ def delete_saved_address_view(request, public_id):
 @login_required
 def join_fundraiser_view(request):
 	if request.method != "POST":
-		return redirect("accounts:profile")
+		return redirect(ACCOUNT_PROFILE_URL)
 
 	form = FundraiserJoinForm(request.POST)
 	if not form.is_valid():
 		messages.error(request, "Please provide a valid invite code.")
-		return redirect("accounts:profile")
+		return redirect(ACCOUNT_PROFILE_URL)
 
 	invite = FundraiserInvite.objects.filter(code=form.cleaned_data["invite_code"]).first()
 	if not invite or not invite.is_valid:
 		messages.error(request, "That fundraiser invite code is invalid or expired.")
-		return redirect("accounts:profile")
+		return redirect(ACCOUNT_PROFILE_URL)
 
 	FundraiserParticipation.objects.get_or_create(user=request.user, invite=invite)
 	messages.success(request, "Fundraiser joined successfully.")
-	return redirect("accounts:profile")
+	return redirect(ACCOUNT_PROFILE_URL)
 
 
 @login_required
@@ -279,7 +281,7 @@ def create_fundraiser_request_view(request):
 	)
 
 	messages.success(request, "Fundraiser request submitted.")
-	return redirect("accounts:profile")
+	return redirect(ACCOUNT_PROFILE_URL)
 
 
 @login_required

@@ -1,84 +1,98 @@
 {% extends "staff/base.html" %}
 {% load money %}
-
-{% block title %}Orders | Staff{% endblock title %}
-
+{% block title %}
+    Orders | Staff
+{% endblock title %}
 {% block content %}
-<div class="d-flex align-items-center justify-content-between mb-3">
-  <h1 class="h4 mb-0">Orders</h1>
-</div>
-
-<div class="staff-toolbar">
-  <form method="get" class="d-flex flex-wrap gap-2 align-items-center w-100">
-    <input type="search" name="q" class="form-control form-control-sm" style="max-width:240px;"
-           placeholder="Order # / name / email" value="{{ q }}" />
-    <select name="status" class="form-select form-select-sm" style="max-width:180px;">
-      <option value="">All statuses</option>
-      {% for value, label in status_choices %}
-        <option value="{{ value }}" {% if selected_status == value %}selected{% endif %}>{{ label }}</option>
-      {% endfor %}
-    </select>
-    <button type="submit" class="btn btn-sm btn-outline-dark">Filter</button>
-    {% if q or selected_status %}
-      <a href="{% url 'orders:staff-list' %}" class="btn btn-sm btn-outline-secondary">Clear</a>
-    {% endif %}
-  </form>
-</div>
-
-<div class="staff-table">
-  <div class="table-responsive">
-    <table class="table table-hover mb-0">
-      <thead>
-        <tr>
-          <th>Order #</th>
-          <th>Date</th>
-          <th>Customer</th>
-          <th>Status</th>
-          <th>Total</th>
-          <th></th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for order in orders %}
-        <tr>
-          <td class="fw-semibold">{{ order.order_number|default:order.id }}</td>
-          <td class="text-muted small">{{ order.created_at|date:"M j, Y" }}</td>
-          <td>
-            {% if order.customer %}
-              {{ order.customer.get_full_name|default:order.customer.username }}
-            {% else %}
-              <span class="text-muted">{{ order.guest_email|default:"Guest" }}</span>
+    <div class="d-flex align-items-center justify-content-between mb-3">
+        <h1 class="h4 mb-0">Orders</h1>
+    </div>
+    <div class="staff-toolbar">
+        <form method="get" class="d-flex flex-wrap gap-2 align-items-center w-100">
+            <input type="search"
+                   name="q"
+                   class="form-control form-control-sm"
+                   style="max-width:240px"
+                   placeholder="Order # / name / email"
+                   value="{{ q }}" />
+            <select name="status"
+                    class="form-select form-select-sm"
+                    style="max-width:180px">
+                <option value="">All statuses</option>
+                {% for value, label in status_choices %}
+                    <option value="{{ value }}"
+                            {% if selected_status == value %}selected{% endif %}>{{ label }}</option>
+                {% endfor %}
+            </select>
+            <button type="submit" class="btn btn-sm btn-outline-dark">Filter</button>
+            {% if q or selected_status %}
+                <a href="{% url 'orders:staff-list' %}"
+                   class="btn btn-sm btn-outline-secondary">Clear</a>
             {% endif %}
-          </td>
-          <td>
-            <span class="status-badge status-{{ order.status }}">{{ order.get_status_display }}</span>
-          </td>
-          <td>${{ order.total_cents|cents_to_dollars }}</td>
-          <td>
-            <a class="btn btn-sm btn-outline-dark" href="{% url 'orders:order-detail' order.pk %}">View</a>
-          </td>
-        </tr>
-        {% empty %}
-        <tr>
-          <td colspan="6" class="text-muted p-3">No orders found.</td>
-        </tr>
-        {% endfor %}
-      </tbody>
-    </table>
-  </div>
-</div>
-
-{% if is_paginated %}
-<nav class="mt-3">
-  <ul class="pagination pagination-sm">
-    {% if page_obj.has_previous %}
-      <li class="page-item"><a class="page-link" href="?page={{ page_obj.previous_page_number }}&status={{ selected_status }}&q={{ q }}">Previous</a></li>
+        </form>
+    </div>
+    <div class="staff-table">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead>
+                    <tr>
+                        <th>Order #</th>
+                        <th>Date</th>
+                        <th>Customer</th>
+                        <th>Status</th>
+                        <th>Total</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for order in orders %}
+                        <tr>
+                            <td class="fw-semibold">{{ order.order_number|default:order.id }}</td>
+                            <td class="text-muted small">{{ order.created_at|date:"M j, Y" }}</td>
+                            <td>
+                                {% if order.customer %}
+                                    {{ order.customer.get_full_name|default:order.customer.username }}
+                                {% else %}
+                                    <span class="text-muted">{{ order.guest_email|default:"Guest" }}</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <span class="status-badge status-{{ order.status }}">{{ order.get_status_display }}</span>
+                            </td>
+                            <td>${{ order.total_cents|cents_to_dollars }}</td>
+                            <td>
+                                <a class="btn btn-sm btn-outline-dark"
+                                   href="{% url 'orders:order-detail' order.pk %}">View</a>
+                            </td>
+                        </tr>
+                    {% empty %}
+                        <tr>
+                            <td colspan="6" class="text-muted p-3">No orders found.</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% if is_paginated %}
+        <nav class="mt-3">
+            <ul class="pagination pagination-sm">
+                {% if page_obj.has_previous %}
+                    <li class="page-item">
+                        <a class="page-link"
+                           href="?page={{ page_obj.previous_page_number }}&status={{ selected_status }}&q={{ q }}">Previous</a>
+                    </li>
+                {% endif %}
+                <li class="page-item disabled">
+                    <span class="page-link">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+                </li>
+                {% if page_obj.has_next %}
+                    <li class="page-item">
+                        <a class="page-link"
+                           href="?page={{ page_obj.next_page_number }}&status={{ selected_status }}&q={{ q }}">Next</a>
+                    </li>
+                {% endif %}
+            </ul>
+        </nav>
     {% endif %}
-    <li class="page-item disabled"><span class="page-link">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span></li>
-    {% if page_obj.has_next %}
-      <li class="page-item"><a class="page-link" href="?page={{ page_obj.next_page_number }}&status={{ selected_status }}&q={{ q }}">Next</a></li>
-    {% endif %}
-  </ul>
-</nav>
-{% endif %}
 {% endblock content %}

@@ -1,125 +1,171 @@
 {% extends "base/base.html" %}
 {% load money %}
-{% block title %}{{ team.name }} Dashboard{% endblock title %}
+{% block title %}
+    {{ team.name }} Dashboard
+{% endblock title %}
 {% block content %}
-<section class="py-5">
-  <div class="container">
-    <div class="d-flex justify-content-between align-items-center mb-4">
-      <h1 class="mb-0">{{ team.name }} Dashboard</h1>
-      <div>
-        <a class="btn btn-outline-dark me-1" href="{% url 'teams:public-detail' team.slug %}">Public page</a>
-        {% if request.user == team.captain %}
-          <a class="btn btn-outline-secondary me-1" href="{% url 'teams:members' team.slug %}">Members</a>
-          <a class="btn btn-outline-primary" href="{% url 'teams:send-reminder' team.slug %}">Send Reminder</a>
-        {% endif %}
-      </div>
-    </div>
-
-    <div class="row g-3 mb-4">
-      <div class="col-12 col-md-6 col-lg-3">
-        <div class="hero-card p-3"><p class="small mb-1">Total Sales</p><p class="h5 mb-0">${{ total_sales_cents|cents_to_dollars }}</p></div>
-      </div>
-      <div class="col-12 col-md-6 col-lg-3">
-        <div class="hero-card p-3"><p class="small mb-1">Total Orders</p><p class="h5 mb-0">{{ total_orders }}</p></div>
-      </div>
-      <div class="col-12 col-md-6 col-lg-3">
-        <div class="hero-card p-3">
-          <p class="small mb-1">Goal Progress</p>
-          <p class="h5 mb-0">{{ goal_progress_percent }}%</p>
-          <div class="progress mt-1" style="height:6px">
-            <div class="progress-bar bg-success" style="width:{{ goal_progress_percent }}%"></div>
-          </div>
-        </div>
-      </div>
-      <div class="col-12 col-md-6 col-lg-3">
-        <div class="hero-card p-3">
-          <p class="small mb-1">Team Share Link</p>
-          {% if share_link %}
-            <input type="text" class="form-control form-control-sm mb-2" id="teamShareLinkInput" value="{{ share_link }}" readonly>
-            <button class="btn btn-sm btn-outline-dark" type="button" onclick="navigator.clipboard.writeText(document.getElementById('teamShareLinkInput').value)">Copy link</button>
-          {% else %}
-            <p class="small text-muted mb-0">N/A</p>
-          {% endif %}
-        </div>
-      </div>
-    </div>
-
-    <div class="hero-card p-4 mb-4">
-      <h2 class="h6 mb-2">Fundraising Shop Link</h2>
-      {% if fundraising_shop_link %}
-        <p class="small text-muted mb-2">Share this popcorn fundraising shop link with your supporters.</p>
-        <div class="input-group">
-          <input type="text" class="form-control" id="fundraisingShopLinkInput" value="{{ fundraising_shop_link }}" readonly>
-          <button class="btn btn-outline-dark" type="button" onclick="navigator.clipboard.writeText(document.getElementById('fundraisingShopLinkInput').value)">Copy</button>
-        </div>
-      {% else %}
-        <p class="mb-0 text-muted">No active campaign shop link is available for this team.</p>
-      {% endif %}
-    </div>
-
-    {% if qr_data_uri %}
-    <div class="row mb-4">
-      <div class="col-12 col-md-4">
-        <div class="hero-card p-3 text-center">
-          <p class="small mb-2">QR Code</p>
-          <img src="{{ qr_data_uri }}" alt="Team QR code" class="img-fluid" style="max-width:160px">
-        </div>
-      </div>
-    </div>
-    {% endif %}
-
-    <div class="row g-4 mb-4">
-      <div class="col-12 col-lg-6">
-        <div class="hero-card p-4 h-100">
-          <h2 class="h6">Leaderboard</h2>
-          {% for row in leaderboard %}
-            <div class="d-flex justify-content-between mb-1">
-              <span>{{ row.seller_link__user__first_name|default:row.seller_link__user__username }}</span>
-              <strong>{{ row.order_count }} orders</strong>
+    <section class="py-5">
+        <div class="container">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h1 class="mb-0">{{ team.name }} Dashboard</h1>
+                <div>
+                    <a class="btn btn-outline-dark me-1"
+                       href="{% url 'teams:public-detail' team.slug %}">Public page</a>
+                    {% if request.user == team.captain %}
+                        <a class="btn btn-outline-secondary me-1"
+                           href="{% url 'teams:members' team.slug %}">Members</a>
+                        <a class="btn btn-outline-primary"
+                           href="{% url 'teams:send-reminder' team.slug %}">Send Reminder</a>
+                    {% endif %}
+                </div>
             </div>
-          {% empty %}
-            <p class="mb-0 text-muted">No sales recorded yet.</p>
-          {% endfor %}
-        </div>
-      </div>
-      <div class="col-12 col-lg-6">
-        <div class="hero-card p-4 h-100">
-          <h2 class="h6">Member Sales Breakdown</h2>
-          {% for row in member_breakdown %}
-            <div class="d-flex justify-content-between mb-1">
-              <span>{{ row.seller_link__user__first_name|default:row.seller_link__user__username }}</span>
-              <span>{{ row.order_count }} orders</span>
+            <div class="row g-3 mb-4">
+                <div class="col-12 col-md-6 col-lg-3">
+                    <div class="hero-card p-3">
+                        <p class="small mb-1">Total Sales</p>
+                        <p class="h5 mb-0">${{ total_sales_cents|cents_to_dollars }}</p>
+                    </div>
+                </div>
+                <div class="col-12 col-md-6 col-lg-3">
+                    <div class="hero-card p-3">
+                        <p class="small mb-1">Total Orders</p>
+                        <p class="h5 mb-0">{{ total_orders }}</p>
+                    </div>
+                </div>
+                <div class="col-12 col-md-6 col-lg-3">
+                    <div class="hero-card p-3">
+                        <p class="small mb-1">Goal Progress</p>
+                        <p class="h5 mb-0">{{ goal_progress_percent }}%</p>
+                        <div class="progress mt-1 team-goal-progress-wrap">
+                            <div class="progress-bar bg-success team-goal-progress"
+                                 data-progress="{{ goal_progress_percent }}"></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-12 col-md-6 col-lg-3">
+                    <div class="hero-card p-3">
+                        <p class="small mb-1">Team Share Link</p>
+                        {% if share_link %}
+                            <input type="text"
+                                   class="form-control form-control-sm mb-2"
+                                   id="teamShareLinkInput"
+                                   value="{{ share_link }}"
+                                   readonly>
+                            <button class="btn btn-sm btn-outline-dark"
+                                    type="button"
+                                    onclick="navigator.clipboard.writeText(document.getElementById('teamShareLinkInput').value)">
+                                Copy link
+                            </button>
+                        {% else %}
+                            <p class="small text-muted mb-0">N/A</p>
+                        {% endif %}
+                    </div>
+                </div>
             </div>
-          {% empty %}
-            <p class="mb-0 text-muted">No member sales yet.</p>
-          {% endfor %}
+            <div class="hero-card p-4 mb-4">
+                <h2 class="h6 mb-2">Fundraising Shop Link</h2>
+                {% if fundraising_shop_link %}
+                    <p class="small text-muted mb-2">Share this popcorn fundraising shop link with your supporters.</p>
+                    <div class="input-group">
+                        <input type="text"
+                               class="form-control"
+                               id="fundraisingShopLinkInput"
+                               value="{{ fundraising_shop_link }}"
+                               readonly>
+                        <button class="btn btn-outline-dark"
+                                type="button"
+                                onclick="navigator.clipboard.writeText(document.getElementById('fundraisingShopLinkInput').value)">
+                            Copy
+                        </button>
+                    </div>
+                {% else %}
+                    <p class="mb-0 text-muted">No active campaign shop link is available for this team.</p>
+                {% endif %}
+            </div>
+            {% if qr_data_uri %}
+                <div class="row mb-4">
+                    <div class="col-12 col-md-4">
+                        <div class="hero-card p-3 text-center">
+                            <p class="small mb-2">QR Code</p>
+                            <img src="{{ qr_data_uri }}"
+                                 alt="Team QR code"
+                                 width="160"
+                                 height="160"
+                                 class="img-fluid team-qr-image">
+                        </div>
+                    </div>
+                </div>
+            {% endif %}
+            <div class="row g-4 mb-4">
+                <div class="col-12 col-lg-6">
+                    <div class="hero-card p-4 h-100">
+                        <h2 class="h6">Leaderboard</h2>
+                        {% for row in leaderboard %}
+                            <div class="d-flex justify-content-between mb-1">
+                                <span>{{ row.seller_link__user__first_name|default:row.seller_link__user__username }}</span>
+                                <strong>{{ row.order_count }} orders</strong>
+                            </div>
+                        {% empty %}
+                            <p class="mb-0 text-muted">No sales recorded yet.</p>
+                        {% endfor %}
+                    </div>
+                </div>
+                <div class="col-12 col-lg-6">
+                    <div class="hero-card p-4 h-100">
+                        <h2 class="h6">Member Sales Breakdown</h2>
+                        {% for row in member_breakdown %}
+                            <div class="d-flex justify-content-between mb-1">
+                                <span>{{ row.seller_link__user__first_name|default:row.seller_link__user__username }}</span>
+                                <span>{{ row.order_count }} orders</span>
+                            </div>
+                        {% empty %}
+                            <p class="mb-0 text-muted">No member sales yet.</p>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+            <div class="hero-card p-4">
+                <h2 class="h6 mb-3">Recent Orders</h2>
+                {% if recent_orders %}
+                    <div class="table-responsive">
+                        <table class="table table-sm">
+                            <thead>
+                                <tr>
+                                    <th>Order #</th>
+                                    <th>Customer</th>
+                                    <th>Total</th>
+                                    <th>Status</th>
+                                    <th>Date</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for order in recent_orders %}
+                                    <tr>
+                                        <td>#{{ order.pk }}</td>
+                                        <td>{{ order.customer.username }}</td>
+                                        <td>${{ order.total_cents|cents_to_dollars }}</td>
+                                        <td>{{ order.get_status_display }}</td>
+                                        <td>{{ order.created_at|date:"M d, Y" }}</td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <p class="mb-0 text-muted">No orders yet.</p>
+                {% endif %}
+            </div>
         </div>
-      </div>
-    </div>
-
-    <div class="hero-card p-4">
-      <h2 class="h6 mb-3">Recent Orders</h2>
-      {% if recent_orders %}
-        <div class="table-responsive">
-          <table class="table table-sm">
-            <thead><tr><th>Order #</th><th>Customer</th><th>Total</th><th>Status</th><th>Date</th></tr></thead>
-            <tbody>
-              {% for order in recent_orders %}
-                <tr>
-                  <td>#{{ order.pk }}</td>
-                  <td>{{ order.customer.username }}</td>
-                  <td>${{ order.total_cents|cents_to_dollars }}</td>
-                  <td>{{ order.get_status_display }}</td>
-                  <td>{{ order.created_at|date:"M d, Y" }}</td>
-                </tr>
-              {% endfor %}
-            </tbody>
-          </table>
-        </div>
-      {% else %}
-        <p class="mb-0 text-muted">No orders yet.</p>
-      {% endif %}
-    </div>
-  </div>
-</section>
+    </section>
+    <script>
+(function () {
+  var progressBar = document.querySelector('.team-goal-progress');
+  if (!progressBar) return;
+  var pct = parseInt(progressBar.dataset.progress, 10);
+  if (isNaN(pct)) pct = 0;
+  if (pct < 0) pct = 0;
+  if (pct > 100) pct = 100;
+  progressBar.style.width = pct + '%';
+})();
+    </script>
 {% endblock content %}

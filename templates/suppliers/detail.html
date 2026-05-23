@@ -1,112 +1,140 @@
 {% extends "staff/base.html" %}
 {% load money %}
-{% block title %}{{ supplier.name }} | Suppliers{% endblock title %}
+{% block title %}
+    {{ supplier.name }} | Suppliers
+{% endblock title %}
 {% block content %}
-<div class="d-flex align-items-center gap-3 mb-4">
-  <a href="{% url 'suppliers:list' %}" class="btn btn-sm btn-outline-dark">&larr; Suppliers</a>
-  <div>
-    <span class="eyebrow">Catalog</span>
-    <h1 class="h3 mb-0">{{ supplier.name }}</h1>
-  </div>
-</div>
-
-  <div class="row g-3">
-    <div class="col-md-6">
-      <div class="card">
-        <div class="card-header">Contact</div>
-        <div class="card-body">
-          <div><strong>Contact:</strong> {{ supplier.contact_person|default:"—" }}</div>
-          <div><strong>Email:</strong> {{ supplier.email|default:"—" }}</div>
-          <div><strong>Phone:</strong> {{ supplier.phone|default:"—" }}</div>
-          <div><strong>Website:</strong> {{ supplier.website|default:"—" }}</div>
-          <hr>
-          <div><strong>Category:</strong> {{ supplier.get_category_display }}</div>
-          <div><strong>Status:</strong> {{ supplier.get_status_display }}</div>
-          <div><strong>Terms:</strong> {{ supplier.payment_terms|default:"—" }}</div>
-          <div><strong>Lead time:</strong> {{ supplier.average_lead_time_days }} days</div>
-          <div><strong>Rating:</strong> {{ supplier.rating }}</div>
+    <div class="d-flex align-items-center gap-3 mb-4">
+        <a href="{% url 'suppliers:list' %}" class="btn btn-sm btn-outline-dark">← Suppliers</a>
+        <div>
+            <span class="eyebrow">Catalog</span>
+            <h1 class="h3 mb-0">{{ supplier.name }}</h1>
         </div>
-      </div>
     </div>
-
-    <div class="col-md-6">
-      <div class="card">
-        <div class="card-header">Follow-up</div>
-        <div class="card-body">
-          <div><strong>Last contact:</strong> {{ supplier.last_contact_date|default:"—" }}</div>
-          <div><strong>Next follow-up:</strong> {{ supplier.next_follow_up_date|default:"—" }}</div>
-          <hr>
-          <div><strong>Notes:</strong></div>
-          <div class="text-muted">{{ supplier.notes|default:"—" }}</div>
+    <div class="row g-3">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">Contact</div>
+                <div class="card-body">
+                    <div>
+                        <strong>Contact:</strong> {{ supplier.contact_person|default:"—" }}
+                    </div>
+                    <div>
+                        <strong>Email:</strong> {{ supplier.email|default:"—" }}
+                    </div>
+                    <div>
+                        <strong>Phone:</strong> {{ supplier.phone|default:"—" }}
+                    </div>
+                    <div>
+                        <strong>Website:</strong> {{ supplier.website|default:"—" }}
+                    </div>
+                    <hr>
+                    <div>
+                        <strong>Category:</strong> {{ supplier.get_category_display }}
+                    </div>
+                    <div>
+                        <strong>Status:</strong> {{ supplier.get_status_display }}
+                    </div>
+                    <div>
+                        <strong>Terms:</strong> {{ supplier.payment_terms|default:"—" }}
+                    </div>
+                    <div>
+                        <strong>Lead time:</strong> {{ supplier.average_lead_time_days }} days
+                    </div>
+                    <div>
+                        <strong>Rating:</strong> {{ supplier.rating }}
+                    </div>
+                </div>
+            </div>
         </div>
-      </div>
-    </div>
-  </div>
-
-  <div class="row g-3 mt-2">
-    <div class="col-md-6">
-      <div class="card">
-        <div class="card-header">Open Tasks</div>
-        <div class="card-body">
-          <ul class="mb-0">
-            {% for task in tasks %}
-              <li>{{ task.title }}{% if task.due_date %} (due {{ task.due_date }}){% endif %}</li>
-            {% empty %}
-              <li class="text-muted">No tasks.</li>
-            {% endfor %}
-          </ul>
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">Follow-up</div>
+                <div class="card-body">
+                    <div>
+                        <strong>Last contact:</strong> {{ supplier.last_contact_date|default:"—" }}
+                    </div>
+                    <div>
+                        <strong>Next follow-up:</strong> {{ supplier.next_follow_up_date|default:"—" }}
+                    </div>
+                    <hr>
+                    <div>
+                        <strong>Notes:</strong>
+                    </div>
+                    <div class="text-muted">{{ supplier.notes|default:"—" }}</div>
+                </div>
+            </div>
         </div>
-      </div>
     </div>
-    <div class="col-md-6">
-      <div class="card">
-        <div class="card-header">Purchase Orders</div>
-        <div class="card-body">
-          <ul class="mb-0">
-            {% for po in purchase_orders_v2 %}
-              <li>{{ po.po_number }} — {{ po.get_status_display }} — ${{ po.total_cents|cents_to_dollars }}</li>
-            {% empty %}
-            {% endfor %}
-            {% for po in purchase_orders %}
-              <li>{{ po.po_number }} — {{ po.get_status_display }} — ${{ po.total_cents|cents_to_dollars }}</li>
-            {% empty %}
-              <li class="text-muted">No purchase orders.</li>
-            {% endfor %}
-          </ul>
+    <div class="row g-3 mt-2">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">Open Tasks</div>
+                <div class="card-body">
+                    <ul class="mb-0">
+                        {% for task in tasks %}
+                            <li>
+                                {{ task.title }}
+                                {% if task.due_date %}(due {{ task.due_date }}){% endif %}
+                            </li>
+                        {% empty %}
+                            <li class="text-muted">No tasks.</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            </div>
         </div>
-      </div>
-    </div>
-  </div>
-
-  <div class="row g-3 mt-2">
-    <div class="col-md-6">
-      <div class="card">
-        <div class="card-header">CRM Notes</div>
-        <div class="card-body">
-          <ul class="mb-0">
-            {% for note in notes %}
-              <li>{{ note.created_at }} — {{ note.note|truncatechars:120 }}</li>
-            {% empty %}
-              <li class="text-muted">No notes.</li>
-            {% endfor %}
-          </ul>
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">Purchase Orders</div>
+                <div class="card-body">
+                    <ul class="mb-0">
+                        {% for po in purchase_orders_v2 %}
+                            <li>{{ po.po_number }} — {{ po.get_status_display }} — ${{ po.total_cents|cents_to_dollars }}</li>
+                        {% empty %}
+                        {% endfor %}
+                        {% for po in purchase_orders %}
+                            <li>{{ po.po_number }} — {{ po.get_status_display }} — ${{ po.total_cents|cents_to_dollars }}</li>
+                        {% empty %}
+                            <li class="text-muted">No purchase orders.</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            </div>
         </div>
-      </div>
     </div>
-    <div class="col-md-6">
-      <div class="card">
-        <div class="card-header">Documents</div>
-        <div class="card-body">
-          <ul class="mb-0">
-            {% for doc in documents %}
-              <li>{{ doc.title }}{% if doc.document_type %} ({{ doc.document_type }}){% endif %}</li>
-            {% empty %}
-              <li class="text-muted">No documents.</li>
-            {% endfor %}
-          </ul>
+    <div class="row g-3 mt-2">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">CRM Notes</div>
+                <div class="card-body">
+                    <ul class="mb-0">
+                        {% for note in notes %}
+                            <li>{{ note.created_at }} — {{ note.note|truncatechars:120 }}</li>
+                        {% empty %}
+                            <li class="text-muted">No notes.</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            </div>
         </div>
-      </div>
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">Documents</div>
+                <div class="card-body">
+                    <ul class="mb-0">
+                        {% for doc in documents %}
+                            <li>
+                                {{ doc.title }}
+                                {% if doc.document_type %}({{ doc.document_type }}){% endif %}
+                            </li>
+                        {% empty %}
+                            <li class="text-muted">No documents.</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            </div>
+        </div>
     </div>
-  </div>
 </div>
 {% endblock content %}

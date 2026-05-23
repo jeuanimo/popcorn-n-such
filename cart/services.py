@@ -13,6 +13,7 @@ from .models import Cart, CartAttribution, CartItem, SavedForLaterItem
 
 RECOVERY_TOKEN_SALT = "cart-recovery"
 RECOVERY_TOKEN_MAX_AGE_SECONDS = 60 * 60 * 24 * 3
+CART_ITEM_NOT_FOUND_MSG = "Cart item not found."
 
 
 class CartService:
@@ -118,17 +119,17 @@ class CartService:
         cart = cls.get_or_create_cart(request)
         item = CartItem.objects.filter(id=item_id, cart=cart).select_related("sku").first()
         if not item:
-            raise PermissionDenied("Cart item not found.")
+            raise PermissionDenied(CART_ITEM_NOT_FOUND_MSG)
         if quantity < 1:
             item.delete()
-            return cart
+            return 0
         if quantity > item.sku.inventory_quantity:
             raise ValidationError(
                 f"Only {item.sku.inventory_quantity} item(s) are available for {item.sku.size}."
             )
         item.quantity = quantity
         item.save(update_fields=["quantity", "updated_at"])
-        return cart
+        return item.quantity
 
     @classmethod
     @transaction.atomic
@@ -136,7 +137,7 @@ class CartService:
         cart = cls.get_or_create_cart(request)
         item = CartItem.objects.filter(id=item_id, cart=cart).first()
         if not item:
-            raise PermissionDenied("Cart item not found.")
+            raise PermissionDenied(CART_ITEM_NOT_FOUND_MSG)
         item.delete()
         return cart
 
@@ -146,7 +147,7 @@ class CartService:
         cart = cls.get_or_create_cart(request)
         item = CartItem.objects.filter(id=item_id, cart=cart).select_related("sku").first()
         if not item:
-            raise PermissionDenied("Cart item not found.")
+            raise PermissionDenied(CART_ITEM_NOT_FOUND_MSG)
 
         saved, created = SavedForLaterItem.objects.get_or_create(
             cart=cart,
@@ -306,21 +307,24 @@ class CartService:
             except Exception:
                 pass
 
-        try:
-            from orders.services import CheckoutService
+        if destination_state:
+            try:
+                from orders.services import CheckoutService
 
-            checkout_summary = CheckoutService().calculate_totals(
-                cart,
-                destination_state,
-                postal_code=destination_postal_code,
-                country=destination_country,
-            )
-            estimated_tax = Decimal(checkout_summary.tax_cents) / Decimal("100")
-            estimated_shipping = Decimal(checkout_summary.shipping_cents) / Decimal("100")
-            # Keep coupon details from current cart quote display, but use calculated totals.
-            total = Decimal(checkout_summary.total_cents) / Decimal("100")
-        except Exception:
-            total = max(Decimal("0.00"), subtotal - discount) + estimated_tax + estimated_shipping
+                checkout_summary = CheckoutService().calculate_totals(
+                    cart,
+                    destination_state,
+                    postal_code=destination_postal_code,
+                    country=destination_country,
+                )
+                estimated_tax = Decimal(checkout_summary.tax_cents) / Decimal("100")
+                estimated_shipping = Decimal(checkout_summary.shipping_cents) / Decimal("100")
+                # Keep coupon details from current cart quote display, but use calculated totals.
+                total = Decimal(checkout_summary.total_cents) / Decimal("100")
+            except Exception:
+                total = max(Decimal("0.00"), subtotal - discount) + estimated_tax + estimated_shipping
+        else:
+            total = max(Decimal("0.00"), subtotal - discount)
 
 
         return {

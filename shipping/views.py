@@ -147,6 +147,12 @@ class LabelCreateView(View):
         })
 
     @staticmethod
+    def _dispatch_tracking_email(label) -> None:
+        if label.order_id:
+            from shipping.tasks import send_tracking_email
+            send_tracking_email.delay(label.order_id, label.id)
+
+    @staticmethod
     def _try_draft_fallback(request, svc, order, exc) -> JsonResponse | None:
         """Return a draft-label JSON response whenever the carrier API fails."""
         try:
@@ -210,6 +216,8 @@ class LabelCreateView(View):
             if fallback is not None:
                 return fallback
             return JsonResponse({"error": f"Label creation failed: {exc}"}, status=502)
+
+        self._dispatch_tracking_email(label)
 
         print_url = request.build_absolute_uri(f"/shipping/labels/{label.id}/print/")
         return JsonResponse({

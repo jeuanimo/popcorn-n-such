@@ -1,54 +1,54 @@
 {% extends "base/base.html" %}
-
 {% block title %}My Seller Stores — Popcorn-N-Such{% endblock %}
-
 {% block content %}
-<div class="container py-5">
-  <div class="d-flex justify-content-between align-items-center mb-4">
-    <h1 class="fw-bold mb-0">My Stores</h1>
-    <a href="{% url 'sellers:create' %}" class="btn btn-warning">+ New Store</a>
-  </div>
-
-  {% if stores %}
-  <div class="table-responsive">
-    <table class="table table-hover align-middle">
-      <thead class="table-light">
-        <tr>
-          <th>Store Name</th>
-          <th>Campaign</th>
-          <th>Team</th>
-          <th>Status</th>
-          <th>Actions</th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for store in stores %}
-        <tr>
-          <td class="fw-semibold">{{ store.display_name }}</td>
-          <td>{{ store.campaign.campaign_name|default:"—" }}</td>
-          <td>{{ store.team.name|default:"—" }}</td>
-          <td>
-            {% if store.is_active %}
-              <span class="badge bg-success">Active</span>
-            {% else %}
-              <span class="badge bg-secondary">Inactive</span>
-            {% endif %}
-          </td>
-          <td>
-            <a href="{% url 'sellers:dashboard' store.slug %}" class="btn btn-sm btn-outline-primary me-1">Dashboard</a>
-            <a href="{% url 'sellers:edit' store.slug %}" class="btn btn-sm btn-outline-secondary me-1">Edit</a>
-            <a href="{% url 'sellers:public-store' store.slug %}" class="btn btn-sm btn-outline-warning">View</a>
-          </td>
-        </tr>
-        {% endfor %}
-      </tbody>
-    </table>
-  </div>
-  {% else %}
-    <div class="alert alert-info">
-      You don't have any stores yet.
-      <a href="{% url 'sellers:create' %}" class="alert-link">Create your first store</a> to get started.
+    <div class="container py-5">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h1 class="fw-bold mb-0">My Stores</h1>
+            <a href="{% url 'sellers:create' %}" class="btn btn-warning">+ New Store</a>
+        </div>
+        {% if stores %}
+            <div class="table-responsive">
+                <table class="table table-hover align-middle">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Store Name</th>
+                            <th>Campaign</th>
+                            <th>Team</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for store in stores %}
+                            <tr>
+                                <td class="fw-semibold">{{ store.display_name }}</td>
+                                <td>{{ store.campaign.campaign_name|default:"—" }}</td>
+                                <td>{{ store.team.name|default:"—" }}</td>
+                                <td>
+                                    {% if store.is_active %}
+                                        <span class="badge bg-success">Active</span>
+                                    {% else %}
+                                        <span class="badge bg-secondary">Inactive</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <a href="{% url 'sellers:dashboard' store.slug %}"
+                                       class="btn btn-sm btn-outline-primary me-1">Dashboard</a>
+                                    <a href="{% url 'sellers:edit' store.slug %}"
+                                       class="btn btn-sm btn-outline-secondary me-1">Edit</a>
+                                    <a href="{% url 'sellers:public-store' store.slug %}"
+                                       class="btn btn-sm btn-outline-warning">View</a>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% else %}
+            <div class="alert alert-info">
+                You don't have any stores yet.
+                <a href="{% url 'sellers:create' %}" class="alert-link">Create your first store</a> to get started.
+            </div>
+        {% endif %}
     </div>
-  {% endif %}
-</div>
 {% endblock %}

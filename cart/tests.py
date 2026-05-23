@@ -11,6 +11,7 @@ from .models import Cart, CartItem, SavedForLaterItem
 from .services import CartService
 
 User = get_user_model()
+TEST_LOGIN_SECRET = "test-secret-cart"
 
 
 class CartFlowTests(TestCase):
@@ -49,13 +50,13 @@ class CartFlowTests(TestCase):
 		self.assertEqual(item.quantity, 2)
 
 	def test_logged_in_user_cannot_remove_other_users_item(self):
-		owner = User.objects.create_user(username="owner", password="Password123!")
-		User.objects.create_user(username="attacker", password="Password123!")
+		owner = User.objects.create_user(username="owner", password=TEST_LOGIN_SECRET)
+		User.objects.create_user(username="attacker", password=TEST_LOGIN_SECRET)
 
 		owner_cart = Cart.objects.create(user=owner, session_key="owner-session", is_active=True)
 		owner_item = CartItem.objects.create(cart=owner_cart, sku=self.sku, quantity=1)
 
-		self.client.login(username="attacker", password="Password123!")
+		self.client.login(username="attacker", password=TEST_LOGIN_SECRET)
 		remove_url = reverse("cart:remove-item", args=[owner_item.id])
 		self.client.post(remove_url)
 
@@ -65,11 +66,11 @@ class CartFlowTests(TestCase):
 		add_url = reverse("cart:add", args=[self.sku.id])
 		self.client.post(add_url, {"quantity": 2})
 
-		user = User.objects.create_user(username="merge-user", password="Password123!")
+		user = User.objects.create_user(username="merge-user", password=TEST_LOGIN_SECRET)
 		user_cart = Cart.objects.create(user=user, session_key="user-session", is_active=True)
 		CartItem.objects.create(cart=user_cart, sku=self.sku, quantity=1)
 
-		self.client.login(username="merge-user", password="Password123!")
+		self.client.login(username="merge-user", password=TEST_LOGIN_SECRET)
 		response = self.client.get(reverse("cart:view"))
 		self.assertEqual(response.status_code, 200)
 

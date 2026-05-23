@@ -1,66 +1,104 @@
 {% extends "staff/base.html" %}
 {% load money %}
 {% block content %}
-<div class="container py-4">
-  <div class="d-flex justify-content-between align-items-center mb-3">
-    <h1 class="h4 mb-0">Owner/Admin Dashboard</h1>
-    <a class="btn btn-sm btn-outline-secondary" href="{% url 'notifications:center' %}">Alerts ({{ unread_alerts }})</a>
-  </div>
-
-  <div class="row g-3">
-    <div class="col-md-3"><div class="card"><div class="card-body"><div class="text-muted small">Total revenue</div><div class="fs-4">{{ total_revenue }}</div></div></div></div>
-    <div class="col-md-3"><div class="card"><div class="card-body"><div class="text-muted small">Open orders</div><div class="fs-4">{{ open_orders }}</div></div></div></div>
-    <div class="col-md-3"><div class="card"><div class="card-body"><div class="text-muted small">Fulfillment queue</div><div class="fs-4">{{ fulfillment_queue }}</div></div></div></div>
-    <div class="col-md-3"><div class="card"><div class="card-body"><div class="text-muted small">Active fundraisers</div><div class="fs-4">{{ active_fundraisers }}</div></div></div></div>
-  </div>
-
-  <div class="row g-3 mt-1">
-    <div class="col-md-6">
-      <div class="card"><div class="card-header">Revenue by channel</div>
-        <div class="card-body">
-          <div>Standalone: <strong>{{ revenue_by_channel.standalone }}</strong></div>
-          <div>Fundraisers: <strong>{{ revenue_by_channel.fundraisers }}</strong></div>
+    <div class="container py-4">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h1 class="h4 mb-0">Owner/Admin Dashboard</h1>
+            <a class="btn btn-sm btn-outline-secondary"
+               href="{% url 'notifications:center' %}">Alerts ({{ unread_alerts }})</a>
         </div>
-      </div>
-    </div>
-    <div class="col-md-6">
-      <div class="card"><div class="card-header">Low inventory</div>
-        <div class="card-body">
-          <ul class="mb-0">
-            {% for sku in low_inventory %}
-              <li>{{ sku.sku_code }} — {{ sku.inventory_quantity }}</li>
-            {% empty %}
-              <li class="text-muted">No low-stock SKUs.</li>
-            {% endfor %}
-          </ul>
+        <div class="row g-3">
+            <div class="col-md-3">
+                <div class="card">
+                    <div class="card-body">
+                        <div class="text-muted small">Total revenue</div>
+                        <div class="fs-4">{{ total_revenue }}</div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card">
+                    <div class="card-body">
+                        <div class="text-muted small">Open orders</div>
+                        <div class="fs-4">{{ open_orders }}</div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card">
+                    <div class="card-body">
+                        <div class="text-muted small">Fulfillment queue</div>
+                        <div class="fs-4">{{ fulfillment_queue }}</div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card">
+                    <div class="card-body">
+                        <div class="text-muted small">Active fundraisers</div>
+                        <div class="fs-4">{{ active_fundraisers }}</div>
+                    </div>
+                </div>
+            </div>
         </div>
-      </div>
-    </div>
-  </div>
-
-  <div class="row g-3 mt-1">
-    <div class="col-md-6">
-      <div class="card"><div class="card-header">Top products</div>
-        <div class="card-body">
-          <ol class="mb-0">
-            {% for row in top_products %}
-              <li>{{ row.product_name_snapshot }} — ${{ row.sales|cents_to_dollars }}</li>
-            {% empty %}<li class="text-muted">No sales yet.</li>{% endfor %}
-          </ol>
+        <div class="row g-3 mt-1">
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header">Revenue by channel</div>
+                    <div class="card-body">
+                        <div>
+                            Standalone: <strong>{{ revenue_by_channel.standalone }}</strong>
+                        </div>
+                        <div>
+                            Fundraisers: <strong>{{ revenue_by_channel.fundraisers }}</strong>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header">Low inventory</div>
+                    <div class="card-body">
+                        <ul class="mb-0">
+                            {% for sku in low_inventory %}
+                                <li>{{ sku.sku_code }} — {{ sku.inventory_quantity }}</li>
+                            {% empty %}
+                                <li class="text-muted">No low-stock SKUs.</li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                </div>
+            </div>
         </div>
-      </div>
-    </div>
-    <div class="col-md-6">
-      <div class="card"><div class="card-header">Recent orders</div>
-        <div class="card-body">
-          <ul class="mb-0">
-            {% for o in recent_orders %}
-              <li>{{ o.order_number }} — {{ o.status }} — ${{ o.total_cents|cents_to_dollars }}</li>
-            {% empty %}<li class="text-muted">No orders.</li>{% endfor %}
-          </ul>
+        <div class="row g-3 mt-1">
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header">Top products</div>
+                    <div class="card-body">
+                        <ol class="mb-0">
+                            {% for row in top_products %}
+                                <li>{{ row.product_name_snapshot }} — ${{ row.sales|cents_to_dollars }}</li>
+                            {% empty %}
+                                <li class="text-muted">No sales yet.</li>
+                            {% endfor %}
+                        </ol>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header">Recent orders</div>
+                    <div class="card-body">
+                        <ul class="mb-0">
+                            {% for o in recent_orders %}
+                                <li>{{ o.order_number }} — {{ o.status }} — ${{ o.total_cents|cents_to_dollars }}</li>
+                            {% empty %}
+                                <li class="text-muted">No orders.</li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                </div>
+            </div>
         </div>
-      </div>
     </div>
-  </div>
-</div>
 {% endblock %}

@@ -1,74 +1,100 @@
 {% extends "staff/base.html" %}
-
-{% block title %}Site Configuration | Popcorn-N-Such{% endblock title %}
-
+{% block title %}
+    Site Configuration | Popcorn-N-Such
+{% endblock title %}
 {% block content %}
-<div class="d-flex justify-content-between align-items-center mb-4">
-  <div>
-    <span class="eyebrow">Content</span>
-    <h1 class="h3 mb-0">Site Configuration</h1>
-  </div>
-  <a href="{% url 'site-config-create' %}" class="btn btn-brand">Add Content Block</a>
-</div>
-
-<div class="hero-card p-3 mb-3">
-  <form method="get" class="row g-2 align-items-end">
-    <div class="col-12 col-md-4">
-      <label class="form-label mb-1" for="page_key">Filter by page</label>
-      <select id="page_key" name="page_key" class="form-select">
-        <option value="">All pages</option>
-        <option value="home" {% if request.GET.page_key == "home" %}selected{% endif %}>Home</option>
-        <option value="about" {% if request.GET.page_key == "about" %}selected{% endif %}>About</option>
-        <option value="fundraising" {% if request.GET.page_key == "fundraising" %}selected{% endif %}>Fundraising</option>
-        <option value="corporate_gifts" {% if request.GET.page_key == "corporate_gifts" %}selected{% endif %}>Corporate Gifts</option>
-        <option value="contact" {% if request.GET.page_key == "contact" %}selected{% endif %}>Contact</option>
-        <option value="faq" {% if request.GET.page_key == "faq" %}selected{% endif %}>FAQ</option>
-      </select>
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <span class="eyebrow">Content</span>
+            <h1 class="h3 mb-0">Site Configuration</h1>
+        </div>
+        <a href="{% url 'site-config-create' %}" class="btn btn-brand">Add Content Block</a>
     </div>
-    <div class="col-12 col-md-2">
-      <button class="btn btn-outline-dark w-100" type="submit">Apply</button>
+    <div class="hero-card p-3 mb-3">
+        <form method="get" class="row g-2 align-items-end">
+            <div class="col-12 col-md-4">
+                <label class="form-label mb-1" for="page_key">Filter by page</label>
+                <select id="page_key" name="page_key" class="form-select">
+                    <option value="">All pages</option>
+                    <option value="home"
+                            {% if request.GET.page_key == "home" %}selected{% endif %}>Home</option>
+                    <option value="about"
+                            {% if request.GET.page_key == "about" %}selected{% endif %}>About</option>
+                    <option value="fundraising"
+                            {% if request.GET.page_key == "fundraising" %}selected{% endif %}>Fundraising</option>
+                    <option value="corporate_gifts"
+                            {% if request.GET.page_key == "corporate_gifts" %}selected{% endif %}>
+                        Corporate Gifts
+                    </option>
+                    <option value="contact"
+                            {% if request.GET.page_key == "contact" %}selected{% endif %}>Contact</option>
+                    <option value="faq" {% if request.GET.page_key == "faq" %}selected{% endif %}>FAQ</option>
+                </select>
+            </div>
+            <div class="col-12 col-md-2">
+                <button class="btn btn-outline-dark w-100" type="submit">Apply</button>
+            </div>
+        </form>
     </div>
-  </form>
-</div>
-
-<div class="hero-card p-3">
-  <div class="table-responsive">
-    <table class="table table-sm align-middle">
-      <thead>
-        <tr>
-          <th>Page</th>
-          <th>Section</th>
-          <th>Title</th>
-          <th>Image</th>
-          <th>Status</th>
-          <th>Order</th>
-          <th>Updated</th>
-          <th></th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for block in blocks %}
-          <tr>
-            <td>{{ block.get_page_key_display }}</td>
-            <td><code>{{ block.section_key }}</code></td>
-            <td>{{ block.title|default:"-" }}</td>
-            <td>{% if block.image %}<span class="badge text-bg-success">Yes</span>{% else %}<span class="badge text-bg-secondary">No</span>{% endif %}</td>
-            <td>{% if block.is_active %}<span class="badge text-bg-success">Active</span>{% else %}<span class="badge text-bg-secondary">Hidden</span>{% endif %}</td>
-            <td>{{ block.sort_order }}</td>
-            <td class="small">{{ block.updated_at|date:"Y-m-d H:i" }}</td>
-            <td class="text-end">
-              <a href="{% url 'site-config-edit' block.id %}" class="btn btn-sm btn-outline-dark">Edit</a>
-              <form method="post" action="{% url 'site-config-delete' block.id %}" class="d-inline">
-                {% csrf_token %}
-                <button type="submit" class="btn btn-sm btn-outline-danger" onclick="return confirm('Delete this content block?');">Delete</button>
-              </form>
-            </td>
-          </tr>
-        {% empty %}
-          <tr><td colspan="8" class="text-muted">No content blocks yet.</td></tr>
-        {% endfor %}
-      </tbody>
-    </table>
-  </div>
-</div>
+    <div class="hero-card p-3">
+        <div class="table-responsive">
+            <table class="table table-sm align-middle">
+                <thead>
+                    <tr>
+                        <th>Page</th>
+                        <th>Section</th>
+                        <th>Title</th>
+                        <th>Image</th>
+                        <th>Status</th>
+                        <th>Order</th>
+                        <th>Updated</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for block in blocks %}
+                        <tr>
+                            <td>{{ block.get_page_key_display }}</td>
+                            <td>
+                                <code>{{ block.section_key }}</code>
+                            </td>
+                            <td>{{ block.title|default:"-" }}</td>
+                            <td>
+                                {% if block.image %}
+                                    <span class="badge text-bg-success">Yes</span>
+                                {% else %}
+                                    <span class="badge text-bg-secondary">No</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if block.is_active %}
+                                    <span class="badge text-bg-success">Active</span>
+                                {% else %}
+                                    <span class="badge text-bg-secondary">Hidden</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ block.sort_order }}</td>
+                            <td class="small">{{ block.updated_at|date:"Y-m-d H:i" }}</td>
+                            <td class="text-end">
+                                <a href="{% url 'site-config-edit' block.id %}"
+                                   class="btn btn-sm btn-outline-dark">Edit</a>
+                                <form method="post"
+                                      action="{% url 'site-config-delete' block.id %}"
+                                      class="d-inline">
+                                    {% csrf_token %}
+                                    <button type="submit"
+                                            class="btn btn-sm btn-outline-danger"
+                                            onclick="return confirm('Delete this content block?');">Delete</button>
+                                </form>
+                            </td>
+                        </tr>
+                    {% empty %}
+                        <tr>
+                            <td colspan="8" class="text-muted">No content blocks yet.</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
 {% endblock content %}

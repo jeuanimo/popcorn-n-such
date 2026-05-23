@@ -225,36 +225,8 @@ class CheckoutService:
             items=item_data,
         )
 
-    @transaction.atomic
-    def create_confirmed_order(
-        self,
-        *,
-        summary: CheckoutSummary,
-        checkout_input: CheckoutInput,
-        payment_result: dict,
-        fundraiser_campaign=None,
-        team=None,
-        seller=None,
-        actor=None,
-        django_request=None,
-    ) -> Order:
-        """
-        Called after payment is confirmed by the provider.
-
-        Atomically:
-          1. Creates the Order record
-          2. Locks SKU rows (SELECT FOR UPDATE) to prevent concurrent oversell
-          3. Decrements inventory for each item
-          4. Snapshots product/SKU data into OrderItem rows
-          5. Records the PaymentTransaction
-          6. Deactivates the cart
-
-        Raises InsufficientInventoryError if any SKU sells out between
-        calculate_totals() and this call.
-        """
-        shipping = checkout_input.shipping
-        billing = checkout_input.billing or checkout_input.shipping
-
+    @staticmethod
+    def _validate_payment_result(payment_result: dict) -> None:
         payment_status = (payment_result or {}).get("status", "")
         provider_ref = (payment_result or {}).get("provider_ref", "")
         allow_stub = getattr(settings, "ALLOW_STUB_CHECKOUT_PAYMENT", False)
@@ -263,61 +235,74 @@ class CheckoutService:
         if provider_ref.startswith("stub-") and not allow_stub:
             raise ValidationError("Stub payment is disabled. Confirm payment before placing the order.")
 
-        if checkout_input.cart.coupon_code:
-            from coupons.services import CouponService
+    @staticmethod
+    def _ensure_coupon_valid(cart: Cart) -> None:
+        if not cart.coupon_code:
+            return
+        from coupons.services import CouponService
 
-            # Re-validate at time of purchase confirmation.
-            CouponService.get_coupon_or_error(code=checkout_input.cart.coupon_code)
+        CouponService.get_coupon_or_error(code=cart.coupon_code)
 
-        # Resolve fundraiser attribution server-side (prevents tampering).
-        if fundraiser_campaign is None or team is None or seller is None:
-            attribution = (
-                CartAttribution.objects.select_related(
-                    "campaign",
-                    "team_ref",
-                    "seller_store__campaign",
-                    "seller_store__team",
-                    "share_link",
-                )
-                .filter(cart=checkout_input.cart)
-                .first()
+    @staticmethod
+    def _clear_inactive_attribution(attribution) -> None:
+        attribution.campaign = None
+        attribution.team_ref = None
+        attribution.seller_store = None
+        attribution.share_link = None
+        attribution.fundraiser_campaign = ""
+        attribution.team = ""
+        attribution.seller = ""
+        attribution.save(
+            update_fields=[
+                "campaign",
+                "team_ref",
+                "seller_store",
+                "share_link",
+                "fundraiser_campaign",
+                "team",
+                "seller",
+                "updated_at",
+            ]
+        )
+
+    def _resolve_server_attribution(self, checkout_input: CheckoutInput, fundraiser_campaign, team, seller):
+        if fundraiser_campaign is not None and team is not None and seller is not None:
+            return fundraiser_campaign, team, seller
+
+        attribution = (
+            CartAttribution.objects.select_related(
+                "campaign",
+                "team_ref",
+                "seller_store__campaign",
+                "seller_store__team",
+                "share_link",
             )
-            if attribution:
-                if attribution.seller_store_id:
-                    seller = seller or attribution.seller_store
-                    fundraiser_campaign = fundraiser_campaign or attribution.seller_store.campaign
-                    team = team or attribution.seller_store.team
-                else:
-                    fundraiser_campaign = fundraiser_campaign or attribution.campaign
-                    team = team or attribution.team_ref
+            .filter(cart=checkout_input.cart)
+            .first()
+        )
+        if not attribution:
+            return fundraiser_campaign, team, seller
 
-                # If attribution points to an inactive/out-of-date campaign,
-                # treat the checkout as a normal store order instead of failing.
-                if fundraiser_campaign and not fundraiser_campaign.is_accepting_orders():
-                    fundraiser_campaign = None
-                    team = None
-                    seller = None
-                    attribution.campaign = None
-                    attribution.team_ref = None
-                    attribution.seller_store = None
-                    attribution.share_link = None
-                    attribution.fundraiser_campaign = ""
-                    attribution.team = ""
-                    attribution.seller = ""
-                    attribution.save(
-                        update_fields=[
-                            "campaign",
-                            "team_ref",
-                            "seller_store",
-                            "share_link",
-                            "fundraiser_campaign",
-                            "team",
-                            "seller",
-                            "updated_at",
-                        ]
-                    )
+        if attribution.seller_store_id:
+            seller = seller or attribution.seller_store
+            fundraiser_campaign = fundraiser_campaign or attribution.seller_store.campaign
+            team = team or attribution.seller_store.team
+        else:
+            fundraiser_campaign = fundraiser_campaign or attribution.campaign
+            team = team or attribution.team_ref
 
-        order = Order(
+        if fundraiser_campaign and not fundraiser_campaign.is_accepting_orders():
+            fundraiser_campaign = None
+            team = None
+            seller = None
+            self._clear_inactive_attribution(attribution)
+        return fundraiser_campaign, team, seller
+
+    @staticmethod
+    def _build_order_model(*, summary: CheckoutSummary, checkout_input: CheckoutInput, fundraiser_campaign, team, seller) -> Order:
+        shipping = checkout_input.shipping
+        billing = checkout_input.billing or checkout_input.shipping
+        return Order(
             customer=checkout_input.user,
             guest_email=checkout_input.guest_email,
             guest_phone=checkout_input.guest_phone,
@@ -337,7 +322,6 @@ class CheckoutService:
             billing_state=billing.state,
             billing_postal_code=billing.postal_code,
             billing_country=billing.country,
-            # Server-recalculated totals — summary was computed immediately before payment
             subtotal_cents=summary.subtotal_cents,
             tax_cents=summary.tax_cents,
             shipping_cents=summary.shipping_cents,
@@ -350,10 +334,9 @@ class CheckoutService:
             team=team,
             seller=seller,
         )
-        order.full_clean()
-        order.save()
 
-        # Lock SKU rows before reading inventory — prevents TOCTOU race conditions
+    @staticmethod
+    def _create_items_and_decrement_inventory(order: Order, summary: CheckoutSummary) -> None:
         sku_ids = [item["sku"].pk for item in summary.items]
         locked_skus = {s.pk: s for s in SKU.objects.select_for_update().filter(pk__in=sku_ids)}
 
@@ -382,6 +365,8 @@ class CheckoutService:
                 fundraiser_eligible=item["product"].fundraiser_eligible,
             )
 
+    @staticmethod
+    def _record_payment(order: Order, summary: CheckoutSummary, payment_result: dict, actor) -> None:
         PaymentTransaction.objects.create(
             order=order,
             provider=payment_result.get("provider", "unknown"),
@@ -393,6 +378,8 @@ class CheckoutService:
             created_by=actor,
         )
 
+    @staticmethod
+    def _log_order_payment_event(order: Order, summary: CheckoutSummary, payment_result: dict, actor, django_request) -> None:
         log_audit_event(
             action=AuditAction.PAYMENT_EVENT,
             message="Order created and payment captured",
@@ -406,41 +393,105 @@ class CheckoutService:
             },
         )
 
-        checkout_input.cart.is_active = False
-        checkout_input.cart.save(update_fields=["is_active", "updated_at"])
+    @staticmethod
+    def _deactivate_cart(cart: Cart) -> None:
+        cart.is_active = False
+        cart.save(update_fields=["is_active", "updated_at"])
 
-        # In-app notification for the customer (no sensitive payment details).
-        try:
-            if order.customer_id:
-                from notifications.center import NotificationCenterService
+    @staticmethod
+    def _record_share_link_conversion(cart: Cart) -> None:
+        attribution = CartAttribution.objects.select_related("share_link").filter(cart=cart).first()
+        if attribution and attribution.share_link_id:
+            from sharing.models import ShareLink
+            from django.db.models import F
 
-                NotificationCenterService.notify_new_order(user=order.customer, order=order)
-        except Exception:
-            pass
-
-        # Track conversion for share links.
-        try:
-            attribution = CartAttribution.objects.select_related("share_link").filter(cart=checkout_input.cart).first()
-            if attribution and attribution.share_link_id:
-                from sharing.models import ShareLink
-                from django.utils import timezone
-                from django.db.models import F
-
-                ShareLink.objects.filter(id=attribution.share_link_id).update(
-                    conversion_count=F("conversion_count") + 1,
-                    last_converted_at=timezone.now(),
-                )
-        except Exception:
-            pass
-
-        if order.coupon_code:
-            from coupons.services import CouponService
-
-            CouponService.record_redemption_for_order(
-                order=order,
-                user=checkout_input.user if getattr(checkout_input.user, "is_authenticated", False) else None,
-                coupon_code=order.coupon_code,
+            ShareLink.objects.filter(id=attribution.share_link_id).update(
+                conversion_count=F("conversion_count") + 1,
+                last_converted_at=timezone.now(),
             )
+
+    @staticmethod
+    def _record_coupon_redemption(order: Order, checkout_input: CheckoutInput) -> None:
+        if not order.coupon_code:
+            return
+        from coupons.services import CouponService
+
+        CouponService.record_redemption_for_order(
+            order=order,
+            user=checkout_input.user if getattr(checkout_input.user, "is_authenticated", False) else None,
+            coupon_code=order.coupon_code,
+        )
+
+    @staticmethod
+    def _notify_order_created(order: Order) -> None:
+        if not order.customer_id:
+            return
+        from notifications.center import NotificationCenterService
+
+        NotificationCenterService.notify_new_order(user=order.customer, order=order)
+
+    @transaction.atomic
+    def create_confirmed_order(
+        self,
+        *,
+        summary: CheckoutSummary,
+        checkout_input: CheckoutInput,
+        payment_result: dict,
+        fundraiser_campaign=None,
+        team=None,
+        seller=None,
+        actor=None,
+        django_request=None,
+    ) -> Order:
+        """
+        Called after payment is confirmed by the provider.
+
+        Atomically:
+          1. Creates the Order record
+          2. Locks SKU rows (SELECT FOR UPDATE) to prevent concurrent oversell
+          3. Decrements inventory for each item
+          4. Snapshots product/SKU data into OrderItem rows
+          5. Records the PaymentTransaction
+          6. Deactivates the cart
+
+        Raises InsufficientInventoryError if any SKU sells out between
+        calculate_totals() and this call.
+        """
+        self._validate_payment_result(payment_result)
+        self._ensure_coupon_valid(checkout_input.cart)
+        fundraiser_campaign, team, seller = self._resolve_server_attribution(
+            checkout_input,
+            fundraiser_campaign,
+            team,
+            seller,
+        )
+
+        order = self._build_order_model(
+            summary=summary,
+            checkout_input=checkout_input,
+            fundraiser_campaign=fundraiser_campaign,
+            team=team,
+            seller=seller,
+        )
+        order.full_clean()
+        order.save()
+
+        self._create_items_and_decrement_inventory(order, summary)
+        self._record_payment(order, summary, payment_result, actor)
+        self._log_order_payment_event(order, summary, payment_result, actor, django_request)
+        self._deactivate_cart(checkout_input.cart)
+
+        try:
+            self._notify_order_created(order)
+        except Exception:
+            pass
+
+        try:
+            self._record_share_link_conversion(checkout_input.cart)
+        except Exception:
+            pass
+
+        self._record_coupon_redemption(order, checkout_input)
 
         return order
 

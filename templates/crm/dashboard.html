@@ -1,123 +1,136 @@
 {% extends "staff/base.html" %}
-
-{% block title %}CRM Dashboard | Popcorn-N-Such{% endblock title %}
-
+{% block title %}
+    CRM Dashboard | Popcorn-N-Such
+{% endblock title %}
 {% block content %}
-<div class="d-flex align-items-center justify-content-between mb-3">
-  <h1 class="h4 mb-0">CRM Dashboard</h1>
-  <a class="btn btn-sm btn-brand" href="{% url 'crm:contact-create' %}">+ New Contact</a>
-</div>
-
-{# ---- Status pill counts ---- #}
-<div class="d-flex flex-wrap gap-2 mb-4">
-  <a href="{% url 'crm:dashboard' %}" class="btn btn-sm {% if not selected_status %}btn-dark{% else %}btn-outline-dark{% endif %}">
-    All
-    <span class="badge {% if not selected_status %}bg-light text-dark{% else %}bg-secondary{% endif %} ms-1">{{ contacts|length }}</span>
-  </a>
-  {% for item in status_filters %}
-    <a href="?status={{ item.value }}" class="btn btn-sm {% if selected_status == item.value %}btn-dark{% else %}btn-outline-secondary{% endif %}">
-      {{ item.label }}
-      <span class="badge {% if selected_status == item.value %}bg-light text-dark{% else %}bg-secondary{% endif %} ms-1">{{ item.count }}</span>
-    </a>
-  {% endfor %}
-</div>
-
-<div class="row g-4">
-  {# ---- Contact list ---- #}
-  <div class="col-12 col-lg-7">
-    <div class="card">
-      <div class="card-header d-flex justify-content-between align-items-center">
-        <span class="fw-semibold">Contacts</span>
-        <form method="get" class="d-flex gap-2" style="max-width:320px;">
-          {% if selected_status %}<input type="hidden" name="status" value="{{ selected_status }}" />{% endif %}
-          <input type="search" name="q" class="form-control form-control-sm" placeholder="Search name / email / phone" value="{{ q }}" />
-          <button type="submit" class="btn btn-sm btn-outline-dark">Search</button>
-        </form>
-      </div>
-      <div class="table-responsive">
-        <table class="table table-sm table-hover mb-0 align-middle">
-          <thead class="table-light">
-            <tr>
-              <th>Name</th>
-              <th>Status</th>
-              <th>Email</th>
-              <th>Follow-up</th>
-              <th>Assigned</th>
-            </tr>
-          </thead>
-          <tbody>
-            {% for contact in contacts %}
-            <tr>
-              <td><a href="{% url 'crm:contact-detail' contact.pk %}">{{ contact.display_name }}</a></td>
-              <td><span class="badge text-bg-secondary">{{ contact.get_relationship_status_display }}</span></td>
-              <td class="small">{{ contact.email|default:"—" }}</td>
-              <td class="small {% if contact.follow_up_date and contact.follow_up_date < today %}text-danger fw-semibold{% endif %}">
-                {{ contact.follow_up_date|default:"—" }}
-              </td>
-              <td class="small">{{ contact.assigned_to.get_full_name|default:contact.assigned_to.username|default:"—" }}</td>
-            </tr>
-            {% empty %}
-            <tr><td colspan="5" class="text-muted p-3">No contacts found.</td></tr>
-            {% endfor %}
-          </tbody>
-        </table>
-      </div>
+    <div class="d-flex align-items-center justify-content-between mb-3">
+        <h1 class="h4 mb-0">CRM Dashboard</h1>
+        <a class="btn btn-sm btn-brand" href="{% url 'crm:contact-create' %}">+ New Contact</a>
     </div>
-  </div>
-
-  {# ---- Tasks + Activity ---- #}
-  <div class="col-12 col-lg-5">
-    {% if overdue_tasks %}
-    <div class="card border-danger mb-3">
-      <div class="card-header bg-danger text-white fw-semibold">Overdue Tasks ({{ overdue_tasks|length }})</div>
-      <ul class="list-group list-group-flush">
-        {% for task in overdue_tasks %}
-        <li class="list-group-item py-2">
-          <div class="d-flex justify-content-between align-items-start">
-            <div>
-              <div class="small fw-semibold"><a href="{% url 'crm:contact-detail' task.contact.pk %}">{{ task.contact.display_name }}</a></div>
-              <div class="small">{{ task.title }}</div>
+    {# ---- Status pill counts ---- #}
+    <div class="d-flex flex-wrap gap-2 mb-4">
+        <a href="{% url 'crm:dashboard' %}"
+           class="btn btn-sm {% if not selected_status %}btn-dark{% else %}btn-outline-dark{% endif %}">
+            All
+            <span class="badge {% if not selected_status %}bg-light text-dark{% else %}bg-secondary{% endif %} ms-1">{{ contacts|length }}</span>
+        </a>
+        {% for item in status_filters %}
+            <a href="?status={{ item.value }}"
+               class="btn btn-sm {% if selected_status == item.value %}btn-dark{% else %}btn-outline-secondary{% endif %}">
+                {{ item.label }}
+                <span class="badge {% if selected_status == item.value %}bg-light text-dark{% else %}bg-secondary{% endif %} ms-1">{{ item.count }}</span>
+            </a>
+        {% endfor %}
+    </div>
+    <div class="row g-4">
+        {# ---- Contact list ---- #}
+        <div class="col-12 col-lg-7">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <span class="fw-semibold">Contacts</span>
+                    <form method="get" class="d-flex gap-2" style="max-width:320px;">
+                        {% if selected_status %}<input type="hidden" name="status" value="{{ selected_status }}" />{% endif %}
+                        <input type="search"
+                               name="q"
+                               class="form-control form-control-sm"
+                               placeholder="Search name / email / phone"
+                               value="{{ q }}" />
+                        <button type="submit" class="btn btn-sm btn-outline-dark">Search</button>
+                    </form>
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-sm table-hover mb-0 align-middle">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Name</th>
+                                <th>Status</th>
+                                <th>Email</th>
+                                <th>Follow-up</th>
+                                <th>Assigned</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for contact in contacts %}
+                                <tr>
+                                    <td>
+                                        <a href="{% url 'crm:contact-detail' contact.pk %}">{{ contact.display_name }}</a>
+                                    </td>
+                                    <td>
+                                        <span class="badge text-bg-secondary">{{ contact.get_relationship_status_display }}</span>
+                                    </td>
+                                    <td class="small">{{ contact.email|default:"—" }}</td>
+                                    <td class="small {% if contact.follow_up_date and contact.follow_up_date < today %}text-danger fw-semibold{% endif %}">
+                                        {{ contact.follow_up_date|default:"—" }}
+                                    </td>
+                                    <td class="small">{{ contact.assigned_to.get_full_name|default:contact.assigned_to.username|default:"—" }}</td>
+                                </tr>
+                            {% empty %}
+                                <tr>
+                                    <td colspan="5" class="text-muted p-3">No contacts found.</td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
             </div>
-            <span class="badge bg-danger ms-2">{{ task.due_date }}</span>
-          </div>
-        </li>
-        {% endfor %}
-      </ul>
-    </div>
-    {% endif %}
-
-    {% if due_today %}
-    <div class="card border-warning mb-3">
-      <div class="card-header bg-warning text-dark fw-semibold">Due Today ({{ due_today|length }})</div>
-      <ul class="list-group list-group-flush">
-        {% for task in due_today %}
-        <li class="list-group-item py-2">
-          <div class="small fw-semibold"><a href="{% url 'crm:contact-detail' task.contact.pk %}">{{ task.contact.display_name }}</a></div>
-          <div class="small">{{ task.title }}</div>
-        </li>
-        {% endfor %}
-      </ul>
-    </div>
-    {% endif %}
-
-    <div class="card">
-      <div class="card-header fw-semibold">Recent Activity</div>
-      <ul class="list-group list-group-flush">
-        {% for activity in recent_activity %}
-        <li class="list-group-item py-2">
-          <div class="d-flex justify-content-between align-items-start gap-2">
-            <div>
-              <div class="small fw-semibold"><a href="{% url 'crm:contact-detail' activity.contact.pk %}">{{ activity.contact.display_name }}</a></div>
-              <div class="small text-muted">{{ activity.activity_type }} — {{ activity.summary }}</div>
+        </div>
+        {# ---- Tasks + Activity ---- #}
+        <div class="col-12 col-lg-5">
+            {% if overdue_tasks %}
+                <div class="card border-danger mb-3">
+                    <div class="card-header bg-danger text-white fw-semibold">Overdue Tasks ({{ overdue_tasks|length }})</div>
+                    <ul class="list-group list-group-flush">
+                        {% for task in overdue_tasks %}
+                            <li class="list-group-item py-2">
+                                <div class="d-flex justify-content-between align-items-start">
+                                    <div>
+                                        <div class="small fw-semibold">
+                                            <a href="{% url 'crm:contact-detail' task.contact.pk %}">{{ task.contact.display_name }}</a>
+                                        </div>
+                                        <div class="small">{{ task.title }}</div>
+                                    </div>
+                                    <span class="badge bg-danger ms-2">{{ task.due_date }}</span>
+                                </div>
+                            </li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            {% endif %}
+            {% if due_today %}
+                <div class="card border-warning mb-3">
+                    <div class="card-header bg-warning text-dark fw-semibold">Due Today ({{ due_today|length }})</div>
+                    <ul class="list-group list-group-flush">
+                        {% for task in due_today %}
+                            <li class="list-group-item py-2">
+                                <div class="small fw-semibold">
+                                    <a href="{% url 'crm:contact-detail' task.contact.pk %}">{{ task.contact.display_name }}</a>
+                                </div>
+                                <div class="small">{{ task.title }}</div>
+                            </li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            {% endif %}
+            <div class="card">
+                <div class="card-header fw-semibold">Recent Activity</div>
+                <ul class="list-group list-group-flush">
+                    {% for activity in recent_activity %}
+                        <li class="list-group-item py-2">
+                            <div class="d-flex justify-content-between align-items-start gap-2">
+                                <div>
+                                    <div class="small fw-semibold">
+                                        <a href="{% url 'crm:contact-detail' activity.contact.pk %}">{{ activity.contact.display_name }}</a>
+                                    </div>
+                                    <div class="small text-muted">{{ activity.activity_type }} — {{ activity.summary }}</div>
+                                </div>
+                                <div class="small text-muted text-nowrap">{{ activity.occurred_at|date:"M j" }}</div>
+                            </div>
+                        </li>
+                    {% empty %}
+                        <li class="list-group-item text-muted small p-3">No recent activity.</li>
+                    {% endfor %}
+                </ul>
             </div>
-            <div class="small text-muted text-nowrap">{{ activity.occurred_at|date:"M j" }}</div>
-          </div>
-        </li>
-        {% empty %}
-        <li class="list-group-item text-muted small p-3">No recent activity.</li>
-        {% endfor %}
-      </ul>
+        </div>
     </div>
-  </div>
-</div>
 {% endblock content %}

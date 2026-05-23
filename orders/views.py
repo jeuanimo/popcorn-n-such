@@ -224,6 +224,130 @@ class CheckoutReviewView(View):
                 allowed_hosts.add(host)
         return allowed_hosts
 
+    def _recalculate_summary(self, request, service, cart, checkout_data):
+        try:
+            return service.calculate_totals(
+                cart,
+                checkout_data["state"],
+                postal_code=checkout_data.get("postal_code", ""),
+                country=checkout_data.get("country", "US"),
+            )
+        except ValidationError as exc:
+            messages.error(request, " ".join(exc.messages))
+            return None
+        except Exception:
+            logger.exception("Unexpected error recalculating totals before order creation")
+            messages.error(request, "Could not confirm your order. Please try again.")
+            return None
+
+    def _build_checkout_input(self, request, cart, checkout_data):
+        shipping = AddressData(
+            recipient_name=checkout_data["recipient_name"],
+            phone=checkout_data.get("shipping_phone", ""),
+            address_line_1=checkout_data["address_line_1"],
+            address_line_2=checkout_data.get("address_line_2", ""),
+            city=checkout_data["city"],
+            state=checkout_data["state"],
+            postal_code=checkout_data["postal_code"],
+            country=checkout_data.get("country", "US"),
+        )
+        return CheckoutInput(
+            cart=cart,
+            shipping=shipping,
+            guest_email=checkout_data.get("guest_email", ""),
+            guest_phone=checkout_data.get("guest_phone", ""),
+            user=request.user if request.user.is_authenticated else None,
+        )
+
+    def _select_payment_method(self, request, payment_methods):
+        selected_payment_method = (request.POST.get("payment_method") or "").strip().lower()
+        allowed_methods = {row["key"] for row in payment_methods}
+        if not selected_payment_method:
+            messages.error(request, "Please select a payment option.")
+            return None
+        if selected_payment_method not in allowed_methods:
+            messages.error(request, "Selected payment option is not available.")
+            return None
+        request.session["selected_payment_method"] = selected_payment_method
+        return selected_payment_method
+
+    def _start_hosted_session(self, request, *, selected_payment_method, summary, payment_methods, checkout_data, cart):
+        try:
+            gateway = get_payment_gateway(selected_payment_method)
+            return_url = request.build_absolute_uri(reverse("orders:checkout-payment-return"))
+            cancel_url = request.build_absolute_uri(reverse(_CHECKOUT_REVIEW_URL))
+            payment_session = gateway.create_payment_session(
+                order_id=cart.pk,
+                amount_cents=summary.total_cents,
+                currency="USD",
+                idempotency_key=f"cart-{cart.pk}-review",
+                return_url=return_url,
+                cancel_url=cancel_url,
+                actor=request.user if request.user.is_authenticated else None,
+                request=request,
+                metadata={
+                    "cart_id": cart.pk,
+                    "customer_email": checkout_data.get("guest_email", ""),
+                },
+            )
+        except Exception as exc:
+            logger.exception("Could not start hosted payment session")
+            messages.error(request, f"Could not start payment session: {exc}")
+            return redirect(_CHECKOUT_REVIEW_URL)
+
+        if not payment_session.checkout_url:
+            messages.error(request, "Payment provider did not return a checkout link.")
+            return redirect(_CHECKOUT_REVIEW_URL)
+
+        if not url_has_allowed_host_and_scheme(
+            payment_session.checkout_url,
+            allowed_hosts=self._allowed_payment_hosts(request),
+            require_https=not settings.DEBUG,
+        ):
+            logger.warning("Blocked untrusted hosted payment redirect URL: %s", payment_session.checkout_url)
+            messages.error(request, "Payment provider returned an untrusted redirect URL.")
+            return redirect(_CHECKOUT_REVIEW_URL)
+
+        request.session["pending_payment"] = {
+            "provider": selected_payment_method,
+            "provider_session_id": payment_session.provider_session_id or "",
+            "provider_transaction_id": payment_session.provider_transaction_id or "",
+            "cart_id": cart.pk,
+        }
+        return render(
+            request,
+            "orders/payment_redirect.html",
+            {
+                "checkout_url": payment_session.checkout_url,
+                "provider_label": {m["key"]: m["label"] for m in payment_methods}.get(
+                    selected_payment_method,
+                    "Payment Provider",
+                ),
+            },
+        )
+
+    def _create_order_with_stub_payment(self, request, *, service, summary, checkout_input):
+        payment_result = {
+            "provider": "godaddy",
+            "status": "captured",
+            "provider_ref": f"stub-{checkout_input.cart.pk}",
+        }
+        try:
+            return service.create_confirmed_order(
+                summary=summary,
+                checkout_input=checkout_input,
+                payment_result=payment_result,
+                actor=request.user if request.user.is_authenticated else None,
+                django_request=request,
+            )
+        except ValidationError as exc:
+            messages.error(request, " ".join(exc.messages))
+            return None
+        except Exception:
+            logger.exception("Unexpected error creating order")
+            messages.error(request, "Something went wrong processing your order. Please try again.")
+            return None
+
     def get(self, request):
         checkout_data = request.session.get("checkout_data")
         summary_data = request.session.get("checkout_summary")
@@ -266,141 +390,40 @@ class CheckoutReviewView(View):
             return redirect(_CART_VIEW)
 
         service = CheckoutService()
-
-        # Server-side re-calculation before charging — never trust the session summary
-        try:
-            summary = service.calculate_totals(
-                cart,
-                checkout_data["state"],
-                postal_code=checkout_data.get("postal_code", ""),
-                country=checkout_data.get("country", "US"),
-            )
-        except ValidationError as exc:
-            messages.error(request, " ".join(exc.messages))
-            return redirect(_CHECKOUT_URL)
-        except Exception:
-            logger.exception("Unexpected error recalculating totals before order creation")
-            messages.error(request, "Could not confirm your order. Please try again.")
+        summary = self._recalculate_summary(request, service, cart, checkout_data)
+        if not summary:
             return redirect(_CHECKOUT_URL)
 
-        shipping = AddressData(
-            recipient_name=checkout_data["recipient_name"],
-            phone=checkout_data.get("shipping_phone", ""),
-            address_line_1=checkout_data["address_line_1"],
-            address_line_2=checkout_data.get("address_line_2", ""),
-            city=checkout_data["city"],
-            state=checkout_data["state"],
-            postal_code=checkout_data["postal_code"],
-            country=checkout_data.get("country", "US"),
-        )
+        checkout_input = self._build_checkout_input(request, cart, checkout_data)
 
-        checkout_input = CheckoutInput(
-            cart=cart,
-            shipping=shipping,
-            guest_email=checkout_data.get("guest_email", ""),
-            guest_phone=checkout_data.get("guest_phone", ""),
-            user=request.user if request.user.is_authenticated else None,
-        )
-
-        selected_payment_method = (request.POST.get("payment_method") or "").strip().lower()
         payment_methods = self._payment_methods()
-        allowed_methods = {row["key"] for row in payment_methods}
+        selected_payment_method = self._select_payment_method(request, payment_methods)
         if not selected_payment_method:
-            messages.error(request, "Please select a payment option.")
             return redirect(_CHECKOUT_REVIEW_URL)
-        if selected_payment_method not in allowed_methods:
-            messages.error(request, "Selected payment option is not available.")
-            return redirect(_CHECKOUT_REVIEW_URL)
-
-        request.session["selected_payment_method"] = selected_payment_method
 
         if not getattr(settings, "ALLOW_STUB_CHECKOUT_PAYMENT", False):
-            try:
-                gateway = get_payment_gateway(selected_payment_method)
-                return_url = request.build_absolute_uri(reverse("orders:checkout-payment-return"))
-                cancel_url = request.build_absolute_uri(reverse(_CHECKOUT_REVIEW_URL))
-                payment_session = gateway.create_payment_session(
-                    order_id=cart.pk,
-                    amount_cents=summary.total_cents,
-                    currency="USD",
-                    idempotency_key=f"cart-{cart.pk}-review",
-                    return_url=return_url,
-                    cancel_url=cancel_url,
-                    actor=request.user if request.user.is_authenticated else None,
-                    request=request,
-                    metadata={
-                        "cart_id": cart.pk,
-                        "customer_email": checkout_data.get("guest_email", ""),
-                    },
-                )
-            except Exception as exc:
-                logger.exception("Could not start hosted payment session")
-                messages.error(request, f"Could not start payment session: {exc}")
-                return redirect(_CHECKOUT_REVIEW_URL)
-
-            if not payment_session.checkout_url:
-                messages.error(request, "Payment provider did not return a checkout link.")
-                return redirect(_CHECKOUT_REVIEW_URL)
-
-            if not url_has_allowed_host_and_scheme(
-                payment_session.checkout_url,
-                allowed_hosts=self._allowed_payment_hosts(request),
-                require_https=not settings.DEBUG,
-            ):
-                logger.warning("Blocked untrusted hosted payment redirect URL: %s", payment_session.checkout_url)
-                messages.error(request, "Payment provider returned an untrusted redirect URL.")
-                return redirect(_CHECKOUT_REVIEW_URL)
-
-            request.session["pending_payment"] = {
-                "provider": selected_payment_method,
-                "provider_session_id": payment_session.provider_session_id or "",
-                "provider_transaction_id": payment_session.provider_transaction_id or "",
-                "cart_id": cart.pk,
-            }
-            return render(
+            return self._start_hosted_session(
                 request,
-                "orders/payment_redirect.html",
-                {
-                    "checkout_url": payment_session.checkout_url,
-                    "provider_label": {m["key"]: m["label"] for m in payment_methods}.get(
-                        selected_payment_method,
-                        "Payment Provider",
-                    ),
-                },
-            )
-
-        # Stub — replace with real provider tokenized-card response
-        payment_result = {
-            "provider": "godaddy",
-            "status": "captured",
-            "provider_ref": f"stub-{cart.pk}",
-        }
-
-        try:
-            order = service.create_confirmed_order(
+                selected_payment_method=selected_payment_method,
                 summary=summary,
-                checkout_input=checkout_input,
-                payment_result=payment_result,
-                actor=request.user if request.user.is_authenticated else None,
-                django_request=request,
+                payment_methods=payment_methods,
+                checkout_data=checkout_data,
+                cart=cart,
             )
-        except ValidationError as exc:
-            messages.error(request, " ".join(exc.messages))
-            return redirect(_CHECKOUT_URL)
-        except Exception:
-            logger.exception("Unexpected error creating order")
-            messages.error(request, "Something went wrong processing your order. Please try again.")
+
+        order = self._create_order_with_stub_payment(
+            request,
+            service=service,
+            summary=summary,
+            checkout_input=checkout_input,
+        )
+        if not order:
             return redirect(_CHECKOUT_URL)
 
-        # Post-transaction tasks run outside the atomic block
-        try:
-            service.post_order_tasks(
-                order,
-                actor=request.user if request.user.is_authenticated else None,
-                django_request=request,
-            )
-        except Exception:
-            logger.exception("Post-order tasks failed for order %s", order.order_number)
+        # Dispatch fulfillment + notifications as a background task so the
+        # customer is not held waiting for SMTP or fulfillment API calls.
+        from orders.tasks import run_post_order_tasks
+        run_post_order_tasks.delay(order.id)
 
         request.session.pop("checkout_data", None)
         request.session.pop("checkout_summary", None)
@@ -410,25 +433,26 @@ class CheckoutReviewView(View):
 
 
 class CheckoutPaymentReturnView(View):
-    def get(self, request):
+    def _load_pending_checkout_context(self, request):
         pending_payment = request.session.get("pending_payment")
         checkout_data = request.session.get("checkout_data")
         if not pending_payment or not checkout_data:
             messages.error(request, "Payment session expired. Please review checkout again.")
-            return redirect(_CHECKOUT_REVIEW_URL)
+            return None, None, None
 
         if str(pending_payment.get("cart_id", "")) != str(checkout_data.get("cart_id", "")):
             request.session.pop("pending_payment", None)
-            return HttpResponseBadRequest("Payment session does not match current cart.")
+            return None, None, HttpResponseBadRequest("Payment session does not match current cart.")
 
         cart = Cart.objects.filter(pk=checkout_data.get("cart_id"), is_active=True).first()
         if not cart:
             messages.error(request, _CART_EXPIRED_MSG)
-            return redirect(_CART_VIEW)
+            return None, None, redirect(_CART_VIEW)
+        return pending_payment, checkout_data, cart
 
-        service = CheckoutService()
+    def _recalculate_summary(self, request, service, cart, checkout_data):
         try:
-            summary = service.calculate_totals(
+            return service.calculate_totals(
                 cart,
                 checkout_data["state"],
                 postal_code=checkout_data.get("postal_code", ""),
@@ -436,12 +460,13 @@ class CheckoutPaymentReturnView(View):
             )
         except ValidationError as exc:
             messages.error(request, " ".join(exc.messages))
-            return redirect(_CHECKOUT_URL)
+            return None
         except Exception:
             logger.exception("Unexpected error recalculating totals after payment")
             messages.error(request, "Could not confirm your order. Please try again.")
-            return redirect(_CHECKOUT_URL)
+            return None
 
+    def _verify_pending_payment(self, request, pending_payment):
         try:
             gateway = get_payment_gateway(pending_payment.get("provider", ""))
             verification = gateway.verify_payment(
@@ -453,13 +478,16 @@ class CheckoutPaymentReturnView(View):
         except Exception as exc:
             logger.exception("Hosted payment verification failed")
             messages.error(request, f"Could not verify payment: {exc}")
-            return redirect(_CHECKOUT_REVIEW_URL)
+            return None
 
         if not verification.is_confirmed:
             status = verification.status or "pending"
             messages.error(request, f"Payment is not confirmed yet (status: {status}).")
-            return redirect(_CHECKOUT_REVIEW_URL)
+            return None
+        return verification
 
+    @staticmethod
+    def _build_checkout_input(request, cart, checkout_data):
         shipping = AddressData(
             recipient_name=checkout_data["recipient_name"],
             phone=checkout_data.get("shipping_phone", ""),
@@ -470,13 +498,31 @@ class CheckoutPaymentReturnView(View):
             postal_code=checkout_data["postal_code"],
             country=checkout_data.get("country", "US"),
         )
-        checkout_input = CheckoutInput(
+        return CheckoutInput(
             cart=cart,
             shipping=shipping,
             guest_email=checkout_data.get("guest_email", ""),
             guest_phone=checkout_data.get("guest_phone", ""),
             user=request.user if request.user.is_authenticated else None,
         )
+
+    def get(self, request):
+        pending_payment, checkout_data, cart = self._load_pending_checkout_context(request)
+        if hasattr(cart, "status_code"):
+            return cart
+        if cart is None:
+            return redirect(_CHECKOUT_REVIEW_URL)
+
+        service = CheckoutService()
+        summary = self._recalculate_summary(request, service, cart, checkout_data)
+        if not summary:
+            return redirect(_CHECKOUT_URL)
+
+        verification = self._verify_pending_payment(request, pending_payment)
+        if not verification:
+            return redirect(_CHECKOUT_REVIEW_URL)
+
+        checkout_input = self._build_checkout_input(request, cart, checkout_data)
         payment_result = {
             "provider": pending_payment.get("provider", "godaddy"),
             "status": "confirmed",
@@ -500,14 +546,8 @@ class CheckoutPaymentReturnView(View):
             messages.error(request, "Something went wrong processing your order. Please try again.")
             return redirect(_CHECKOUT_URL)
 
-        try:
-            service.post_order_tasks(
-                order,
-                actor=request.user if request.user.is_authenticated else None,
-                django_request=request,
-            )
-        except Exception:
-            logger.exception("Post-order tasks failed for order %s", order.order_number)
+        from orders.tasks import run_post_order_tasks
+        run_post_order_tasks.delay(order.id)
 
         request.session.pop("checkout_data", None)
         request.session.pop("checkout_summary", None)

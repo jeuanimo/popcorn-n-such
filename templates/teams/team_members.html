@@ -1,45 +1,60 @@
 {% extends "base/base.html" %}
-{% block title %}{{ team.name }} — Members{% endblock title %}
+{% block title %}
+    {{ team.name }} — Members
+{% endblock title %}
 {% block content %}
-<section class="py-5">
-  <div class="container">
-    <div class="d-flex justify-content-between align-items-center mb-4">
-      <h1 class="mb-0">{{ team.name }} — Members</h1>
-      <div>
-        <a class="btn btn-outline-dark me-1" href="{% url 'teams:dashboard' team.slug %}">Dashboard</a>
-        {% if is_captain %}
-          <a class="btn btn-brand" href="{% url 'teams:send-reminder' team.slug %}">Send Reminder</a>
-        {% endif %}
-      </div>
-    </div>
-
-    {% if is_captain %}
-      <div class="alert alert-info mb-4">
-        <strong>Invite code:</strong> <code>{{ team.invite_code }}</code>
-        &mdash; Share the invite link:
-        <a href="{% url 'teams:join' team.slug %}">{% url 'teams:join' team.slug %}</a>
-      </div>
-    {% endif %}
-
-    <div class="table-responsive">
-      <table class="table">
-        <thead>
-          <tr><th>Member</th><th>Role</th><th>Status</th><th>Joined</th></tr>
-        </thead>
-        <tbody>
-          {% for m in memberships %}
-            <tr>
-              <td>{{ m.member.get_full_name|default:m.member.username }}</td>
-              <td>{{ m.get_role_display }}</td>
-              <td>{% if m.is_active %}<span class="badge bg-success">Active</span>{% else %}<span class="badge bg-secondary">Inactive</span>{% endif %}</td>
-              <td>{{ m.joined_at|date:"M d, Y" }}</td>
-            </tr>
-          {% empty %}
-            <tr><td colspan="4" class="text-muted">No members yet.</td></tr>
-          {% endfor %}
-        </tbody>
-      </table>
-    </div>
-  </div>
-</section>
+    <section class="py-5">
+        <div class="container">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h1 class="mb-0">{{ team.name }} — Members</h1>
+                <div>
+                    <a class="btn btn-outline-dark me-1"
+                       href="{% url 'teams:dashboard' team.slug %}">Dashboard</a>
+                    {% if is_captain %}
+                        <a class="btn btn-brand"
+                           href="{% url 'teams:send-reminder' team.slug %}">Send Reminder</a>
+                    {% endif %}
+                </div>
+            </div>
+            {% if is_captain %}
+                <div class="alert alert-info mb-4">
+                    <strong>Invite code:</strong> <code>{{ team.invite_code }}</code>
+                    — Share the invite link:
+                    <a href="{% url 'teams:join' team.slug %}">{% url 'teams:join' team.slug %}</a>
+                </div>
+            {% endif %}
+            <div class="table-responsive">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>Member</th>
+                            <th>Role</th>
+                            <th>Status</th>
+                            <th>Joined</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for m in memberships %}
+                            <tr>
+                                <td>{{ m.member.get_full_name|default:m.member.username }}</td>
+                                <td>{{ m.get_role_display }}</td>
+                                <td>
+                                    {% if m.is_active %}
+                                        <span class="badge bg-success">Active</span>
+                                    {% else %}
+                                        <span class="badge bg-secondary">Inactive</span>
+                                    {% endif %}
+                                </td>
+                                <td>{{ m.joined_at|date:"M d, Y" }}</td>
+                            </tr>
+                        {% empty %}
+                            <tr>
+                                <td colspan="4" class="text-muted">No members yet.</td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </section>
 {% endblock content %}

@@ -1,42 +1,46 @@
 {% extends "base/base.html" %}
 {% load money %}
-
 {% block title %}Staff — All Campaigns Leaderboard{% endblock %}
-
 {% block content %}
-<div class="container py-5">
-  <h1 class="fw-bold mb-4">All Campaigns — Leaderboard</h1>
-  {% if use_live %}
-  <div class="alert alert-info py-2">Showing live data — snapshots haven't been built yet.</div>
-  {% endif %}
-
-  {% if rows %}
-  <div class="table-responsive">
-    <table class="table table-hover align-middle">
-      <thead class="table-dark">
-        <tr><th>#</th><th>Campaign</th><th>Total Raised</th><th>Orders</th><th>Goal Progress</th></tr>
-      </thead>
-      <tbody>
-        {% for row in rows %}
-        <tr>
-          <td>{{ row.rank }}</td>
-          <td class="fw-semibold">{{ row.display_name }}</td>
-          <td>${{ row.total_sales_cents|cents_to_dollars }}</td>
-          <td>{{ row.total_orders }}</td>
-          <td style="min-width:140px;">
-            <div class="progress mb-1" style="height:14px;">
-              <div class="progress-bar bg-success" role="progressbar"
-                   style="width:{{ row.goal_progress_percent }}%"></div>
+    <div class="container py-5">
+        <h1 class="fw-bold mb-4">All Campaigns — Leaderboard</h1>
+        {% if use_live %}
+            <div class="alert alert-info py-2">Showing live data — snapshots haven't been built yet.</div>
+        {% endif %}
+        {% if rows %}
+            <div class="table-responsive">
+                <table class="table table-hover align-middle">
+                    <thead class="table-dark">
+                        <tr>
+                            <th>#</th>
+                            <th>Campaign</th>
+                            <th>Total Raised</th>
+                            <th>Orders</th>
+                            <th>Goal Progress</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for row in rows %}
+                            <tr>
+                                <td>{{ row.rank }}</td>
+                                <td class="fw-semibold">{{ row.display_name }}</td>
+                                <td>${{ row.total_sales_cents|cents_to_dollars }}</td>
+                                <td>{{ row.total_orders }}</td>
+                                <td style="min-width:140px;">
+                                    <div class="progress mb-1" style="height:14px;">
+                                        <div class="progress-bar bg-success"
+                                             role="progressbar"
+                                             style="width:{{ row.goal_progress_percent }}%"></div>
+                                    </div>
+                                    <small>{{ row.goal_progress_percent }}%</small>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
             </div>
-            <small>{{ row.goal_progress_percent }}%</small>
-          </td>
-        </tr>
-        {% endfor %}
-      </tbody>
-    </table>
-  </div>
-  {% else %}
-    <p class="text-muted">No campaign data yet.</p>
-  {% endif %}
-</div>
+        {% else %}
+            <p class="text-muted">No campaign data yet.</p>
+        {% endif %}
+    </div>
 {% endblock %}

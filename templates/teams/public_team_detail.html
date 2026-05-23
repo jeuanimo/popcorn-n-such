@@ -1,68 +1,87 @@
 {% extends "base/base.html" %}
 {% load money %}
-{% block title %}{{ object.name }} | Team{% endblock title %}
+{% block title %}
+    {{ object.name }} | Team
+{% endblock title %}
 {% block content %}
-<section class="py-5">
-  <div class="container">
-    <div class="row align-items-center mb-4">
-      <div class="col">
-        <h1 class="mb-0">{{ object.name }}</h1>
-        {% if object.campaign %}<p class="text-muted mb-0">Part of <strong>{{ object.campaign.campaign_name }}</strong></p>{% endif %}
-      </div>
-      {% if object.team_image %}
-        <div class="col-auto"><img src="{{ object.team_image.url }}" alt="{{ object.name }} logo" class="rounded" style="max-height:80px"></div>
-      {% endif %}
-    </div>
-
-    <div class="row g-3 mb-4">
-      <div class="col-12 col-md-4">
-        <div class="hero-card p-3">
-          <p class="small mb-1">Total Sales</p>
-          <p class="h5 mb-0">${{ total_sales_cents|cents_to_dollars }}</p>
+    <section class="py-5">
+        <div class="container">
+            <div class="row align-items-center mb-4">
+                <div class="col">
+                    <h1 class="mb-0">{{ object.name }}</h1>
+                    {% if object.campaign %}
+                        <p class="text-muted mb-0">
+                            Part of <strong>{{ object.campaign.campaign_name }}</strong>
+                        </p>
+                    {% endif %}
+                </div>
+                {% if object.team_image %}
+                    <div class="col-auto">
+                        <img src="{{ object.team_image.url }}"
+                             alt="{{ object.name }} logo"
+                             class="rounded"
+                             width="80"
+                             height="80"
+                             style="max-height:80px">
+                    </div>
+                {% endif %}
+            </div>
+            <div class="row g-3 mb-4">
+                <div class="col-12 col-md-4">
+                    <div class="hero-card p-3">
+                        <p class="small mb-1">Total Sales</p>
+                        <p class="h5 mb-0">${{ total_sales_cents|cents_to_dollars }}</p>
+                    </div>
+                </div>
+                <div class="col-12 col-md-4">
+                    <div class="hero-card p-3">
+                        <p class="small mb-1">Total Orders</p>
+                        <p class="h5 mb-0">{{ total_orders }}</p>
+                    </div>
+                </div>
+                <div class="col-12 col-md-4">
+                    <div class="hero-card p-3">
+                        <p class="small mb-1">Goal Progress</p>
+                        <p class="h5 mb-0">{{ goal_progress_percent }}%</p>
+                    </div>
+                </div>
+            </div>
+            <div class="row g-4 mb-4">
+                <div class="col-12 col-md-6">
+                    <div class="hero-card p-4 h-100">
+                        <h2 class="h6">Share This Team</h2>
+                        {% if share_link %}
+                            <p class="mb-2 word-break-url">
+                                <a href="{{ share_link }}">{{ share_link }}</a>
+                            </p>
+                            {% if qr_data_uri %}
+                                <img src="{{ qr_data_uri }}"
+                                     alt="QR code for {{ object.name }}"
+                                     class="img-fluid"
+                                     width="180"
+                                     height="180"
+                                     style="max-width:180px">
+                            {% endif %}
+                        {% else %}
+                            <p class="text-muted">Share link not available.</p>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="col-12 col-md-6">
+                    <div class="hero-card p-4 h-100">
+                        <h2 class="h6">Captain</h2>
+                        <p>{{ object.captain.get_full_name|default:object.captain.username }}</p>
+                        {% if object.campaign %}
+                            <a class="btn btn-sm btn-brand mt-2"
+                               href="{% url 'fundraisers:public-campaign-detail' object.campaign.slug %}">Shop the Campaign</a>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            <div class="text-center">
+                <a class="btn btn-outline-dark"
+                   href="{% url 'teams:join' object.slug %}">Join This Team</a>
+            </div>
         </div>
-      </div>
-      <div class="col-12 col-md-4">
-        <div class="hero-card p-3">
-          <p class="small mb-1">Total Orders</p>
-          <p class="h5 mb-0">{{ total_orders }}</p>
-        </div>
-      </div>
-      <div class="col-12 col-md-4">
-        <div class="hero-card p-3">
-          <p class="small mb-1">Goal Progress</p>
-          <p class="h5 mb-0">{{ goal_progress_percent }}%</p>
-        </div>
-      </div>
-    </div>
-
-    <div class="row g-4 mb-4">
-      <div class="col-12 col-md-6">
-        <div class="hero-card p-4 h-100">
-          <h2 class="h6">Share This Team</h2>
-          {% if share_link %}
-            <p class="mb-2 word-break-url"><a href="{{ share_link }}">{{ share_link }}</a></p>
-            {% if qr_data_uri %}
-              <img src="{{ qr_data_uri }}" alt="QR code for {{ object.name }}" class="img-fluid" style="max-width:180px">
-            {% endif %}
-          {% else %}
-            <p class="text-muted">Share link not available.</p>
-          {% endif %}
-        </div>
-      </div>
-      <div class="col-12 col-md-6">
-        <div class="hero-card p-4 h-100">
-          <h2 class="h6">Captain</h2>
-          <p>{{ object.captain.get_full_name|default:object.captain.username }}</p>
-          {% if object.campaign %}
-            <a class="btn btn-sm btn-brand mt-2" href="{% url 'fundraisers:public-campaign-detail' object.campaign.slug %}">Shop the Campaign</a>
-          {% endif %}
-        </div>
-      </div>
-    </div>
-
-    <div class="text-center">
-      <a class="btn btn-outline-dark" href="{% url 'teams:join' object.slug %}">Join This Team</a>
-    </div>
-  </div>
-</section>
+    </section>
 {% endblock content %}

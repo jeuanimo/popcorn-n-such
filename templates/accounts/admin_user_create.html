@@ -1,104 +1,95 @@
 {% extends "staff/base.html" %}
-
-{% block title %}Create User{% endblock title %}
-
+{% block title %}
+    Create User
+{% endblock title %}
 {% block content %}
-<div class="row justify-content-center">
-  <div class="col-12 col-xl-8">
-    <div class="hero-card p-4 p-lg-5">
-      <div class="d-flex justify-content-between align-items-start gap-3 flex-wrap mb-4">
-        <div>
-          <span class="eyebrow">Site Operations</span>
-          <h1 class="h3 mb-1">Create User</h1>
-          <p class="mb-0 text-muted">Create a portal account and assign the initial roles from one place.</p>
-        </div>
-        <a class="btn btn-sm btn-outline-dark" href="{% url 'dashboards:portal' %}">Back to Portal</a>
-      </div>
-
-      <form method="post" class="d-grid gap-4">
-        {% csrf_token %}
-
-        {% if form.non_field_errors %}
-          <div class="alert alert-danger mb-0" role="alert">
-            {% for error in form.non_field_errors %}
-              <div>{{ error }}</div>
-            {% endfor %}
-          </div>
-        {% endif %}
-
-        <div>
-          <h2 class="h6 fw-bold mb-3">Account Details</h2>
-          <div class="row g-3">
-            <div class="col-12 col-md-6">
-              <label class="form-label" for="{{ form.username.id_for_label }}">Username</label>
-              {{ form.username }}
-              {% for error in form.username.errors %}<div class="text-danger small mt-1">{{ error }}</div>{% endfor %}
-            </div>
-            <div class="col-12 col-md-6">
-              <label class="form-label" for="{{ form.email.id_for_label }}">Email</label>
-              {{ form.email }}
-              {% for error in form.email.errors %}<div class="text-danger small mt-1">{{ error }}</div>{% endfor %}
-            </div>
-            <div class="col-12 col-md-6">
-              <label class="form-label" for="{{ form.first_name.id_for_label }}">First Name</label>
-              {{ form.first_name }}
-              {% for error in form.first_name.errors %}<div class="text-danger small mt-1">{{ error }}</div>{% endfor %}
-            </div>
-            <div class="col-12 col-md-6">
-              <label class="form-label" for="{{ form.last_name.id_for_label }}">Last Name</label>
-              {{ form.last_name }}
-              {% for error in form.last_name.errors %}<div class="text-danger small mt-1">{{ error }}</div>{% endfor %}
-            </div>
-            <div class="col-12 col-md-6">
-              <label class="form-label" for="{{ form.phone_number.id_for_label }}">Phone Number</label>
-              {{ form.phone_number }}
-              {% for error in form.phone_number.errors %}<div class="text-danger small mt-1">{{ error }}</div>{% endfor %}
-            </div>
-          </div>
-        </div>
-
-        <div>
-          <h2 class="h6 fw-bold mb-3">Security</h2>
-          <div class="row g-3">
-            <div class="col-12 col-md-6">
-              <label class="form-label" for="{{ form.password1.id_for_label }}">Password</label>
-              {{ form.password1 }}
-              {% if form.password1.help_text %}<div class="form-text">{{ form.password1.help_text|striptags }}</div>{% endif %}
-              {% for error in form.password1.errors %}<div class="text-danger small mt-1">{{ error }}</div>{% endfor %}
-            </div>
-            <div class="col-12 col-md-6">
-              <label class="form-label" for="{{ form.password2.id_for_label }}">Confirm Password</label>
-              {{ form.password2 }}
-              {% if form.password2.help_text %}<div class="form-text">{{ form.password2.help_text|striptags }}</div>{% endif %}
-              {% for error in form.password2.errors %}<div class="text-danger small mt-1">{{ error }}</div>{% endfor %}
-            </div>
-          </div>
-        </div>
-
-        <div>
-          <h2 class="h6 fw-bold mb-3">Roles &amp; Permissions</h2>
-          {% if form.roles.help_text %}
-            <p class="text-muted small mb-3">{{ form.roles.help_text }}</p>
-          {% endif %}
-          <div class="row g-2">
-            {% for checkbox in form.roles %}
-              <div class="col-12 col-md-6">
-                <div class="border rounded-3 px-3 py-2 d-flex align-items-center gap-2 h-100 bg-white">
-                  {{ checkbox.tag }}
-                  <label for="{{ checkbox.id_for_label }}" class="mb-0">{{ checkbox.choice_label }}</label>
+    <div class="row justify-content-center">
+        <div class="col-12 col-xl-8">
+            <div class="hero-card p-4 p-lg-5">
+                <div class="d-flex justify-content-between align-items-start gap-3 flex-wrap mb-4">
+                    <div>
+                        <span class="eyebrow">Site Operations</span>
+                        <h1 class="h3 mb-1">Create User</h1>
+                        <p class="mb-0 text-muted">Create a portal account and assign the initial roles from one place.</p>
+                    </div>
+                    <a class="btn btn-sm btn-outline-dark"
+                       href="{% url 'dashboards:portal' %}">Back to Portal</a>
                 </div>
-              </div>
-            {% endfor %}
-          </div>
-          {% for error in form.roles.errors %}<div class="text-danger small mt-2">{{ error }}</div>{% endfor %}
+                <form method="post" class="d-grid gap-4">
+                    {% csrf_token %}
+                    {% if form.non_field_errors %}
+                        <div class="alert alert-danger mb-0" role="alert">
+                            {% for error in form.non_field_errors %}<div>{{ error }}</div>{% endfor %}
+                        </div>
+                    {% endif %}
+                    <div>
+                        <h2 class="h6 fw-bold mb-3">Account Details</h2>
+                        <div class="row g-3">
+                            <div class="col-12 col-md-6">
+                                <label class="form-label" for="{{ form.username.id_for_label }}">Username</label>
+                                {{ form.username }}
+                                {% for error in form.username.errors %}<div class="text-danger small mt-1">{{ error }}</div>{% endfor %}
+                            </div>
+                            <div class="col-12 col-md-6">
+                                <label class="form-label" for="{{ form.email.id_for_label }}">Email</label>
+                                {{ form.email }}
+                                {% for error in form.email.errors %}<div class="text-danger small mt-1">{{ error }}</div>{% endfor %}
+                            </div>
+                            <div class="col-12 col-md-6">
+                                <label class="form-label" for="{{ form.first_name.id_for_label }}">First Name</label>
+                                {{ form.first_name }}
+                                {% for error in form.first_name.errors %}<div class="text-danger small mt-1">{{ error }}</div>{% endfor %}
+                            </div>
+                            <div class="col-12 col-md-6">
+                                <label class="form-label" for="{{ form.last_name.id_for_label }}">Last Name</label>
+                                {{ form.last_name }}
+                                {% for error in form.last_name.errors %}<div class="text-danger small mt-1">{{ error }}</div>{% endfor %}
+                            </div>
+                            <div class="col-12 col-md-6">
+                                <label class="form-label" for="{{ form.phone_number.id_for_label }}">Phone Number</label>
+                                {{ form.phone_number }}
+                                {% for error in form.phone_number.errors %}<div class="text-danger small mt-1">{{ error }}</div>{% endfor %}
+                            </div>
+                        </div>
+                    </div>
+                    <div>
+                        <h2 class="h6 fw-bold mb-3">Security</h2>
+                        <div class="row g-3">
+                            <div class="col-12 col-md-6">
+                                <label class="form-label" for="{{ form.password1.id_for_label }}">Password</label>
+                                {{ form.password1 }}
+                                {% if form.password1.help_text %}<div class="form-text">{{ form.password1.help_text|striptags }}</div>{% endif %}
+                                {% for error in form.password1.errors %}<div class="text-danger small mt-1">{{ error }}</div>{% endfor %}
+                            </div>
+                            <div class="col-12 col-md-6">
+                                <label class="form-label" for="{{ form.password2.id_for_label }}">Confirm Password</label>
+                                {{ form.password2 }}
+                                {% if form.password2.help_text %}<div class="form-text">{{ form.password2.help_text|striptags }}</div>{% endif %}
+                                {% for error in form.password2.errors %}<div class="text-danger small mt-1">{{ error }}</div>{% endfor %}
+                            </div>
+                        </div>
+                    </div>
+                    <div>
+                        <h2 class="h6 fw-bold mb-3">Roles &amp; Permissions</h2>
+                        {% if form.roles.help_text %}<p class="text-muted small mb-3">{{ form.roles.help_text }}</p>{% endif %}
+                        <div class="row g-2">
+                            {% for checkbox in form.roles %}
+                                <div class="col-12 col-md-6">
+                                    <div class="border rounded-3 px-3 py-2 d-flex align-items-center gap-2 h-100 bg-white">
+                                        {{ checkbox.tag }}
+                                        <label for="{{ checkbox.id_for_label }}" class="mb-0">{{ checkbox.choice_label }}</label>
+                                    </div>
+                                </div>
+                            {% endfor %}
+                        </div>
+                        {% for error in form.roles.errors %}<div class="text-danger small mt-2">{{ error }}</div>{% endfor %}
+                    </div>
+                    <div class="d-flex flex-wrap gap-2">
+                        <button type="submit" class="btn btn-brand">Create User</button>
+                        <a href="{% url 'dashboards:portal' %}" class="btn btn-outline-dark">Cancel</a>
+                    </div>
+                </form>
+            </div>
         </div>
-
-        <div class="d-flex flex-wrap gap-2">
-          <button type="submit" class="btn btn-brand">Create User</button>
-          <a href="{% url 'dashboards:portal' %}" class="btn btn-outline-dark">Cancel</a>
-        </div>
-      </form>
     </div>
-  </div>
-</div>
 {% endblock content %}

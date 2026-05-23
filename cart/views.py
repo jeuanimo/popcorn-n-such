@@ -1,13 +1,15 @@
 from django.contrib import messages
 from django.core.exceptions import PermissionDenied, ValidationError
 from django.shortcuts import get_object_or_404, redirect
-from django.utils.http import url_has_allowed_host_and_scheme
 from django.views.decorators.http import require_POST
 from django.views.generic import TemplateView
 
 from products.models import Product, SKU
 
 from .services import CartService
+
+
+CART_VIEW_URL = "cart:view"
 
 
 def _is_staff_or_admin(user) -> bool:
@@ -71,10 +73,7 @@ def add_to_cart_view(request, sku_id: int):
 		messages.success(request, f"Added {sku.product.name} ({sku.size}) to cart.")
 	except ValidationError as exc:
 		messages.error(request, str(exc))
-	next_url = request.POST.get("next", "").strip()
-	if next_url and url_has_allowed_host_and_scheme(next_url, allowed_hosts={request.get_host()}):
-		return redirect(next_url)
-	return redirect("cart:view")
+	return redirect(CART_VIEW_URL)
 
 
 @require_POST
@@ -85,7 +84,7 @@ def update_quantity_view(request, item_id: int):
 		messages.success(request, "Cart quantity updated.")
 	except (ValidationError, PermissionDenied) as exc:
 		messages.error(request, str(exc))
-	return redirect("cart:view")
+	return redirect(CART_VIEW_URL)
 
 
 @require_POST
@@ -95,7 +94,7 @@ def remove_item_view(request, item_id: int):
 		messages.success(request, "Item removed from cart.")
 	except PermissionDenied as exc:
 		messages.error(request, str(exc))
-	return redirect("cart:view")
+	return redirect(CART_VIEW_URL)
 
 
 @require_POST
@@ -105,7 +104,7 @@ def save_for_later_view(request, item_id: int):
 		messages.success(request, "Item saved for later.")
 	except PermissionDenied as exc:
 		messages.error(request, str(exc))
-	return redirect("cart:view")
+	return redirect(CART_VIEW_URL)
 
 
 @require_POST
@@ -115,7 +114,7 @@ def move_saved_to_cart_view(request, saved_item_id: int):
 		messages.success(request, "Saved item moved back to cart.")
 	except (ValidationError, PermissionDenied) as exc:
 		messages.error(request, str(exc))
-	return redirect("cart:view")
+	return redirect(CART_VIEW_URL)
 
 
 @require_POST
@@ -131,7 +130,7 @@ def set_attribution_view(request):
 		overwrite=True,
 	)
 	messages.success(request, "Cart attribution updated by staff.")
-	return redirect("cart:view")
+	return redirect(CART_VIEW_URL)
 
 
 @require_POST
@@ -155,7 +154,7 @@ def apply_coupon_view(request):
 		except Exception:
 			pass
 		messages.error(request, " ".join(exc.messages))
-	return redirect("cart:view")
+	return redirect(CART_VIEW_URL)
 
 
 @require_POST
@@ -168,7 +167,7 @@ def remove_coupon_view(request):
 	except Exception:
 		pass
 	messages.success(request, "Coupon removed.")
-	return redirect("cart:view")
+	return redirect(CART_VIEW_URL)
 
 
 def recover_cart_view(request, token: str):
@@ -177,4 +176,4 @@ def recover_cart_view(request, token: str):
 		messages.success(request, "Your cart was recovered successfully.")
 	except (ValidationError, PermissionDenied) as exc:
 		messages.error(request, str(exc))
-	return redirect("cart:view")
+	return redirect(CART_VIEW_URL)
