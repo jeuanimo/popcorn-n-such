@@ -13,7 +13,7 @@ gunicorn==23.0.0
 
 # Cache (Redis — required in production; optional in dev)
 redis==5.2.1
-django-redis==5.4.0
+django-redis==6.0.0
 
 # Task queue
 celery[redis]==5.4.0
