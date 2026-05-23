@@ -67,37 +67,22 @@ if _redis_url:
     SESSION_CACHE_ALIAS = "default"
 
 # ---------------------------------------------------------------------------
-# Media files — S3 / Cloudflare R2 / DigitalOcean Spaces
+# Media files — Cloudinary
 # ---------------------------------------------------------------------------
 
-_use_s3 = os.getenv("USE_S3", "").lower() in {"1", "true", "yes"}
+_cloudinary_url = os.getenv("CLOUDINARY_URL", "")
 
-if _use_s3:
-    # django-storages with boto3 backend
+if _cloudinary_url:
+    # CLOUDINARY_URL=cloudinary://API_KEY:API_SECRET@CLOUD_NAME is auto-parsed
+    # by the cloudinary package at import time — no extra config call needed.
     STORAGES = {
         "default": {
-            "BACKEND": "storages.backends.s3boto3.S3Boto3Storage",
-            "OPTIONS": {
-                "bucket_name": os.getenv("AWS_STORAGE_BUCKET_NAME", ""),
-                "region_name": os.getenv("AWS_S3_REGION_NAME", "auto"),
-                "endpoint_url": os.getenv("AWS_S3_ENDPOINT_URL", ""),  # set for R2/Spaces
-                "access_key": os.getenv("AWS_ACCESS_KEY_ID", ""),
-                "secret_key": os.getenv("AWS_SECRET_ACCESS_KEY", ""),
-                "file_overwrite": False,
-                "default_acl": None,
-                "location": "media",
-                "object_parameters": {"CacheControl": "max-age=86400"},
-            },
+            "BACKEND": "cloudinary_storage.storage.MediaCloudinaryStorage",
         },
         "staticfiles": {
             "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
         },
     }
-    _cdn_domain = os.getenv("AWS_S3_CUSTOM_DOMAIN", "")
-    if _cdn_domain:
-        MEDIA_URL = f"https://{_cdn_domain}/media/"
-    else:
-        MEDIA_URL = f"https://{os.getenv('AWS_STORAGE_BUCKET_NAME', '')}.s3.amazonaws.com/media/"
 
 # ---------------------------------------------------------------------------
 # Email — use SMTP in prod (configure for SES, SendGrid, etc.)

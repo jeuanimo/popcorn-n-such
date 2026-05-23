@@ -36,6 +36,8 @@ DJANGO_APPS = [
 
 THIRD_PARTY_APPS = [
     "django_celery_beat",
+    "cloudinary_storage",
+    "cloudinary",
 ]
 
 LOCAL_APPS = [

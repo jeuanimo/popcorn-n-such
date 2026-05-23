@@ -50,7 +50,7 @@ services:
       - key: SITE_BASE_URL
         value: https://popcorn-n-such.onrender.com
       # Add remaining secrets via Render dashboard or render.yaml envVars:
-      # PAYMENTS_WEBHOOK_SECRET, SHIPPO_API_KEY, SENTRY_DSN, etc.
+      # CLOUDINARY_URL, PAYMENTS_WEBHOOK_SECRET, SHIPPO_API_KEY, SENTRY_DSN, etc.
       # See .env.example for the full list.
 
   - type: worker

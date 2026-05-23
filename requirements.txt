@@ -19,9 +19,9 @@ django-redis==5.4.0
 celery[redis]==5.4.0
 django-celery-beat==2.7.0
 
-# Media storage (S3 / Cloudflare R2 / DigitalOcean Spaces)
-django-storages[s3]==1.14.4
-boto3==1.35.86
+# Media storage (Cloudinary)
+cloudinary==1.44.2
+django-cloudinary-storage==0.3.0
 
 # Error tracking
 sentry-sdk[django]==2.19.2
