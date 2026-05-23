@@ -21,7 +21,7 @@ django-celery-beat==2.7.0
 
 # Media storage (S3 / Cloudflare R2 / DigitalOcean Spaces)
 django-storages[s3]==1.14.4
-boto3==1.35.86
+boto3==1.43.14
 
 # Error tracking
 sentry-sdk[django]==2.19.2
