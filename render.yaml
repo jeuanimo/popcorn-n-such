@@ -132,4 +132,4 @@ databases:
   - name: popcorn-n-such-db
     databaseName: popcorn_n_such
     region: ohio
-    plan: starter
+    plan: basic-256mb
