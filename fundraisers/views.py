@@ -43,6 +43,7 @@ class PublicFundraiserCampaignDetailView(DetailView):
 	def get_context_data(self, **kwargs):
 		context = super().get_context_data(**kwargs)
 		context.update(FundraiserCampaignService.campaign_progress_context(campaign=self.object))
+		context["is_accepting_orders"] = self.object.is_accepting_orders()
 		_active_sku = SKU.objects.filter(product=OuterRef("pk"), is_active=True).order_by("retail_price")
 		context["products"] = (
 			Product.objects.active()

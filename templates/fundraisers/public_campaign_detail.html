@@ -82,7 +82,6 @@
                                         <form method="post" action="{% url 'cart:add' product.fundraiser_sku_id %}">
                                             {% csrf_token %}
                                             <input type="hidden" name="next" value="{{ request.path }}" />
-                                            <input type="hidden" name="fundraiser_campaign" value="{{ object.slug }}" />
                                             <div class="d-flex gap-2 align-items-center">
                                                 <fieldset class="qty-stepper">
                                                     <legend class="visually-hidden">Quantity</legend>

@@ -68,19 +68,8 @@ class CartView(TemplateView):
 def add_to_cart_view(request, sku_id: int):
 	sku = get_object_or_404(SKU.objects.select_related("product"), id=sku_id)
 	quantity = int(request.POST.get("quantity", "1") or 1)
-	# For fundraiser campaign orders, bypass inventory so products with
-	# default inventory_quantity=0 can still be added to cart.
-	bypass_inventory = False
-	fundraiser_slug = request.POST.get("fundraiser_campaign", "").strip()
-	if fundraiser_slug:
-		from fundraisers.models import FundraiserCampaign, FundraiserCampaignStatus
-		bypass_inventory = FundraiserCampaign.objects.filter(
-			slug=fundraiser_slug,
-			status=FundraiserCampaignStatus.ACTIVE,
-			is_active=True,
-		).exists()
 	try:
-		CartService.add_item(request=request, sku=sku, quantity=quantity, bypass_inventory=bypass_inventory)
+		CartService.add_item(request=request, sku=sku, quantity=quantity)
 		CartService.apply_attribution_from_request(request)
 		messages.success(request, f"Added {sku.product.name} ({sku.size}) to cart.")
 	except ValidationError as exc:
