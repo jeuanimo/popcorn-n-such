@@ -42,43 +42,51 @@
                                 <td>{{ sku.is_active|yesno:"Active,Inactive" }}</td>
                                 <td>
                                     <div class="d-flex flex-column gap-2">
-                                    <form method="post"
-                                          action="{% url 'products:sku-update' sku.sku_code %}"
-                                          class="d-flex gap-2 align-items-center flex-wrap">
+                                    <form id="sku-save-{{ sku.pk }}"
+                                          method="post"
+                                          action="{% url 'products:sku-update' sku.sku_code %}">
                                         {% csrf_token %}
-                                        <input type="number"
-                                               name="inventory_quantity"
-                                               value="{{ sku.inventory_quantity }}"
-                                               min="0"
-                                               class="form-control form-control-sm sku-field"
-                                               style="width:80px" />
-                                        <input type="number"
-                                               name="low_stock_threshold"
-                                               value="{{ sku.low_stock_threshold }}"
-                                               min="0"
-                                               class="form-control form-control-sm sku-field"
-                                               style="width:80px" />
-                                        <input type="number"
-                                               name="weight_ounces"
-                                               value="{{ sku.weight_ounces }}"
-                                               min="0"
-                                               step="0.01"
-                                               class="form-control form-control-sm sku-field"
-                                               style="width:90px"
-                                               placeholder="oz" />
-                                        <input class="form-check-input"
-                                               type="checkbox"
-                                               name="is_active"
-                                               {% if sku.is_active %}checked{% endif %} />
-                                        <button class="btn btn-sm btn-brand" type="submit">Save</button>
+                                        <div class="d-flex gap-2 align-items-center flex-wrap">
+                                            <input type="number"
+                                                   name="inventory_quantity"
+                                                   value="{{ sku.inventory_quantity }}"
+                                                   min="0"
+                                                   class="form-control form-control-sm sku-field"
+                                                   style="width:80px" />
+                                            <input type="number"
+                                                   name="low_stock_threshold"
+                                                   value="{{ sku.low_stock_threshold }}"
+                                                   min="0"
+                                                   class="form-control form-control-sm sku-field"
+                                                   style="width:80px" />
+                                            <input type="number"
+                                                   name="weight_ounces"
+                                                   value="{{ sku.weight_ounces }}"
+                                                   min="0"
+                                                   step="0.01"
+                                                   class="form-control form-control-sm sku-field"
+                                                   style="width:90px"
+                                                   placeholder="oz" />
+                                            <div class="form-check form-check-inline mb-0">
+                                                <input class="form-check-input"
+                                                       type="checkbox"
+                                                       name="is_active"
+                                                       id="active-{{ sku.pk }}"
+                                                       {% if sku.is_active %}checked{% endif %} />
+                                                <label class="form-check-label small" for="active-{{ sku.pk }}">Active</label>
+                                            </div>
+                                        </div>
                                     </form>
-                                    <div class="d-flex gap-1">
-                                    <a href="{% url 'products:sku-edit' sku.pk %}" class="btn btn-sm btn-outline-dark">Edit</a>
-                                    <form method="post" action="{% url 'products:sku-delete' sku.pk %}"
+                                    <form id="sku-del-{{ sku.pk }}"
+                                          method="post"
+                                          action="{% url 'products:sku-delete' sku.pk %}"
                                           onsubmit="return confirm('Delete SKU {{ sku.sku_code }}? This cannot be undone.');">
                                         {% csrf_token %}
-                                        <button type="submit" class="btn btn-sm btn-outline-dark">Delete</button>
                                     </form>
+                                    <div class="d-flex gap-1">
+                                        <button form="sku-save-{{ sku.pk }}" type="submit" class="btn btn-sm btn-brand">Save</button>
+                                        <a href="{% url 'products:sku-edit' sku.pk %}" class="btn btn-sm btn-outline-dark">Edit</a>
+                                        <button form="sku-del-{{ sku.pk }}" type="submit" class="btn btn-sm btn-outline-dark">Delete</button>
                                     </div>
                                     </div>
                                 </td>

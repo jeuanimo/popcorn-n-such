@@ -435,26 +435,27 @@ a:hover { color: var(--popcorn-red-dk); }
 
 /* Outline variants */
 .btn-outline-dark {
-  background: transparent;
-  color: var(--kettle-black);
-  border-color: rgba(31,31,31,.35);       /* Lighter on sides */
-  border-bottom-color: var(--kettle-black); /* Darkest bottom = 3D step */
+  background: var(--kettle-black);
+  color: #fff;
+  border-color: var(--kettle-black);
+  border-bottom-color: #000;            /* Deepest bottom = 3D step */
 }
 .btn-outline-dark:hover, .btn-outline-dark:focus {
-  background: rgba(31,31,31,.06);
-  color: var(--kettle-black);
-  box-shadow: 0 7px 18px rgba(31,31,31,.2);
+  background: var(--kettle-black-lt);
+  color: #fff;
+  box-shadow: 0 7px 18px rgba(31,31,31,.35);
 }
 
 .btn-outline-secondary {
-  background: transparent;
-  color: #6c757d;
-  border-color: #adb5bd;
+  background: #5a5f66;
+  color: #fff;
+  border-color: #5a5f66;
+  border-bottom-color: #3d4147;
 }
-.btn-outline-secondary:hover {
-  background: rgba(108,117,125,.08);
-  color: #555;
-  box-shadow: var(--btn-hover-glow);
+.btn-outline-secondary:hover, .btn-outline-secondary:focus {
+  background: #6c757d;
+  color: #fff;
+  box-shadow: 0 7px 18px rgba(31,31,31,.25);
 }
 
 /* Danger — override Bootstrap blue with brand red palette */
