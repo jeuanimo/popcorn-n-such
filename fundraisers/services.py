@@ -109,7 +109,7 @@ class FundraiserCampaignService:
 
     @classmethod
     @transaction.atomic
-    def signup_and_provision(cls, *, form, request=None) -> FundraiserCampaign:
+    def signup_and_provision(cls, *, form, request=None, user=None) -> FundraiserCampaign:
         """
         Public fundraiser signup: save the request, provision the full
         campaign stack immediately, and email the organizer.
@@ -130,25 +130,29 @@ class FundraiserCampaignService:
             goal_amount=data.get("goal_amount"),
         )
 
-        # Create or retrieve manager user account
-        username_base = slugify(data["contact_email"].split("@")[0])[:140] or "user"
-        username = username_base
-        counter = 1
-        while User.objects.filter(username=username).exists():
-            username = f"{username_base}{counter}"
-            counter += 1
+        # Use the already-authenticated user if provided; otherwise create/retrieve
+        if user is not None:
+            manager = user
+            is_new_user = False
+        else:
+            username_base = slugify(data["contact_email"].split("@")[0])[:140] or "user"
+            username = username_base
+            counter = 1
+            while User.objects.filter(username=username).exists():
+                username = f"{username_base}{counter}"
+                counter += 1
 
-        manager, is_new_user = User.objects.get_or_create(
-            email=data["contact_email"],
-            defaults={
-                "username": username,
-                "first_name": data["contact_first_name"],
-                "last_name": data["contact_last_name"],
-            },
-        )
-        if is_new_user:
-            manager.set_unusable_password()
-            manager.save(update_fields=["password"])
+            manager, is_new_user = User.objects.get_or_create(
+                email=data["contact_email"],
+                defaults={
+                    "username": username,
+                    "first_name": data["contact_first_name"],
+                    "last_name": data["contact_last_name"],
+                },
+            )
+            if is_new_user:
+                manager.set_unusable_password()
+                manager.save(update_fields=["password"])
 
         # Create or retrieve organization
         org, _ = Organization.objects.get_or_create(
@@ -191,6 +195,7 @@ class FundraiserCampaignService:
             organization=org,
             name=f"{data['organization_name']} Team",
             slug=f"{slug}-team",
+            captain=manager,
         )
 
         # Mark request approved and link user
@@ -315,6 +320,7 @@ class FundraiserCampaignService:
             organization=org,
             name=f"{request.organization_name} Team",
             slug=team_slug,
+            captain=manager,
         )
 
         # Link user and mark request approved

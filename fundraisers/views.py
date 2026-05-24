@@ -120,15 +120,23 @@ def staff_toggle_campaign_live_view(request, slug: str):
 	return redirect("fundraisers:staff-campaign-queue")
 
 
+@login_required
 def fundraiser_signup_view(request):
-	"""Public form — provisions the full campaign stack on submission."""
+	"""Logged-in users provision their own fundraiser campaign."""
 	if request.method == "POST":
 		form = FundraiserSignupForm(request.POST)
 		if form.is_valid():
-			FundraiserCampaignService.signup_and_provision(form=form, request=request)
+			FundraiserCampaignService.signup_and_provision(
+				form=form, request=request, user=request.user
+			)
 			return redirect("fundraisers:signup-thanks")
 	else:
-		form = FundraiserSignupForm()
+		u = request.user
+		form = FundraiserSignupForm(initial={
+			"contact_first_name": u.first_name,
+			"contact_last_name": u.last_name,
+			"contact_email": u.email,
+		})
 	return render(request, "fundraisers/signup.html", {"form": form})
 
 
