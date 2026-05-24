@@ -165,29 +165,35 @@
                         <h2 class="h6 fw-bold mb-3">Share Your Campaign</h2>
                         <p class="small fw-semibold mb-1">Campaign store</p>
                         <p class="small text-muted mb-2">Share this link with customers so they can shop and support your campaign.</p>
-                        <div class="d-flex gap-2 mb-3">
+                        <div class="input-group input-group-sm mb-1">
                             <input type="text"
-                                   class="form-control form-control-sm"
+                                   class="form-control"
                                    value="{{ request.scheme }}://{{ request.get_host }}{% url 'fundraisers:public-campaign-detail' slug=object.slug %}"
                                    readonly
                                    id="storeInput" />
-                            <button class="btn btn-sm btn-outline-dark"
-                                    onclick="navigator.clipboard.writeText(document.getElementById('storeInput').value);this.textContent='Copied!'">
-                                Copy
-                            </button>
+                            <button class="btn btn-outline-dark"
+                                    onclick="navigator.clipboard.writeText(document.getElementById('storeInput').value);this.textContent='Copied!'">Copy</button>
+                        </div>
+                        <div class="mb-3">
+                            <a class="btn btn-sm btn-brand"
+                               href="{% url 'fundraisers:public-campaign-detail' object.slug %}"
+                               target="_blank">Visit Campaign Store ↗</a>
                         </div>
                         <p class="small fw-semibold mb-1">Seller invite link</p>
                         <p class="small text-muted mb-2">Send this link to your sellers so they can create their personal storefronts.</p>
-                        <div class="d-flex gap-2 mb-3">
+                        <div class="input-group input-group-sm mb-1">
                             <input type="text"
-                                   class="form-control form-control-sm"
+                                   class="form-control"
                                    value="{{ seller_invite_url }}"
                                    readonly
                                    id="shareInput" />
-                            <button class="btn btn-sm btn-outline-dark"
-                                    onclick="navigator.clipboard.writeText(document.getElementById('shareInput').value);this.textContent='Copied!'">
-                                Copy
-                            </button>
+                            <button class="btn btn-outline-dark"
+                                    onclick="navigator.clipboard.writeText(document.getElementById('shareInput').value);this.textContent='Copied!'">Copy</button>
+                        </div>
+                        <div class="mb-3">
+                            <a class="btn btn-sm btn-brand"
+                               href="{{ seller_invite_url }}"
+                               target="_blank">Visit Seller Sign-Up ↗</a>
                         </div>
                         {% if qr_data_uri %}
                             <img alt="Campaign QR code"
