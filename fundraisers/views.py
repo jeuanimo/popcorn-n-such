@@ -11,6 +11,8 @@ from cart.services import CartService
 from core.security import RoleRequiredMixin
 from products.models import Product, SKU
 
+from sellers.models import SellerStore
+
 from .forms import FundraiserCampaignApprovalForm, FundraiserCampaignRequestForm, FundraiserRequestReviewForm, FundraiserSignupForm
 from .models import FundraiserCampaign, FundraiserCampaignStatus, FundraiserRequest
 from .services import FundraiserCampaignService
@@ -232,6 +234,10 @@ class FundraiserCampaignDashboardView(LoginRequiredMixin, DetailView):
 		context["campaign_sellers"] = (
 			self.object.seller_stores.select_related("seller").order_by("display_name")
 		)
+		from django.urls import reverse
+		context["seller_invite_url"] = self.request.build_absolute_uri(
+			reverse("fundraisers:seller-join", kwargs={"slug": self.object.slug})
+		)
 		return context
 
 	def post(self, request, slug):
@@ -307,3 +313,52 @@ class FundraiserCampaignDashboardView(LoginRequiredMixin, DetailView):
 		setattr(campaign, field, None)
 		campaign.save(update_fields=[field])
 		messages.success(request, msg)
+
+
+@login_required
+def campaign_seller_join_view(request, slug):
+	"""Sellers land here from the invite link to create their personal store for a campaign."""
+	from django.utils.text import slugify
+
+	campaign = get_object_or_404(FundraiserCampaign, slug=slug, is_active=True)
+
+	# If they already have a store for this campaign, send them straight to it.
+	existing = SellerStore.objects.filter(seller=request.user, campaign=campaign).first()
+	if existing:
+		messages.info(request, "You already have a store for this campaign.")
+		return redirect("sellers:dashboard", slug=existing.slug)
+
+	if request.method == "POST":
+		display_name = request.POST.get("display_name", "").strip() or (
+			request.user.get_full_name() or request.user.username
+		)
+		personal_message = request.POST.get("personal_message", "").strip()
+		try:
+			seller_goal = max(0, float(request.POST.get("seller_goal") or 0))
+		except (ValueError, TypeError):
+			seller_goal = 0
+
+		# Auto-generate a unique slug
+		base_slug = slugify(f"{request.user.username}-{campaign.slug}")[:180]
+		store_slug = base_slug
+		counter = 1
+		while SellerStore.objects.filter(slug=store_slug).exists():
+			store_slug = f"{base_slug[:175]}-{counter}"
+			counter += 1
+
+		store = SellerStore.objects.create(
+			seller=request.user,
+			campaign=campaign,
+			display_name=display_name,
+			slug=store_slug,
+			personal_message=personal_message,
+			seller_goal=seller_goal,
+		)
+		messages.success(request, f"Your seller store for {campaign.campaign_name} is live!")
+		return redirect("sellers:dashboard", slug=store.slug)
+
+	context = {
+		"campaign": campaign,
+		"default_display_name": request.user.get_full_name() or request.user.username,
+	}
+	return render(request, "fundraisers/seller_join.html", context)

@@ -181,11 +181,11 @@
                         <div class="d-flex gap-2 mb-3">
                             <input type="text"
                                    class="form-control form-control-sm"
-                                   value="{{ share_link }}"
+                                   value="{{ seller_invite_url }}"
                                    readonly
                                    id="shareInput" />
                             <button class="btn btn-sm btn-outline-dark"
-                                    onclick="navigator.clipboard.writeText('{{ share_link }}');this.textContent='Copied!'">
+                                    onclick="navigator.clipboard.writeText(document.getElementById('shareInput').value);this.textContent='Copied!'">
                                 Copy
                             </button>
                         </div>

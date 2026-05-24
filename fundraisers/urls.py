@@ -8,6 +8,7 @@ from .views import (
     StaffCampaignQueueView,
     StaffFundraiserRequestQueueView,
     campaign_create_view,
+    campaign_seller_join_view,
     fundraiser_signup_thanks_view,
     fundraiser_signup_view,
     staff_approve_campaign_view,
@@ -23,6 +24,7 @@ urlpatterns = [
     path("start/", fundraiser_signup_view, name="signup"),
     path("start/thanks/", fundraiser_signup_thanks_view, name="signup-thanks"),
     path("campaign/<slug:slug>/", PublicFundraiserCampaignDetailView.as_view(), name="public-campaign-detail"),
+    path("campaign/<slug:slug>/join-as-seller/", campaign_seller_join_view, name="seller-join"),
     # Organization manager
     path("manage/", OrganizationManagerCampaignListView.as_view(), name="manager-campaigns"),
     path("manage/new/", campaign_create_view, name="manager-campaign-create"),
