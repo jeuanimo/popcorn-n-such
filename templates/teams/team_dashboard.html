@@ -12,9 +12,9 @@
                     <a class="btn btn-outline-dark me-1"
                        href="{% url 'teams:public-detail' team.slug %}">Public page</a>
                     {% if request.user == team.captain %}
-                        <a class="btn btn-outline-secondary me-1"
+                        <a class="btn btn-outline-dark me-1"
                            href="{% url 'teams:members' team.slug %}">Members</a>
-                        <a class="btn btn-outline-primary"
+                        <a class="btn btn-outline-dark"
                            href="{% url 'teams:send-reminder' team.slug %}">Send Reminder</a>
                     {% endif %}
                 </div>

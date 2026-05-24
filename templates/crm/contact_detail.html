@@ -113,7 +113,7 @@
                                     {% csrf_token %}
                                     <input type="hidden" name="action" value="close_task" />
                                     <input type="hidden" name="task_id" value="{{ task.pk }}" />
-                                    <button type="submit" class="btn btn-sm btn-outline-success">Done</button>
+                                    <button type="submit" class="btn btn-sm btn-outline-dark">Done</button>
                                 </form>
                             {% endif %}
                         </li>

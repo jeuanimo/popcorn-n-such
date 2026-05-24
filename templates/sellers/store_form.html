@@ -35,12 +35,12 @@
                 </div>
             {% endif %}
             <div class="d-flex gap-2 mt-4">
-                <button type="submit" class="btn btn-warning fw-bold">Save Store</button>
+                <button type="submit" class="btn btn-gold">Save Store</button>
                 {% if not is_new %}
                     <a href="{% url 'sellers:public-store' store.slug %}"
-                       class="btn btn-outline-secondary">View Public Page</a>
+                       class="btn btn-outline-dark">View Public Page</a>
                     <a href="{% url 'sellers:dashboard' store.slug %}"
-                       class="btn btn-outline-primary">Dashboard</a>
+                       class="btn btn-outline-dark">Dashboard</a>
                 {% endif %}
             </div>
         </form>

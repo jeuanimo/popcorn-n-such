@@ -10,13 +10,13 @@
     {# ---- Status pill counts ---- #}
     <div class="d-flex flex-wrap gap-2 mb-4">
         <a href="{% url 'crm:dashboard' %}"
-           class="btn btn-sm {% if not selected_status %}btn-dark{% else %}btn-outline-dark{% endif %}">
+           class="btn btn-sm {% if not selected_status %}btn-brand{% else %}btn-outline-dark{% endif %}">
             All
             <span class="badge {% if not selected_status %}bg-light text-dark{% else %}bg-secondary{% endif %} ms-1">{{ contacts|length }}</span>
         </a>
         {% for item in status_filters %}
             <a href="?status={{ item.value }}"
-               class="btn btn-sm {% if selected_status == item.value %}btn-dark{% else %}btn-outline-secondary{% endif %}">
+               class="btn btn-sm {% if selected_status == item.value %}btn-brand{% else %}btn-outline-dark{% endif %}">
                 {{ item.label }}
                 <span class="badge {% if selected_status == item.value %}bg-light text-dark{% else %}bg-secondary{% endif %} ms-1">{{ item.count }}</span>
             </a>

@@ -12,13 +12,14 @@ from django.views.generic import CreateView, UpdateView, View
 
 from core.security import RoleRequiredMixin
 
-from .forms import ProductAdminForm, ProductSKUCSVUploadForm, SKUInventoryForm
+from .forms import ProductAdminForm, ProductSKUCSVUploadForm, SKUAdminForm, SKUInventoryForm
 from .models import CSVImportBatch, Product, ProductCategory, SKU
 from .services import ProductSKUCSVImportService
 
 
 CSV_IMPORT_ROUTE = "products:csv-import"
 PRODUCT_ADMIN_LIST_ROUTE = "products:admin-list"
+SKU_MANAGEMENT_ROUTE = "products:sku-management"
 
 def _annotate_stock_summary(qs):
 	"""Attach stock summary fields used across product listing surfaces."""
@@ -202,6 +203,58 @@ class ProductDeleteView(RoleRequiredMixin, View):
 		return redirect(PRODUCT_ADMIN_LIST_ROUTE)
 
 
+class SKUCreateView(RoleRequiredMixin, CreateView):
+	model = SKU
+	form_class = SKUAdminForm
+	template_name = "products/sku_form.html"
+	allowed_roles = ("staff", "admin")
+	success_url = reverse_lazy(SKU_MANAGEMENT_ROUTE)
+
+	def form_valid(self, form):
+		response = super().form_valid(form)
+		messages.success(self.request, f"SKU {self.object.sku_code} created.")
+		return response
+
+	def get_context_data(self, **kwargs):
+		context = super().get_context_data(**kwargs)
+		context["form_title"] = "Add SKU"
+		context["submit_label"] = "Create SKU"
+		return context
+
+
+class SKUUpdateView(RoleRequiredMixin, UpdateView):
+	model = SKU
+	form_class = SKUAdminForm
+	template_name = "products/sku_form.html"
+	allowed_roles = ("staff", "admin")
+	success_url = reverse_lazy(SKU_MANAGEMENT_ROUTE)
+
+	def form_valid(self, form):
+		response = super().form_valid(form)
+		messages.success(self.request, f"SKU {self.object.sku_code} updated.")
+		return response
+
+	def get_context_data(self, **kwargs):
+		context = super().get_context_data(**kwargs)
+		context["form_title"] = f"Edit SKU: {self.object.sku_code}"
+		context["submit_label"] = "Save Changes"
+		return context
+
+
+class SKUDeleteView(RoleRequiredMixin, View):
+	allowed_roles = ("staff", "admin")
+
+	def post(self, request, *args, **kwargs):
+		sku = get_object_or_404(SKU, pk=kwargs["pk"])
+		sku_code = sku.sku_code
+		try:
+			sku.delete()
+			messages.success(request, f"SKU {sku_code} deleted.")
+		except ProtectedError:
+			messages.error(request, f"SKU {sku_code} cannot be deleted — it has associated orders.")
+		return redirect(SKU_MANAGEMENT_ROUTE)
+
+
 class SKUManagementView(RoleRequiredMixin, TemplateView):
 	template_name = "products/sku_management.html"
 	allowed_roles = ("staff", "admin")
@@ -262,6 +315,40 @@ class SKUCSVExportView(RoleRequiredMixin, TemplateView):
 				]
 			)
 
+		return response
+
+
+class SKUCSVTemplateView(RoleRequiredMixin, View):
+	"""Download a blank CSV template pre-filled with headers and two example rows."""
+	allowed_roles = ("staff", "admin")
+
+	EXAMPLE_ROWS = [
+		[
+			"PNS-CBUT-SM", "Classic Butter Popcorn", "kettle-corn", "Classic Butter",
+			"4 oz bag", "Light and buttery classic popcorn",
+			"2.50", "7.99", "100", "10", "4.00",
+			"true", "true", "true", "",
+		],
+		[
+			"PNS-CCHZ-LG", "Cheddar Cheese Popcorn", "cheese", "Sharp Cheddar",
+			"8 oz bag", "Real cheddar cheese coating on every kernel",
+			"3.25", "10.99", "50", "5", "8.00",
+			"true", "true", "true", "https://example.com/cheddar.jpg",
+		],
+	]
+
+	def get(self, request, *args, **kwargs):
+		response = HttpResponse(content_type="text/csv")
+		response["Content-Disposition"] = 'attachment; filename="sku_import_template.csv"'
+		writer = csv.writer(response)
+		writer.writerow([
+			"sku", "product_name", "category", "flavor", "size", "description",
+			"cost_price", "retail_price", "inventory_count", "low_stock_threshold",
+			"weight_oz", "is_active", "fundraiser_eligible", "standalone_store_eligible",
+			"image_url",
+		])
+		for row in self.EXAMPLE_ROWS:
+			writer.writerow(row)
 		return response
 
 

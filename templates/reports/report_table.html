@@ -12,7 +12,7 @@
             </div>
             <div class="d-flex gap-2">
                 <a class="btn btn-outline-dark" href="{% url 'reports:dashboard' %}">All reports</a>
-                <a class="btn btn-primary"
+                <a class="btn btn-brand"
                    href="?{% if request.GET.start %}start={{ request.GET.start }}&{% endif %}{% if request.GET.end %}end={{ request.GET.end }}&{% endif %}format=csv">Export CSV</a>
             </div>
         </div>

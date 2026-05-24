@@ -12,7 +12,7 @@
                 <form method="post"
                       action="{% url 'convert-to-campaign' organization.id %}">
                     {% csrf_token %}
-                    <button class="btn btn-sm btn-primary" type="submit">Convert to campaign</button>
+                    <button class="btn btn-sm btn-brand" type="submit">Convert to campaign</button>
                 </form>
             {% endif %}
             <a class="btn btn-sm btn-outline-dark" href="{% url 'crm-list' %}">All Organizations</a>

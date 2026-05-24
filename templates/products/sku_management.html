@@ -9,7 +9,8 @@
                 <h1 class="mb-0">SKU Management</h1>
                 <div class="d-flex gap-2">
                     <a class="btn btn-outline-dark" href="{% url 'products:sku-export' %}">Export CSV</a>
-                    <a class="btn btn-brand" href="{% url 'products:csv-import' %}">Import CSV</a>
+                    <a class="btn btn-outline-dark" href="{% url 'products:csv-import' %}">Import CSV</a>
+                    <a class="btn btn-brand" href="{% url 'products:sku-create' %}">+ Add SKU</a>
                 </div>
             </div>
             <div class="table-responsive hero-card p-3">
@@ -40,6 +41,7 @@
                                 <td>{{ sku.weight_ounces }}</td>
                                 <td>{{ sku.is_active|yesno:"Active,Inactive" }}</td>
                                 <td>
+                                    <div class="d-flex gap-1 flex-wrap align-items-center">
                                     <form method="post"
                                           action="{% url 'products:sku-update' sku.sku_code %}"
                                           class="d-flex gap-2 align-items-center">
@@ -70,6 +72,13 @@
                                                {% if sku.is_active %}checked{% endif %} />
                                         <button class="btn btn-sm btn-brand" type="submit">Save</button>
                                     </form>
+                                    <a href="{% url 'products:sku-edit' sku.pk %}" class="btn btn-sm btn-outline-dark">Edit</a>
+                                    <form method="post" action="{% url 'products:sku-delete' sku.pk %}"
+                                          onsubmit="return confirm('Delete SKU {{ sku.sku_code }}? This cannot be undone.');">
+                                        {% csrf_token %}
+                                        <button type="submit" class="btn btn-sm btn-outline-dark">Delete</button>
+                                    </form>
+                                    </div>
                                 </td>
                             </tr>
                         {% endfor %}

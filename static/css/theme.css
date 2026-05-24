@@ -445,6 +445,28 @@ a:hover { color: var(--popcorn-red-dk); }
   box-shadow: var(--btn-hover-glow);
 }
 
+/* Danger — override Bootstrap blue with brand red palette */
+.btn-danger {
+  background: var(--popcorn-red-dk);
+  color: #fff;
+  border-color: var(--popcorn-red-dk);
+}
+.btn-danger:hover, .btn-danger:focus {
+  filter: brightness(1.1);
+  color: #fff;
+  box-shadow: var(--btn-hover-glow), 0 4px 14px rgba(194,0,6,.35);
+}
+.btn-outline-danger {
+  background: transparent;
+  color: var(--popcorn-red-dk);
+  border-color: var(--popcorn-red-dk);
+}
+.btn-outline-danger:hover, .btn-outline-danger:focus {
+  background: rgba(194,0,6,.07);
+  color: var(--popcorn-red-dk);
+  box-shadow: var(--btn-hover-glow);
+}
+
 .btn-outline-danger {
   background: transparent;
   color: var(--popcorn-red);

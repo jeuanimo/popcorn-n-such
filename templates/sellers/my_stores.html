@@ -4,7 +4,7 @@
     <div class="container py-5">
         <div class="d-flex justify-content-between align-items-center mb-4">
             <h1 class="fw-bold mb-0">My Stores</h1>
-            <a href="{% url 'sellers:create' %}" class="btn btn-warning">+ New Store</a>
+            <a href="{% url 'sellers:create' %}" class="btn btn-gold">+ New Store</a>
         </div>
         {% if stores %}
             <div class="table-responsive">
@@ -33,11 +33,11 @@
                                 </td>
                                 <td>
                                     <a href="{% url 'sellers:dashboard' store.slug %}"
-                                       class="btn btn-sm btn-outline-primary me-1">Dashboard</a>
+                                       class="btn btn-sm btn-outline-dark me-1">Dashboard</a>
                                     <a href="{% url 'sellers:edit' store.slug %}"
-                                       class="btn btn-sm btn-outline-secondary me-1">Edit</a>
+                                       class="btn btn-sm btn-outline-dark me-1">Edit</a>
                                     <a href="{% url 'sellers:public-store' store.slug %}"
-                                       class="btn btn-sm btn-outline-warning">View</a>
+                                       class="btn btn-sm btn-outline-dark">View</a>
                                 </td>
                             </tr>
                         {% endfor %}

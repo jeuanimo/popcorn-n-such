@@ -30,7 +30,7 @@
                                 <form method="post"
                                       action="{% url 'notifications:mark-read' delivery.id %}">
                                     {% csrf_token %}
-                                    <button class="btn btn-sm btn-outline-primary" type="submit">Mark read</button>
+                                    <button class="btn btn-sm btn-outline-dark" type="submit">Mark read</button>
                                 </form>
                             {% endif %}
                         </div>

@@ -27,6 +27,34 @@ class ProductAdminForm(forms.ModelForm):
         }
 
 
+class SKUAdminForm(forms.ModelForm):
+    class Meta:
+        model = SKU
+        fields = (
+            "sku_code",
+            "product",
+            "size",
+            "retail_price",
+            "cost_price",
+            "weight_ounces",
+            "inventory_quantity",
+            "low_stock_threshold",
+            "is_active",
+            "barcode_upc",
+        )
+        widgets = {
+            "sku_code": forms.TextInput(attrs={"class": "form-control"}),
+            "product": forms.Select(attrs={"class": "form-select"}),
+            "size": forms.TextInput(attrs={"class": "form-control"}),
+            "retail_price": forms.NumberInput(attrs={"class": "form-control", "step": "0.01"}),
+            "cost_price": forms.NumberInput(attrs={"class": "form-control", "step": "0.01"}),
+            "weight_ounces": forms.NumberInput(attrs={"class": "form-control", "step": "0.01"}),
+            "inventory_quantity": forms.NumberInput(attrs={"class": "form-control", "min": "0"}),
+            "low_stock_threshold": forms.NumberInput(attrs={"class": "form-control", "min": "0"}),
+            "barcode_upc": forms.TextInput(attrs={"class": "form-control"}),
+        }
+
+
 class SKUInventoryForm(forms.ModelForm):
     class Meta:
         model = SKU

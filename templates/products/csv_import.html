@@ -11,6 +11,13 @@
                    href="{% url 'products:sku-management' %}">Back to SKU Management</a>
             </div>
             <div class="hero-card p-4 mb-4">
+                <h2 class="h5 mb-3">0. Download the Template</h2>
+                <p class="small text-muted mb-2">Fill in this template and upload it below. Required columns are pre-labelled; the <code>image_url</code> column is optional.</p>
+                <a href="{% url 'products:csv-template' %}" class="btn btn-outline-dark btn-sm">
+                    ⬇ Download sku_import_template.csv
+                </a>
+            </div>
+            <div class="hero-card p-4 mb-4">
                 <h2 class="h5">1. Upload and Preview</h2>
                 <form method="post"
                       enctype="multipart/form-data"

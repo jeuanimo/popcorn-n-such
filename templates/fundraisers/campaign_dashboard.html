@@ -19,21 +19,21 @@
                         {% csrf_token %}
                         <input type="hidden" name="action" value="change_status" />
                         <input type="hidden" name="new_status" value="active" />
-                        <button type="submit" class="btn btn-sm btn-success">▶ Activate Campaign</button>
+                        <button type="submit" class="btn btn-sm btn-brand">▶ Activate Campaign</button>
                     </form>
                 {% elif object.status == 'active' %}
                     <form method="post" class="d-inline m-0">
                         {% csrf_token %}
                         <input type="hidden" name="action" value="change_status" />
                         <input type="hidden" name="new_status" value="closed" />
-                        <button type="submit" class="btn btn-sm btn-outline-secondary">⏹ Close Campaign</button>
+                        <button type="submit" class="btn btn-sm btn-outline-dark">⏹ Close Campaign</button>
                     </form>
                 {% elif object.status == 'closed' %}
                     <form method="post" class="d-inline m-0">
                         {% csrf_token %}
                         <input type="hidden" name="action" value="change_status" />
                         <input type="hidden" name="new_status" value="active" />
-                        <button type="submit" class="btn btn-sm btn-warning">↺ Reopen Campaign</button>
+                        <button type="submit" class="btn btn-sm btn-gold">↺ Reopen Campaign</button>
                     </form>
                 {% endif %}
             </div>

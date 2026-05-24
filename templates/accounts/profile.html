@@ -26,7 +26,7 @@
             <form method="post" action="{% url 'accounts:avatar-upload' %}" enctype="multipart/form-data"
                   id="avatar-form" class="position-absolute bottom-0 end-0 m-1">
                 {% csrf_token %}
-                <label class="btn btn-sm btn-light rounded-circle p-1 shadow-sm"
+                <label class="btn btn-sm btn-outline-dark rounded-circle p-1"
                        title="Change photo" style="cursor:pointer;line-height:1;">
                     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
                         <path d="M10.5 8.5a2.5 2.5 0 1 1-5 0 2.5 2.5 0 0 1 5 0z"/>
