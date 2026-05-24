@@ -141,6 +141,20 @@
                 <div class="col-12 col-lg-4">
                     <div class="hero-card p-4 h-100">
                         <h2 class="h6 fw-bold mb-3">Share Your Campaign</h2>
+                        <p class="small fw-semibold mb-1">Campaign store</p>
+                        <p class="small text-muted mb-2">Share this link with customers so they can shop and support your campaign.</p>
+                        <div class="d-flex gap-2 mb-3">
+                            <input type="text"
+                                   class="form-control form-control-sm"
+                                   value="{{ request.scheme }}://{{ request.get_host }}{% url 'fundraisers:public-campaign-detail' slug=object.slug %}"
+                                   readonly
+                                   id="storeInput" />
+                            <button class="btn btn-sm btn-outline-dark"
+                                    onclick="navigator.clipboard.writeText(document.getElementById('storeInput').value);this.textContent='Copied!'">
+                                Copy
+                            </button>
+                        </div>
+                        <p class="small fw-semibold mb-1">Seller invite link</p>
                         <p class="small text-muted mb-2">Send this link to your sellers so they can create their personal storefronts.</p>
                         <div class="d-flex gap-2 mb-3">
                             <input type="text"
