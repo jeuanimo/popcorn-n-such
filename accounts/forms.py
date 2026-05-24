@@ -5,7 +5,7 @@ from django.core.validators import RegexValidator
 
 from fundraisers.models import FundraiserRequest
 
-from .models import CustomerProfile, NotificationPreference, SavedAddress
+from .models import CustomerProfile, NotificationPreference, ProfileComment, ProfilePost, SavedAddress, UserProfile
 
 User = get_user_model()
 
@@ -28,6 +28,47 @@ class CustomerProfileForm(forms.ModelForm):
     class Meta:
         model = CustomerProfile
         fields = ("display_name",)
+
+
+class UserProfileBioForm(forms.ModelForm):
+    class Meta:
+        model = UserProfile
+        fields = ("display_name", "bio")
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["bio"].widget = forms.Textarea(attrs={"rows": 3, "class": "form-control"})
+
+
+class AvatarUploadForm(forms.ModelForm):
+    class Meta:
+        model = UserProfile
+        fields = ("avatar",)
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["avatar"].required = True
+
+
+class ProfilePostForm(forms.ModelForm):
+    class Meta:
+        model = ProfilePost
+        fields = ("body", "image")
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["body"].widget = forms.Textarea(attrs={"rows": 3, "placeholder": "What's on your mind?", "class": "form-control"})
+        self.fields["image"].required = False
+
+
+class ProfileCommentForm(forms.ModelForm):
+    class Meta:
+        model = ProfileComment
+        fields = ("body",)
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["body"].widget = forms.TextInput(attrs={"placeholder": "Write a comment…", "class": "form-control form-control-sm"})
 
 
 class UserAccountForm(forms.ModelForm):
@@ -117,7 +158,10 @@ class SavedAddressForm(forms.ModelForm):
 
 
 class FundraiserJoinForm(forms.Form):
-    invite_code = forms.CharField(max_length=32)
+    invite_code = forms.CharField(
+        max_length=32,
+        widget=forms.TextInput(attrs={"class": "form-control form-control-sm", "placeholder": "Invite code"}),
+    )
 
     def clean_invite_code(self):
         return self.cleaned_data["invite_code"].strip().upper()

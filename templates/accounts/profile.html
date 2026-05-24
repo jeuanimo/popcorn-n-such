@@ -1,110 +1,290 @@
 {% extends "base/base.html" %}
-{% block title %}
-    My Profile
-{% endblock title %}
+{% load static %}
+{% block title %}My Profile{% endblock title %}
+
 {% block content %}
-    <section class="py-5">
-        <div class="container form-container">
-            <h1 class="mb-3">Profile</h1>
-            <div class="row g-4">
-                <div class="col-12 col-lg-7">
-                    <div class="hero-card p-4">
-                        <form method="post" class="row g-3">
-                            {% csrf_token %}
-                            <div class="col-12 col-md-6">{{ account_form.first_name.label_tag }}{{ account_form.first_name }}</div>
-                            <div class="col-12 col-md-6">{{ account_form.last_name.label_tag }}{{ account_form.last_name }}</div>
-                            <div class="col-12 col-md-6">{{ account_form.email.label_tag }}{{ account_form.email }}</div>
-                            <div class="col-12 col-md-6">{{ account_form.phone_number.label_tag }}{{ account_form.phone_number }}</div>
-                            <div class="col-12">{{ profile_form.display_name.label_tag }}{{ profile_form.display_name }}</div>
+{# ── Cover + avatar header ─────────────────────────────────────────────── #}
+<div class="profile-cover position-relative mb-0"
+     style="height:220px; background: linear-gradient(135deg,#f4a261 0%,#e76f51 100%); overflow:hidden;">
+</div>
+
+<div class="container" style="max-width:960px;">
+    {# Avatar row #}
+    <div class="d-flex align-items-end gap-3 mb-3" style="margin-top:-52px; position:relative; z-index:2;">
+        <div class="position-relative flex-shrink-0">
+            {% if request.user.profile.avatar %}
+                <img src="{{ request.user.profile.avatar.url }}"
+                     class="rounded-circle border border-4 border-white shadow"
+                     style="width:104px;height:104px;object-fit:cover;" alt="Avatar">
+            {% else %}
+                <div class="rounded-circle border border-4 border-white shadow d-flex align-items-center justify-content-center bg-secondary text-white fw-bold"
+                     style="width:104px;height:104px;font-size:2.5rem;">
+                    {{ request.user.first_name|first|upper }}{{ request.user.last_name|first|upper }}
+                </div>
+            {% endif %}
+            {# Upload trigger #}
+            <form method="post" action="{% url 'accounts:avatar-upload' %}" enctype="multipart/form-data"
+                  id="avatar-form" class="position-absolute bottom-0 end-0 m-1">
+                {% csrf_token %}
+                <label class="btn btn-sm btn-light rounded-circle p-1 shadow-sm"
+                       title="Change photo" style="cursor:pointer;line-height:1;">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                        <path d="M10.5 8.5a2.5 2.5 0 1 1-5 0 2.5 2.5 0 0 1 5 0z"/>
+                        <path d="M2 4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2h-1.172a2 2 0 0 1-1.414-.586l-.828-.828A2 2 0 0 0 9.172 2H6.828a2 2 0 0 0-1.414.586l-.828.828A2 2 0 0 1 3.172 4H2zm.5 2a.5.5 0 1 1 0-1 .5.5 0 0 1 0 1zm9 2.5a3.5 3.5 0 1 1-7 0 3.5 3.5 0 0 1 7 0z"/>
+                    </svg>
+                    <span style="display:none;">{{ avatar_form.avatar }}</span>
+                </label>
+            </form>
+        </div>
+        <div class="pb-1">
+            <h1 class="h4 mb-0 fw-bold">
+                {{ request.user.get_full_name|default:request.user.username }}
+            </h1>
+            {% if request.user.profile.bio %}
+                <p class="text-muted small mb-0">{{ request.user.profile.bio }}</p>
+            {% endif %}
+        </div>
+        {% if request.user.profile.avatar %}
+        <div class="ms-auto pb-1">
+            <form method="post" action="{% url 'accounts:avatar-delete' %}">
+                {% csrf_token %}
+                <button class="btn btn-sm btn-outline-danger" type="submit"
+                        onclick="return confirm('Remove profile picture?')">Remove photo</button>
+            </form>
+        </div>
+        {% endif %}
+    </div>
+
+    {# Messages #}
+    {% if messages %}
+        {% for msg in messages %}
+            <div class="alert alert-{% if msg.tags == 'error' %}danger{% else %}{{ msg.tags }}{% endif %} alert-dismissible fade show" role="alert">
+                {{ msg }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        {% endfor %}
+    {% endif %}
+
+    {# Two-column layout #}
+    <div class="row g-4 pb-5">
+
+        {# ── LEFT sidebar ───────────────────────────────────────────────── #}
+        <div class="col-12 col-md-4">
+
+            {# Bio / About #}
+            <div class="hero-card p-3 mb-3">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <h2 class="h6 mb-0">About</h2>
+                    <button class="btn btn-sm btn-link p-0 text-decoration-none"
+                            type="button" data-bs-toggle="collapse" data-bs-target="#bio-edit">Edit</button>
+                </div>
+                {% if request.user.profile.bio %}
+                    <p class="small mb-0 text-muted">{{ request.user.profile.bio }}</p>
+                {% else %}
+                    <p class="small mb-0 text-muted fst-italic">No bio yet.</p>
+                {% endif %}
+                <div class="collapse mt-2" id="bio-edit">
+                    <form method="post" action="{% url 'accounts:bio-update' %}">
+                        {% csrf_token %}
+                        {{ bio_form.display_name.label_tag }}
+                        {{ bio_form.display_name }}
+                        <div class="mt-2">{{ bio_form.bio.label_tag }}{{ bio_form.bio }}</div>
+                        <button class="btn btn-sm btn-brand mt-2 w-100" type="submit">Save bio</button>
+                    </form>
+                </div>
+            </div>
+
+            {# Account details #}
+            <div class="hero-card p-3 mb-3">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <h2 class="h6 mb-0">Account details</h2>
+                    <button class="btn btn-sm btn-link p-0 text-decoration-none"
+                            type="button" data-bs-toggle="collapse" data-bs-target="#account-edit">Edit</button>
+                </div>
+                <p class="small mb-1"><strong>Email:</strong> {{ request.user.email }}</p>
+                {% if request.user.phone_number %}
+                    <p class="small mb-1"><strong>Phone:</strong> {{ request.user.phone_number }}</p>
+                {% endif %}
+                <div class="collapse mt-2" id="account-edit">
+                    <form method="post" action="{% url 'accounts:profile' %}">
+                        {% csrf_token %}
+                        <div class="row g-2">
+                            <div class="col-6">{{ account_form.first_name.label_tag }}{{ account_form.first_name }}</div>
+                            <div class="col-6">{{ account_form.last_name.label_tag }}{{ account_form.last_name }}</div>
+                            <div class="col-12">{{ account_form.email.label_tag }}{{ account_form.email }}</div>
+                            <div class="col-12">{{ account_form.phone_number.label_tag }}{{ account_form.phone_number }}</div>
                             <div class="col-12">
-                                <hr class="my-2" />
+                                {{ profile_form.display_name.label_tag }}{{ profile_form.display_name }}
                             </div>
-                            <div class="col-12">
-                                <h2 class="h5 mb-2">Default Shipping Address</h2>
-                                <p class="small text-muted mb-0">Used to prefill checkout for shipping and state tax estimates.</p>
-                            </div>
-                            <div class="col-12 col-md-6">{{ address_form.recipient_name.label_tag }}{{ address_form.recipient_name }}</div>
-                            <div class="col-12 col-md-6">{{ address_form.phone_number.label_tag }}{{ address_form.phone_number }}</div>
+                        </div>
+                        <button class="btn btn-sm btn-brand mt-2 w-100" type="submit">Save account</button>
+                    </form>
+                </div>
+            </div>
+
+            {# Shipping address #}
+            <div class="hero-card p-3 mb-3">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <h2 class="h6 mb-0">Default shipping</h2>
+                    <button class="btn btn-sm btn-link p-0 text-decoration-none"
+                            type="button" data-bs-toggle="collapse" data-bs-target="#address-edit">Edit</button>
+                </div>
+                {% with saved_addresses|first as addr %}
+                    {% if addr %}
+                        <p class="small mb-0">{{ addr.recipient_name }}</p>
+                        <p class="small mb-0">{{ addr.address_line_1 }}</p>
+                        <p class="small mb-0">{{ addr.city }}, {{ addr.state }} {{ addr.postal_code }}</p>
+                    {% else %}
+                        <p class="small mb-0 text-muted fst-italic">No address saved.</p>
+                    {% endif %}
+                {% endwith %}
+                <div class="collapse mt-2" id="address-edit">
+                    <form method="post" action="{% url 'accounts:profile' %}">
+                        {% csrf_token %}
+                        <div class="row g-2">
+                            <div class="col-12">{{ address_form.recipient_name.label_tag }}{{ address_form.recipient_name }}</div>
                             <div class="col-12">{{ address_form.address_line_1.label_tag }}{{ address_form.address_line_1 }}</div>
                             <div class="col-12">{{ address_form.address_line_2.label_tag }}{{ address_form.address_line_2 }}</div>
-                            <div class="col-12 col-md-4">{{ address_form.city.label_tag }}{{ address_form.city }}</div>
-                            <div class="col-12 col-md-4">{{ address_form.state.label_tag }}{{ address_form.state }}</div>
-                            <div class="col-12 col-md-4">{{ address_form.postal_code.label_tag }}{{ address_form.postal_code }}</div>
-                            <div class="col-12 col-md-4">{{ address_form.country.label_tag }}{{ address_form.country }}</div>
-                            <div class="col-12">
-                                <button type="submit" class="btn btn-brand">Save profile</button>
-                            </div>
-                        </form>
-                    </div>
-                    <div class="hero-card p-4 mt-4">
-                        <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
-                            <h2 class="h5 mb-0">Address Book</h2>
-                            <a class="btn btn-sm btn-outline-dark"
-                               href="{% url 'accounts:addresses' %}">Add or Manage Gift Addresses</a>
+                            <div class="col-6">{{ address_form.city.label_tag }}{{ address_form.city }}</div>
+                            <div class="col-3">{{ address_form.state.label_tag }}{{ address_form.state }}</div>
+                            <div class="col-3">{{ address_form.postal_code.label_tag }}{{ address_form.postal_code }}</div>
                         </div>
-                        <p class="small text-muted">
-                            Save multiple shipping addresses for gifts. Your default address is used to prefill checkout tax and shipping details.
-                        </p>
-                        <div class="row g-3">
-                            {% for address in saved_addresses %}
-                                <div class="col-12 col-md-6">
-                                    <div class="border rounded-3 p-3 h-100 bg-white">
-                                        <div class="d-flex justify-content-between align-items-start">
-                                            <h3 class="h6 mb-1">{{ address.label }}</h3>
-                                            {% if address.is_default %}<span class="badge text-bg-success">Default</span>{% endif %}
-                                        </div>
-                                        <p class="mb-1 small">{{ address.recipient_name }}</p>
-                                        <p class="mb-1 small">{{ address.address_line_1 }}</p>
-                                        {% if address.address_line_2 %}<p class="mb-1 small">{{ address.address_line_2 }}</p>{% endif %}
-                                        <p class="mb-2 small">{{ address.city }}, {{ address.state }} {{ address.postal_code }}</p>
-                                        <a class="btn btn-sm btn-outline-dark"
-                                           href="{% url 'accounts:address-edit' address.public_id %}">Edit</a>
+                        <button class="btn btn-sm btn-brand mt-2 w-100" type="submit">Save address</button>
+                    </form>
+                </div>
+                <a href="{% url 'accounts:addresses' %}" class="btn btn-sm btn-outline-dark w-100 mt-2">
+                    Manage all addresses
+                </a>
+            </div>
+
+            {# Fundraiser tools #}
+            <div class="hero-card p-3 mb-3" id="fundraiser-tools">
+                <h2 class="h6 mb-2">Fundraiser tools</h2>
+                <form method="post" action="{% url 'accounts:fundraiser-join' %}" class="d-flex gap-2 mb-3">
+                    {% csrf_token %}
+                    {{ fundraiser_join_form.invite_code }}
+                    <button class="btn btn-sm btn-brand flex-shrink-0" type="submit">Join</button>
+                </form>
+                {% for p in fundraiser_participations %}
+                    <p class="small mb-1">{{ p.invite.campaign_name }}{% if p.invite.team_name %} — {{ p.invite.team_name }}{% endif %}</p>
+                {% empty %}
+                    <p class="small text-muted mb-2">No fundraiser participations yet.</p>
+                {% endfor %}
+                <a href="{% url 'fundraisers:signup' %}" class="btn btn-sm btn-outline-dark w-100 mt-1">
+                    Start a fundraiser
+                </a>
+            </div>
+
+        </div>{# end left sidebar #}
+
+        {# ── RIGHT feed ─────────────────────────────────────────────────── #}
+        <div class="col-12 col-md-8">
+
+            {# Post composer #}
+            <div class="hero-card p-3 mb-3">
+                <form method="post" action="{% url 'accounts:post-create' %}" enctype="multipart/form-data">
+                    {% csrf_token %}
+                    {{ post_form.body }}
+                    <div class="d-flex align-items-center justify-content-between mt-2 gap-2">
+                        <label class="btn btn-sm btn-outline-secondary d-flex align-items-center gap-1 mb-0" style="cursor:pointer;">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                                <path d="M6.002 5.5a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0z"/>
+                                <path d="M2.002 1a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V3a2 2 0 0 0-2-2h-12zm12 1a1 1 0 0 1 1 1v6.5l-3.777-1.947a.5.5 0 0 0-.577.093l-3.71 3.71-2.66-1.772a.5.5 0 0 0-.63.062L1.002 12V3a1 1 0 0 1 1-1h12z"/>
+                            </svg>
+                            Photo
+                            <span class="d-none">{{ post_form.image }}</span>
+                        </label>
+                        <button type="submit" class="btn btn-sm btn-brand ms-auto">Post</button>
+                    </div>
+                </form>
+            </div>
+
+            {# Posts feed #}
+            {% for post in posts %}
+                <div class="hero-card p-3 mb-3" id="post-{{ post.id }}">
+                    <div class="d-flex align-items-center gap-2 mb-2">
+                        {% if request.user.profile.avatar %}
+                            <img src="{{ request.user.profile.avatar.url }}"
+                                 class="rounded-circle" style="width:36px;height:36px;object-fit:cover;" alt="">
+                        {% else %}
+                            <div class="rounded-circle bg-secondary text-white d-flex align-items-center justify-content-center fw-bold flex-shrink-0"
+                                 style="width:36px;height:36px;font-size:.9rem;">
+                                {{ request.user.first_name|first|upper }}{{ request.user.last_name|first|upper }}
+                            </div>
+                        {% endif %}
+                        <div>
+                            <strong class="small">{{ post.author.get_full_name|default:post.author.username }}</strong>
+                            <p class="text-muted mb-0" style="font-size:.75rem;">{{ post.created_at|timesince }} ago</p>
+                        </div>
+                        <div class="ms-auto d-flex gap-1">
+                            <a href="{% url 'accounts:post-edit' post.id %}"
+                               class="btn btn-sm btn-outline-secondary py-0 px-2">Edit</a>
+                            <form method="post" action="{% url 'accounts:post-delete' post.id %}" class="d-inline">
+                                {% csrf_token %}
+                                <button class="btn btn-sm btn-outline-danger py-0 px-2"
+                                        onclick="return confirm('Delete this post?')">Delete</button>
+                            </form>
+                        </div>
+                    </div>
+
+                    <p class="mb-2" style="white-space:pre-line;">{{ post.body }}</p>
+
+                    {% if post.image %}
+                        <img src="{{ post.image.url }}" class="img-fluid rounded mb-2"
+                             style="max-height:360px;object-fit:cover;width:100%;" alt="">
+                    {% endif %}
+
+                    {# Comments #}
+                    {% if post.comments.all %}
+                        <div class="border-top pt-2 mb-2">
+                            {% for comment in post.comments.all %}
+                                <div class="d-flex gap-2 mb-1 align-items-start">
+                                    <div class="rounded-circle bg-secondary text-white d-flex align-items-center justify-content-center fw-bold flex-shrink-0"
+                                         style="width:26px;height:26px;font-size:.7rem;">
+                                        {{ comment.author.first_name|first|upper }}{{ comment.author.last_name|first|upper }}
                                     </div>
-                                </div>
-                            {% empty %}
-                                <div class="col-12">
-                                    <p class="mb-0">
-                                        No saved addresses yet. Use <strong>Add or Manage Gift Addresses</strong> to create one.
-                                    </p>
+                                    <div class="bg-light rounded-3 px-2 py-1 flex-grow-1" style="font-size:.875rem;">
+                                        <strong>{{ comment.author.get_full_name|default:comment.author.username }}</strong>
+                                        {{ comment.body }}
+                                    </div>
+                                    {% if comment.author == request.user %}
+                                        <form method="post"
+                                              action="{% url 'accounts:comment-delete' comment.id %}"
+                                              class="d-inline">
+                                            {% csrf_token %}
+                                            <button class="btn btn-link text-danger p-0" style="font-size:.75rem;"
+                                                    title="Delete comment">&#x2715;</button>
+                                        </form>
+                                    {% endif %}
                                 </div>
                             {% endfor %}
                         </div>
-                    </div>
+                    {% endif %}
+
+                    {# Add comment #}
+                    <form method="post" action="{% url 'accounts:comment-create' post.id %}"
+                          class="d-flex gap-2 mt-1">
+                        {% csrf_token %}
+                        {{ comment_form.body }}
+                        <button class="btn btn-sm btn-outline-dark flex-shrink-0" type="submit">Reply</button>
+                    </form>
                 </div>
-                <div class="col-12 col-lg-5">
-                    <div class="hero-card p-4" id="fundraiser-tools">
-                        <h2 class="h5 mb-3">Fundraiser Tools</h2>
-                        <form method="post"
-                              action="{% url 'accounts:fundraiser-join' %}"
-                              class="row g-2 align-items-end mb-3">
-                            {% csrf_token %}
-                            <div class="col-12">
-                                {{ fundraiser_join_form.invite_code.label_tag }}
-                                {{ fundraiser_join_form.invite_code }}
-                            </div>
-                            <div class="col-12">
-                                <button class="btn btn-brand w-100" type="submit">Join by invite code</button>
-                            </div>
-                        </form>
-                        <h3 class="h6">My fundraiser campaigns</h3>
-                        {% for participation in fundraiser_participations %}
-                            <p class="mb-1">
-                                {{ participation.invite.campaign_name }}
-                                {% if participation.invite.team_name %}- {{ participation.invite.team_name }}{% endif %}
-                            </p>
-                        {% empty %}
-                            <p class="mb-3">No fundraiser participations yet.</p>
-                        {% endfor %}
-                        <hr />
-                        <h3 class="h6">Create fundraiser request</h3>
-                        <form method="post" action="{% url 'accounts:fundraiser-request' %}">
-                            {% csrf_token %}
-                            {{ fundraiser_request_form.as_p }}
-                            <button class="btn btn-outline-dark" type="submit">Submit request</button>
-                        </form>
-                    </div>
+            {% empty %}
+                <div class="hero-card p-4 text-center text-muted">
+                    <p class="mb-0">No posts yet. Say something!</p>
                 </div>
-            </div>
-        </div>
-    </section>
+            {% endfor %}
+
+        </div>{# end right feed #}
+    </div>
+</div>
 {% endblock content %}
+
+{% block scripts %}
+<script>
+/* Auto-submit avatar form when file is chosen */
+document.getElementById('avatar-form').querySelector('input[type=file]').addEventListener('change', function() {
+    this.closest('form').submit();
+});
+</script>
+{% endblock scripts %}

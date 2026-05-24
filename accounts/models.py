@@ -64,6 +64,8 @@ class User(AbstractUser):
 class UserProfile(models.Model):
 	user = models.OneToOneField(User, on_delete=models.CASCADE, related_name="profile")
 	display_name = models.CharField(max_length=150, blank=True)
+	bio = models.TextField(blank=True)
+	avatar = models.ImageField(upload_to="avatars/", blank=True, null=True)
 	marketing_opt_in = models.BooleanField(default=False)
 	sms_opt_in = models.BooleanField(default=False)
 	created_at = models.DateTimeField(auto_now_add=True)
@@ -71,6 +73,33 @@ class UserProfile(models.Model):
 
 	def __str__(self) -> str:
 		return self.display_name or self.user.get_username()
+
+
+class ProfilePost(models.Model):
+	author = models.ForeignKey(User, on_delete=models.CASCADE, related_name="profile_posts")
+	body = models.TextField(max_length=2000)
+	image = models.ImageField(upload_to="profile_posts/", blank=True, null=True)
+	created_at = models.DateTimeField(auto_now_add=True)
+	updated_at = models.DateTimeField(auto_now=True)
+
+	class Meta:
+		ordering = ["-created_at"]
+
+	def __str__(self) -> str:
+		return f"{self.author} — {self.body[:60]}"
+
+
+class ProfileComment(models.Model):
+	post = models.ForeignKey(ProfilePost, on_delete=models.CASCADE, related_name="comments")
+	author = models.ForeignKey(User, on_delete=models.CASCADE, related_name="profile_comments")
+	body = models.TextField(max_length=1000)
+	created_at = models.DateTimeField(auto_now_add=True)
+
+	class Meta:
+		ordering = ["created_at"]
+
+	def __str__(self) -> str:
+		return f"{self.author} on post {self.post_id}"
 
 
 class SavedAddress(models.Model):

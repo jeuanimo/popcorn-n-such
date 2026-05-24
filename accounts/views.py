@@ -17,17 +17,20 @@ from sellers.models import SellerLink
 from teams.models import TeamMembership
 
 from .forms import (
+	AvatarUploadForm,
 	CustomerProfileForm,
 	CustomerRegistrationForm,
 	FundraiserJoinForm,
-	FundraiserRequestForm,
 	NotificationPreferencesForm,
 	ProfileAddressForm,
+	ProfileCommentForm,
+	ProfilePostForm,
 	SavedAddressForm,
 	UserAccountForm,
+	UserProfileBioForm,
 )
 
-from .models import CustomerProfile, NotificationPreference, SavedAddress, UserRole
+from .models import CustomerProfile, NotificationPreference, ProfileComment, ProfilePost, SavedAddress, UserRole
 from .admin_user_create_view import admin_user_create_view
 
 
@@ -160,6 +163,11 @@ def profile_view(request):
 		profile_form = CustomerProfileForm(instance=customer_profile)
 		address_form = ProfileAddressForm(initial=address_initial)
 
+	posts = (
+		ProfilePost.objects.filter(author=request.user)
+		.prefetch_related("comments__author")
+		.order_by("-created_at")[:20]
+	)
 	return render(
 		request,
 		"accounts/profile.html",
@@ -167,10 +175,14 @@ def profile_view(request):
 			"account_form": account_form,
 			"profile_form": profile_form,
 			"address_form": address_form,
+			"bio_form": UserProfileBioForm(instance=request.user.profile),
+			"avatar_form": AvatarUploadForm(),
+			"post_form": ProfilePostForm(),
+			"comment_form": ProfileCommentForm(),
+			"posts": posts,
 			"saved_addresses": SavedAddress.objects.filter(user=request.user).order_by("-is_default", "label", "created_at"),
 			"fundraiser_participations": FundraiserParticipation.objects.filter(user=request.user).select_related("invite")[:8],
 			"fundraiser_join_form": FundraiserJoinForm(),
-			"fundraiser_request_form": FundraiserRequestForm(),
 		},
 	)
 
@@ -260,27 +272,107 @@ def join_fundraiser_view(request):
 
 @login_required
 def create_fundraiser_request_view(request):
-	if request.method == "GET":
-		return render(request, "accounts/fundraiser_request.html", {"form": FundraiserRequestForm()})
+	# Legacy URL — redirect to the full self-service signup flow
+	return redirect("fundraisers:signup")
 
-	form = FundraiserRequestForm(request.POST)
-	if not form.is_valid():
-		messages.error(request, "Please complete the fundraiser request form.")
-		return render(request, "accounts/fundraiser_request.html", {"form": form})
 
-	fundraiser_request = form.save(commit=False)
-	fundraiser_request.user = request.user
-	fundraiser_request.save()
+@login_required
+def avatar_upload_view(request):
+	if request.method != "POST":
+		return redirect(ACCOUNT_PROFILE_URL)
+	form = AvatarUploadForm(request.POST, request.FILES, instance=request.user.profile)
+	if form.is_valid():
+		form.save()
+		messages.success(request, "Profile picture updated.")
+	else:
+		messages.error(request, "Please choose a valid image file.")
+	return redirect(ACCOUNT_PROFILE_URL)
 
-	log_audit_event(
-		action=AuditAction.SECURITY_EVENT,
-		message="Fundraiser request created by customer",
-		actor=request.user,
-		request=request,
-		target=fundraiser_request,
-	)
 
-	messages.success(request, "Fundraiser request submitted.")
+@login_required
+def avatar_delete_view(request):
+	if request.method != "POST":
+		return redirect(ACCOUNT_PROFILE_URL)
+	profile = request.user.profile
+	if profile.avatar:
+		profile.avatar.delete(save=False)
+		profile.avatar = None
+		profile.save(update_fields=["avatar", "updated_at"])
+		messages.success(request, "Profile picture removed.")
+	return redirect(ACCOUNT_PROFILE_URL)
+
+
+@login_required
+def post_create_view(request):
+	if request.method != "POST":
+		return redirect(ACCOUNT_PROFILE_URL)
+	form = ProfilePostForm(request.POST, request.FILES)
+	if form.is_valid():
+		post = form.save(commit=False)
+		post.author = request.user
+		post.save()
+	else:
+		messages.error(request, "Could not save post. Please try again.")
+	return redirect(ACCOUNT_PROFILE_URL)
+
+
+@login_required
+def post_edit_view(request, post_id):
+	post = get_object_or_404(ProfilePost, id=post_id, author=request.user)
+	if request.method == "POST":
+		form = ProfilePostForm(request.POST, request.FILES, instance=post)
+		if form.is_valid():
+			form.save()
+			messages.success(request, "Post updated.")
+			return redirect(ACCOUNT_PROFILE_URL)
+	else:
+		form = ProfilePostForm(instance=post)
+	return render(request, "accounts/post_edit.html", {"form": form, "post": post})
+
+
+@login_required
+def post_delete_view(request, post_id):
+	if request.method != "POST":
+		return redirect(ACCOUNT_PROFILE_URL)
+	post = get_object_or_404(ProfilePost, id=post_id, author=request.user)
+	post.delete()
+	messages.success(request, "Post deleted.")
+	return redirect(ACCOUNT_PROFILE_URL)
+
+
+@login_required
+def comment_create_view(request, post_id):
+	if request.method != "POST":
+		return redirect(ACCOUNT_PROFILE_URL)
+	post = get_object_or_404(ProfilePost, id=post_id)
+	form = ProfileCommentForm(request.POST)
+	if form.is_valid():
+		comment = form.save(commit=False)
+		comment.post = post
+		comment.author = request.user
+		comment.save()
+	return redirect(ACCOUNT_PROFILE_URL)
+
+
+@login_required
+def comment_delete_view(request, comment_id):
+	if request.method != "POST":
+		return redirect(ACCOUNT_PROFILE_URL)
+	comment = get_object_or_404(ProfileComment, id=comment_id, author=request.user)
+	comment.delete()
+	return redirect(ACCOUNT_PROFILE_URL)
+
+
+@login_required
+def bio_update_view(request):
+	if request.method != "POST":
+		return redirect(ACCOUNT_PROFILE_URL)
+	form = UserProfileBioForm(request.POST, instance=request.user.profile)
+	if form.is_valid():
+		form.save()
+		messages.success(request, "Bio updated.")
+	else:
+		messages.error(request, "Could not update bio.")
 	return redirect(ACCOUNT_PROFILE_URL)
 
 
