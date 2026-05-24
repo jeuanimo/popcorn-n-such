@@ -135,15 +135,13 @@ class FundraiserCampaign(models.Model):
 	def is_accepting_orders(self, *, as_of=None) -> bool:
 		if not self.is_active:
 			return False
-		if self.status != FundraiserCampaignStatus.ACTIVE:
-			return False
-
-		today = as_of or timezone.localdate()
-		if today < self.start_date:
-			return False
-		if today > self.end_date:
-			return False
-		return True
+		if self.status == FundraiserCampaignStatus.ACTIVE:
+			# Manager explicitly activated — trust their intent, skip date check.
+			return True
+		if self.status == FundraiserCampaignStatus.SCHEDULED:
+			today = as_of or timezone.localdate()
+			return self.start_date <= today <= self.end_date
+		return False
 
 	def goal_progress_percent(self, total_sales_cents: int) -> int:
 		if self.goal_amount <= 0:
