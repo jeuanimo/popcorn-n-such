@@ -41,10 +41,10 @@
                                 <td>{{ sku.weight_ounces }}</td>
                                 <td>{{ sku.is_active|yesno:"Active,Inactive" }}</td>
                                 <td>
-                                    <div class="d-flex gap-1 flex-wrap align-items-center">
+                                    <div class="d-flex flex-column gap-2">
                                     <form method="post"
                                           action="{% url 'products:sku-update' sku.sku_code %}"
-                                          class="d-flex gap-2 align-items-center">
+                                          class="d-flex gap-2 align-items-center flex-wrap">
                                         {% csrf_token %}
                                         <input type="number"
                                                name="inventory_quantity"
@@ -72,12 +72,14 @@
                                                {% if sku.is_active %}checked{% endif %} />
                                         <button class="btn btn-sm btn-brand" type="submit">Save</button>
                                     </form>
+                                    <div class="d-flex gap-1">
                                     <a href="{% url 'products:sku-edit' sku.pk %}" class="btn btn-sm btn-outline-dark">Edit</a>
                                     <form method="post" action="{% url 'products:sku-delete' sku.pk %}"
                                           onsubmit="return confirm('Delete SKU {{ sku.sku_code }}? This cannot be undone.');">
                                         {% csrf_token %}
                                         <button type="submit" class="btn btn-sm btn-outline-dark">Delete</button>
                                     </form>
+                                    </div>
                                     </div>
                                 </td>
                             </tr>
