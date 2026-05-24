@@ -1099,15 +1099,16 @@ tr.table-info.fw-bold td    { background: rgba(13,202,240,.14) !important; }
 /* ── btn-outline-light (for dark/hero sections) ─────────────── */
 
 .btn-outline-light {
-  background: transparent;
+  background: rgba(255,255,255,.18);
   color: #fff;
-  border-color: rgba(255,255,255,.55);
+  border-color: rgba(255,255,255,.6);
+  border-bottom-color: rgba(255,255,255,.95); /* 3D step on dark bg */
 }
-.btn-outline-light:hover {
-  background: rgba(255,255,255,.12);
+.btn-outline-light:hover, .btn-outline-light:focus {
+  background: rgba(255,255,255,.28);
   color: #fff;
-  border-color: rgba(255,255,255,.8);
-  box-shadow: var(--btn-hover-glow);
+  border-color: rgba(255,255,255,.85);
+  box-shadow: 0 7px 18px rgba(0,0,0,.22);
 }
 
 /* ── Divider with gold dot ──────────────────────────────────── */
