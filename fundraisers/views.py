@@ -5,9 +5,11 @@ from django.core.exceptions import PermissionDenied
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views.generic import DetailView, ListView
 
+from django.db.models import OuterRef, Subquery
+
 from cart.services import CartService
 from core.security import RoleRequiredMixin
-from products.models import Product
+from products.models import Product, SKU
 
 from .forms import FundraiserCampaignApprovalForm, FundraiserCampaignRequestForm, FundraiserRequestReviewForm, FundraiserSignupForm
 from .models import FundraiserCampaign, FundraiserCampaignStatus, FundraiserRequest
@@ -41,9 +43,14 @@ class PublicFundraiserCampaignDetailView(DetailView):
 	def get_context_data(self, **kwargs):
 		context = super().get_context_data(**kwargs)
 		context.update(FundraiserCampaignService.campaign_progress_context(campaign=self.object))
+		_active_sku = SKU.objects.filter(product=OuterRef("pk"), is_active=True).order_by("retail_price")
 		context["products"] = (
-			Product.objects.filter(is_active=True, fundraiser_eligible=True)
+			Product.objects.active()
 			.prefetch_related("skus")
+			.annotate(
+				fundraiser_sku_id=Subquery(_active_sku.values("id")[:1]),
+				fundraiser_price=Subquery(_active_sku.values("retail_price")[:1]),
+			)
 			.order_by("-is_featured", "name")
 		)
 		return context
@@ -239,7 +246,24 @@ class FundraiserCampaignDashboardView(LoginRequiredMixin, DetailView):
 			self._delete_image(request, campaign, "campaign_banner", "Campaign banner removed.")
 		elif action == "create_team":
 			self._create_team(request, campaign)
+		elif action == "change_status":
+			self._change_status(request, campaign)
 		return redirect("fundraisers:campaign-dashboard", slug=campaign.slug)
+
+	def _change_status(self, request, campaign):
+		new_status = request.POST.get("new_status", "").strip()
+		allowed = {
+			FundraiserCampaignStatus.DRAFT: [FundraiserCampaignStatus.ACTIVE, FundraiserCampaignStatus.SCHEDULED],
+			FundraiserCampaignStatus.SCHEDULED: [FundraiserCampaignStatus.ACTIVE, FundraiserCampaignStatus.DRAFT],
+			FundraiserCampaignStatus.ACTIVE: [FundraiserCampaignStatus.CLOSED],
+			FundraiserCampaignStatus.CLOSED: [FundraiserCampaignStatus.ACTIVE],
+		}
+		if new_status in allowed.get(campaign.status, []):
+			campaign.status = new_status
+			campaign.save(update_fields=["status", "updated_at"])
+			messages.success(request, f"Campaign status updated to {campaign.get_status_display()}.")
+		else:
+			messages.error(request, f"Cannot change from {campaign.get_status_display()} to {new_status}.")
 
 	def _create_team(self, request, campaign):
 		from django.utils.text import slugify

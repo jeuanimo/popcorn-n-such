@@ -89,22 +89,25 @@ class CartService:
 
     @classmethod
     @transaction.atomic
-    def add_item(cls, *, request, sku, quantity: int = 1):
+    def add_item(cls, *, request, sku, quantity: int = 1, bypass_inventory: bool = False):
         if quantity < 1:
             raise ValidationError("Quantity must be at least 1.")
-        if not sku.is_purchasable:
+        if not sku.is_active or not sku.product.is_active:
             raise ValidationError("This SKU is currently unavailable.")
-        if quantity > sku.inventory_quantity:
-            raise ValidationError(
-                f"Only {sku.inventory_quantity} item(s) are available for {sku.size}."
-            )
+        if not bypass_inventory:
+            if not sku.is_purchasable:
+                raise ValidationError("This SKU is currently unavailable.")
+            if quantity > sku.inventory_quantity:
+                raise ValidationError(
+                    f"Only {sku.inventory_quantity} item(s) are available for {sku.size}."
+                )
 
         cart = cls.get_or_create_cart(request)
         cls._validate_cart_owner(request, cart)
         item, created = CartItem.objects.get_or_create(cart=cart, sku=sku, defaults={"quantity": quantity})
         if not created:
             requested_total = item.quantity + quantity
-            if requested_total > sku.inventory_quantity:
+            if not bypass_inventory and requested_total > sku.inventory_quantity:
                 raise ValidationError(
                     f"Only {sku.inventory_quantity} item(s) are available for {sku.size}."
                 )

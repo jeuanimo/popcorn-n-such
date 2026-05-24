@@ -71,34 +71,31 @@
                                     {% endif %}
                                 {% endwith %}
                                 <div class="s-card-price-row">
-                                    {% if product.primary_cart_sku %}
-                                        <span class="s-card-price">${{ product.primary_cart_sku.retail_price }}</span>
-                                        <span class="s-card-stock-in">✓ In Stock</span>
+                                    {% if product.fundraiser_price %}
+                                        <span class="s-card-price">${{ product.fundraiser_price }}</span>
                                     {% else %}
-                                        <span class="s-card-stock-out">Out of Stock</span>
+                                        <span class="s-card-stock-out">Unavailable</span>
                                     {% endif %}
                                 </div>
                                 <div class="s-card-actions">
-                                    {% if product.primary_cart_sku %}
-                                        {% if is_accepting_orders %}
-                                            <form method="post" action="{% url 'cart:add' product.primary_cart_sku.id %}">
-                                                {% csrf_token %}
-                                                <input type="hidden" name="next" value="{{ request.path }}" />
-                                                <div class="d-flex gap-2 align-items-center">
-                                                    <fieldset class="qty-stepper">
-                                                        <legend class="visually-hidden">Quantity</legend>
-                                                        <button type="button" class="qty-btn qty-dec" aria-label="Decrease quantity">−</button>
-                                                        <input name="quantity" type="number" min="1" max="{{ product.primary_cart_sku.inventory_quantity }}" value="1" class="qty-input" aria-label="Quantity" />
-                                                        <button type="button" class="qty-btn qty-inc" data-max="{{ product.primary_cart_sku.inventory_quantity }}" aria-label="Increase quantity">+</button>
-                                                    </fieldset>
-                                                    <button class="s-btn-cart" type="submit">Add to Cart</button>
-                                                </div>
-                                            </form>
-                                        {% else %}
-                                            <a href="{% url 'products:detail' product.slug %}" class="s-btn-cart">View</a>
-                                        {% endif %}
+                                    {% if product.fundraiser_sku_id and is_accepting_orders %}
+                                        <form method="post" action="{% url 'cart:add' product.fundraiser_sku_id %}">
+                                            {% csrf_token %}
+                                            <input type="hidden" name="next" value="{{ request.path }}" />
+                                            <input type="hidden" name="fundraiser_campaign" value="{{ object.slug }}" />
+                                            <div class="d-flex gap-2 align-items-center">
+                                                <fieldset class="qty-stepper">
+                                                    <legend class="visually-hidden">Quantity</legend>
+                                                    <button type="button" class="qty-btn qty-dec" aria-label="Decrease quantity">−</button>
+                                                    <input name="quantity" type="number" min="1" value="1" class="qty-input" aria-label="Quantity" />
+                                                    <button type="button" class="qty-btn qty-inc" aria-label="Increase quantity">+</button>
+                                                </fieldset>
+                                                <button class="s-btn-cart" type="submit">Add to Cart</button>
+
+                                            </div>
+                                        </form>
                                     {% else %}
-                                        <a href="{% url 'products:detail' product.slug %}" class="s-btn-cart">Choose Options</a>
+                                        <a href="{% url 'products:detail' product.slug %}" class="s-btn-cart">View</a>
                                     {% endif %}
                                     <a href="{% url 'products:detail' product.slug %}" class="s-card-detail-link">View details</a>
                                 </div>
