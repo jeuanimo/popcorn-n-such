@@ -206,6 +206,55 @@
                         {% endfor %}
                     </div>
                 </div>
+                <!-- Manage Teams -->
+                <div class="col-12 col-lg-6">
+                    <div class="hero-card p-4">
+                        <h2 class="h6 fw-bold mb-3">Manage Teams</h2>
+                        {% if campaign_teams %}
+                            <div class="mb-3">
+                                {% for team in campaign_teams %}
+                                    <div class="d-flex align-items-center justify-content-between py-2 border-bottom">
+                                        <div>
+                                            <span class="small fw-semibold">{{ team.name }}</span>
+                                            <span class="small text-muted ms-2">{{ team.memberships.count }} member{{ team.memberships.count|pluralize }}</span>
+                                        </div>
+                                        <a href="{% url 'teams:dashboard' team.slug %}"
+                                           class="btn btn-xs btn-outline-dark flex-shrink-0"
+                                           style="font-size:.7rem;padding:.2rem .55rem;">Manage</a>
+                                    </div>
+                                {% endfor %}
+                            </div>
+                        {% else %}
+                            <p class="small text-muted">No teams yet. Create the first one below.</p>
+                        {% endif %}
+                        <form method="post" class="d-flex gap-2 mt-2">
+                            {% csrf_token %}
+                            <input type="hidden" name="action" value="create_team" />
+                            <input type="text" name="team_name" placeholder="Team name"
+                                   class="form-control form-control-sm" required />
+                            <button type="submit" class="btn btn-sm btn-brand flex-shrink-0">Add Team</button>
+                        </form>
+                    </div>
+                </div>
+                <!-- Sellers -->
+                <div class="col-12 col-lg-6">
+                    <div class="hero-card p-4">
+                        <h2 class="h6 fw-bold mb-3">Sellers</h2>
+                        {% if campaign_sellers %}
+                            {% for seller in campaign_sellers %}
+                                <div class="d-flex align-items-center justify-content-between py-2 border-bottom">
+                                    <span class="small fw-semibold">{{ seller.display_name|default:seller.title }}</span>
+                                    <a href="{% url 'sellers:public-store' seller.slug %}"
+                                       class="btn btn-xs btn-outline-dark flex-shrink-0"
+                                       style="font-size:.7rem;padding:.2rem .55rem;" target="_blank">View</a>
+                                </div>
+                            {% endfor %}
+                        {% else %}
+                            <p class="small text-muted mb-2">No sellers yet. Share the seller invite link to recruit sellers.</p>
+                        {% endif %}
+                        <p class="small text-muted mt-3 mb-1">Sellers join by clicking your <strong>Seller invite link</strong> in the Share card above.</p>
+                    </div>
+                </div>
                 <!-- Recent orders -->
                 <div class="col-12">
                     <div class="hero-card p-4">

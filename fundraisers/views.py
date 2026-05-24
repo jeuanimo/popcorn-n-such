@@ -218,6 +218,12 @@ class FundraiserCampaignDashboardView(LoginRequiredMixin, DetailView):
 	def get_context_data(self, **kwargs):
 		context = super().get_context_data(**kwargs)
 		context.update(FundraiserCampaignService.dashboard_metrics(campaign=self.object))
+		context["campaign_teams"] = (
+			self.object.campaign_teams.select_related("captain").order_by("name")
+		)
+		context["campaign_sellers"] = (
+			self.object.sellers.select_related("user").order_by("display_name")
+		)
 		return context
 
 	def post(self, request, slug):
@@ -231,7 +237,31 @@ class FundraiserCampaignDashboardView(LoginRequiredMixin, DetailView):
 			self._delete_image(request, campaign, "campaign_image", "Campaign image removed.")
 		elif action == "delete_banner":
 			self._delete_image(request, campaign, "campaign_banner", "Campaign banner removed.")
+		elif action == "create_team":
+			self._create_team(request, campaign)
 		return redirect("fundraisers:campaign-dashboard", slug=campaign.slug)
+
+	def _create_team(self, request, campaign):
+		from django.utils.text import slugify
+		from teams.models import Team
+		name = request.POST.get("team_name", "").strip()
+		if not name:
+			messages.error(request, "Team name is required.")
+			return
+		base_slug = slugify(name)[:270]
+		team_slug = base_slug
+		counter = 1
+		while Team.objects.filter(slug=team_slug).exists():
+			team_slug = f"{base_slug}-{counter}"
+			counter += 1
+		Team.objects.create(
+			campaign=campaign,
+			organization=campaign.organization,
+			name=name,
+			slug=team_slug,
+			captain=request.user,
+		)
+		messages.success(request, f"Team '{name}' created.")
 
 	def _replace_image(self, request, campaign, field, msg):
 		file = request.FILES.get(field)
