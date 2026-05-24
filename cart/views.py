@@ -74,6 +74,10 @@ def add_to_cart_view(request, sku_id: int):
 		messages.success(request, f"Added {sku.product.name} ({sku.size}) to cart.")
 	except ValidationError as exc:
 		messages.error(request, str(exc))
+	# Redirect back to the originating page (e.g. campaign store) if a safe relative URL is provided.
+	next_url = request.POST.get("next", "").strip()
+	if next_url and next_url.startswith("/") and not next_url.startswith("//"):
+		return redirect(next_url)
 	return redirect(CART_VIEW_URL)
 
 

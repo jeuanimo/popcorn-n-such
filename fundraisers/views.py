@@ -42,7 +42,7 @@ class PublicFundraiserCampaignDetailView(DetailView):
 		context = super().get_context_data(**kwargs)
 		context.update(FundraiserCampaignService.campaign_progress_context(campaign=self.object))
 		context["products"] = (
-			Product.objects.filter(is_active=True)
+			Product.objects.filter(is_active=True, fundraiser_eligible=True)
 			.prefetch_related("skus")
 			.order_by("-is_featured", "name")
 		)

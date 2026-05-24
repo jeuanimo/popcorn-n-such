@@ -83,6 +83,7 @@
                                         {% if is_accepting_orders %}
                                             <form method="post" action="{% url 'cart:add' product.primary_cart_sku.id %}">
                                                 {% csrf_token %}
+                                                <input type="hidden" name="next" value="{{ request.path }}" />
                                                 <div class="d-flex gap-2 align-items-center">
                                                     <fieldset class="qty-stepper">
                                                         <legend class="visually-hidden">Quantity</legend>
