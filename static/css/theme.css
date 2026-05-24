@@ -746,6 +746,8 @@ ul.errorlist {
   overflow: hidden;
   margin: 0;
   padding: 0;
+  min-inline-size: 0;  /* override fieldset browser default */
+  flex-shrink: 0;
 }
 .qty-btn {
   width: 2rem;
@@ -770,6 +772,8 @@ ul.errorlist {
   text-align: center;
   font-size: .9rem;
   font-weight: 600;
+  color: var(--kettle-black);
+  background: #fff;
   -moz-appearance: textfield;
 }
 .qty-input::-webkit-outer-spin-button,
@@ -1349,7 +1353,8 @@ tr.table-info.fw-bold td    { background: rgba(13,202,240,.14) !important; }
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 100%;
+  flex: 1 1 auto;
+  min-width: 0;
   height: 36px;
   background: var(--butter-gold);
   color: var(--kettle-black);

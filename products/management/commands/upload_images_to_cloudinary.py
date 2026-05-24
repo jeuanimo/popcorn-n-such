@@ -1,24 +1,25 @@
 """
 Management command: upload_images_to_cloudinary
 
-Re-uploads product images from local media/ storage to Cloudinary.
-Run this once after setting CLOUDINARY_URL in your environment.
+Uploads product images from your LOCAL media/ folder to Cloudinary.
+Run this on your local machine (not on Render) where the files exist.
 
 Usage:
-    python manage.py upload_images_to_cloudinary
-    python manage.py upload_images_to_cloudinary --dry-run
+    CLOUDINARY_URL=cloudinary://KEY:SECRET@CLOUD python manage.py upload_images_to_cloudinary
+    CLOUDINARY_URL=... python manage.py upload_images_to_cloudinary --dry-run
 """
 
-import os
+from pathlib import Path
 
-from django.core.files import File
+import cloudinary.uploader
+from django.conf import settings
 from django.core.management.base import BaseCommand
 
 from products.models import Product
 
 
 class Command(BaseCommand):
-    help = "Re-upload local product images to Cloudinary"
+    help = "Upload product images from local media/ to Cloudinary"
 
     def add_arguments(self, parser):
         parser.add_argument(
@@ -30,8 +31,8 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
         dry_run = options["dry_run"]
 
-        products_with_images = Product.objects.exclude(image="").exclude(image=None)
-        total = products_with_images.count()
+        products = Product.objects.exclude(image="").exclude(image=None)
+        total = products.count()
 
         if total == 0:
             self.stdout.write("No products with images found.")
@@ -39,57 +40,42 @@ class Command(BaseCommand):
 
         self.stdout.write(f"Found {total} product(s) with images.")
 
+        # Collect unique image names so we only upload each file once
+        unique_names = {}
+        for product in products:
+            unique_names.setdefault(product.image.name, []).append(product)
+
         uploaded = 0
         skipped = 0
         errors = 0
 
-        for product in products_with_images:
-            image_name = product.image.name  # e.g. "products/popcorn.jpeg"
+        for name, product_list in unique_names.items():
+            local_path = Path(settings.MEDIA_ROOT) / name
 
-            # If the name already looks like a Cloudinary public_id
-            # (no file extension or starts with "http"), skip it.
-            local_path = product.image.path if hasattr(product.image, "path") else None
-
-            try:
-                local_path = product.image.path
-            except NotImplementedError:
-                # Cloudinary storage raises NotImplementedError for .path
+            if not local_path.exists():
                 self.stdout.write(
-                    self.style.WARNING(
-                        f"  SKIP  {product.name!r} — already on Cloudinary ({image_name})"
-                    )
-                )
-                skipped += 1
-                continue
-
-            if not os.path.exists(local_path):
-                self.stdout.write(
-                    self.style.WARNING(
-                        f"  SKIP  {product.name!r} — local file not found: {local_path}"
-                    )
+                    self.style.WARNING(f"  SKIP  {name} — not found at {local_path}")
                 )
                 skipped += 1
                 continue
 
             if dry_run:
-                self.stdout.write(f"  DRY   {product.name!r} → would upload {local_path}")
+                self.stdout.write(f"  DRY   would upload {local_path}")
                 continue
 
             try:
-                with open(local_path, "rb") as f:
-                    django_file = File(f, name=os.path.basename(local_path))
-                    product.image.save(os.path.basename(local_path), django_file, save=True)
-
+                result = cloudinary.uploader.upload(
+                    str(local_path),
+                    public_id=name,
+                    overwrite=True,
+                    resource_type="image",
+                )
                 self.stdout.write(
-                    self.style.SUCCESS(
-                        f"  OK    {product.name!r} → {product.image.url}"
-                    )
+                    self.style.SUCCESS(f"  OK    {name} → {result['url']}")
                 )
                 uploaded += 1
             except Exception as exc:
-                self.stderr.write(
-                    self.style.ERROR(f"  FAIL  {product.name!r} — {exc}")
-                )
+                self.stderr.write(self.style.ERROR(f"  FAIL  {name} — {exc}"))
                 errors += 1
 
         if not dry_run:
