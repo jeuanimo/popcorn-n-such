@@ -82,16 +82,13 @@
                                         <form method="post" action="{% url 'cart:add' product.fundraiser_sku_id %}">
                                             {% csrf_token %}
                                             <input type="hidden" name="next" value="{{ request.path }}" />
-                                            <div class="d-flex gap-2 align-items-center">
-                                                <fieldset class="qty-stepper">
-                                                    <legend class="visually-hidden">Quantity</legend>
-                                                    <button type="button" class="qty-btn qty-dec" aria-label="Decrease quantity">−</button>
-                                                    <input name="quantity" type="number" min="1" value="1" class="qty-input" aria-label="Quantity" />
-                                                    <button type="button" class="qty-btn qty-inc" aria-label="Increase quantity">+</button>
-                                                </fieldset>
-                                                <button class="s-btn-cart" type="submit">Add to Cart</button>
-
-                                            </div>
+                                            <fieldset class="qty-stepper mb-2">
+                                                <legend class="visually-hidden">Quantity</legend>
+                                                <button type="button" class="qty-btn qty-dec" aria-label="Decrease quantity">−</button>
+                                                <input name="quantity" type="number" min="1" value="1" class="qty-input" aria-label="Quantity" />
+                                                <button type="button" class="qty-btn qty-inc" aria-label="Increase quantity">+</button>
+                                            </fieldset>
+                                            <button class="s-btn-cart w-100" type="submit">Add to Cart</button>
                                         </form>
                                     {% else %}
                                         <a href="{% url 'products:detail' product.slug %}" class="s-btn-cart">View</a>
