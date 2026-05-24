@@ -131,7 +131,7 @@
             {% endblock content %}
         </main>
         {% if messages %}
-            <div class="modal fade"
+            <div class="modal fade site-modal"
                  id="siteMessageModal"
                  tabindex="-1"
                  aria-labelledby="siteMessageModalLabel"
@@ -139,7 +139,9 @@
                 <div class="modal-dialog modal-dialog-centered">
                     <div class="modal-content">
                         <div class="modal-header">
-                            <h5 class="modal-title" id="siteMessageModalLabel">Update</h5>
+                            <h5 class="modal-title" id="siteMessageModalLabel">
+                                {% for message in messages %}{% if 'error' in message.tags %}&#x26A0; Error{% elif 'success' in message.tags %}&#x2713; Success{% elif 'warning' in message.tags %}&#x26A0; Warning{% else %}&#x2139; Note{% endif %}{% endfor %}
+                            </h5>
                             <button type="button"
                                     class="btn-close"
                                     data-bs-dismiss="modal"
@@ -147,8 +149,9 @@
                         </div>
                         <div class="modal-body">
                             {% for message in messages %}
-                                <div class="alert alert-{{ message.tags|default:'info' }} mb-2"
-                                     role="alert">{{ message }}</div>
+                                <div class="msg-pill msg-{% if 'error' in message.tags %}error{% elif 'success' in message.tags %}success{% elif 'warning' in message.tags %}warning{% else %}info{% endif %}">
+                                    {{ message }}
+                                </div>
                             {% endfor %}
                         </div>
                         <div class="modal-footer">

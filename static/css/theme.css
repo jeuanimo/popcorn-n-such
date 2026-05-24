@@ -506,6 +506,78 @@ a:hover { color: var(--popcorn-red-dk); }
   font-style: normal;
 }
 
+/* ── Themed modals ───────────────────────────────────────────── */
+
+.site-modal .modal-content {
+  border: none;
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+  overflow: hidden;
+}
+
+.site-modal .modal-header {
+  background: var(--popcorn-red);
+  border-bottom: none;
+  padding: 1rem 1.25rem;
+}
+
+.site-modal .modal-title {
+  color: #fff;
+  font-weight: 700;
+  font-size: 1rem;
+  letter-spacing: .01em;
+}
+
+.site-modal .btn-close {
+  filter: invert(1) brightness(2);
+  opacity: .85;
+}
+
+.site-modal .modal-body {
+  background: var(--warm-cream-bg);
+  padding: 1.25rem;
+}
+
+.site-modal .modal-footer {
+  background: var(--warm-cream-bg);
+  border-top: 1px solid rgba(249,178,51,.35);
+  padding: .75rem 1.25rem;
+}
+
+/* Message pills inside the themed modal */
+.site-modal .msg-pill {
+  display: flex;
+  align-items: flex-start;
+  gap: .6rem;
+  padding: .65rem .9rem;
+  border-radius: var(--radius);
+  font-size: .9rem;
+  font-weight: 500;
+  margin-bottom: .5rem;
+}
+.site-modal .msg-pill:last-child { margin-bottom: 0; }
+
+.site-modal .msg-pill.msg-success {
+  background: #f0faf0;
+  color: var(--success-green);
+  border-left: 4px solid var(--success-green);
+}
+.site-modal .msg-pill.msg-error {
+  background: #fff0f0;
+  color: var(--popcorn-red-dk);
+  border-left: 4px solid var(--popcorn-red);
+}
+.site-modal .msg-pill.msg-warning {
+  background: #fffbea;
+  color: #7c5c00;
+  border-left: 4px solid var(--butter-gold-dk);
+}
+.site-modal .msg-pill.msg-info {
+  background: #f0f4ff;
+  color: #1a3a8f;
+  border-left: 4px solid #4a6cf7;
+}
+
 /* ── Footer ─────────────────────────────────────────────────── */
 
 .site-footer {

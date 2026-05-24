@@ -9,7 +9,7 @@ from django.views.generic import TemplateView
 from cart.models import Cart
 from cart.services import CartService
 from core.security import role_required
-from fundraisers.models import FundraiserInvite, FundraiserParticipation
+from fundraisers.models import FundraiserCampaign, FundraiserInvite, FundraiserParticipation
 from orders.models import Order
 from security_audit.models import AuditAction
 from security_audit.utils import log_audit_event
@@ -168,6 +168,11 @@ def profile_view(request):
 		.prefetch_related("comments__author")
 		.order_by("-created_at")[:20]
 	)
+	managed_campaigns = (
+		FundraiserCampaign.objects.filter(created_by=request.user)
+		.select_related("organization")
+		.order_by("-created_at")[:8]
+	)
 	return render(
 		request,
 		"accounts/profile.html",
@@ -182,6 +187,7 @@ def profile_view(request):
 			"posts": posts,
 			"saved_addresses": SavedAddress.objects.filter(user=request.user).order_by("-is_default", "label", "created_at"),
 			"fundraiser_participations": FundraiserParticipation.objects.filter(user=request.user).select_related("invite")[:8],
+			"managed_campaigns": managed_campaigns,
 			"fundraiser_join_form": FundraiserJoinForm(),
 		},
 	)
