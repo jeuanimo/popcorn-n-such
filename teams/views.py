@@ -78,7 +78,31 @@ class PublicTeamDetailView(DetailView):
 @login_required
 def join_team_view(request, slug: str):
     team = get_object_or_404(Team, slug=slug, is_active=True)
-    form = JoinTeamByCodeForm(request.POST or None)
+
+    # If the invite code is in the URL query param, auto-join — no form needed.
+    url_code = request.GET.get("code", "").strip()
+    if url_code and url_code == team.invite_code:
+        if not TeamMembership.objects.filter(team=team, member=request.user, is_active=True).exists():
+            try:
+                membership = TeamService.join_team_by_code(
+                    user=request.user,
+                    invite_code=url_code,
+                )
+                log_audit_event(
+                    user=request.user,
+                    action=AuditAction.UPDATE,
+                    resource_type="team_membership",
+                    resource_id=str(membership.pk),
+                    details={"team_slug": team.slug},
+                )
+                messages.success(request, f"You joined {team.name}!")
+            except ValidationError as exc:
+                messages.error(request, str(exc))
+        else:
+            messages.info(request, f"You're already a member of {team.name}.")
+        return redirect("teams:dashboard", slug=team.slug)
+
+    form = JoinTeamByCodeForm(request.POST or None, initial={"invite_code": url_code})
 
     if request.method == "POST" and form.is_valid():
         try:

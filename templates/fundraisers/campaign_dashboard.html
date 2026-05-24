@@ -278,14 +278,57 @@
                         {% if campaign_teams %}
                             <div class="mb-3">
                                 {% for team in campaign_teams %}
-                                    <div class="d-flex align-items-center justify-content-between py-2 border-bottom">
-                                        <div>
-                                            <span class="small fw-semibold">{{ team.name }}</span>
-                                            <span class="small text-muted ms-2">{{ team.memberships.count }} member{{ team.memberships.count|pluralize }}</span>
+                                    <div class="border-bottom py-2">
+                                        <!-- Row 1: name + member count + dashboard link -->
+                                        <div class="d-flex align-items-center justify-content-between gap-2 mb-1">
+                                            <div>
+                                                <span class="small fw-semibold">{{ team.name }}</span>
+                                                <span class="small text-muted ms-2">{{ team.memberships.count }} member{{ team.memberships.count|pluralize }}</span>
+                                            </div>
+                                            <a href="{% url 'teams:dashboard' team.slug %}"
+                                               class="btn btn-xs btn-outline-dark flex-shrink-0"
+                                               style="font-size:.7rem;padding:.2rem .55rem;">Manage</a>
                                         </div>
-                                        <a href="{% url 'teams:dashboard' team.slug %}"
-                                           class="btn btn-xs btn-outline-dark flex-shrink-0"
-                                           style="font-size:.7rem;padding:.2rem .55rem;">Manage</a>
+                                        <!-- Row 2: join link + copy -->
+                                        <div class="d-flex gap-1 align-items-center mb-1">
+                                            <input type="text"
+                                                   class="form-control form-control-sm"
+                                                   style="font-size:.7rem;"
+                                                   value="{{ request.scheme }}://{{ request.get_host }}{% url 'teams:join' team.slug %}?code={{ team.invite_code }}"
+                                                   readonly
+                                                   id="teamJoinLink{{ team.pk }}" />
+                                            <button class="btn btn-xs btn-outline-dark flex-shrink-0"
+                                                    style="font-size:.7rem;padding:.2rem .55rem;white-space:nowrap;"
+                                                    onclick="navigator.clipboard.writeText(document.getElementById('teamJoinLink{{ team.pk }}').value);this.textContent='Copied!'">
+                                                Copy Join Link
+                                            </button>
+                                        </div>
+                                        <!-- Row 3: rename + delete -->
+                                        <div class="d-flex gap-1 mt-1">
+                                            <form method="post" class="d-flex gap-1 flex-grow-1">
+                                                {% csrf_token %}
+                                                <input type="hidden" name="action" value="rename_team" />
+                                                <input type="hidden" name="team_pk" value="{{ team.pk }}" />
+                                                <input type="text"
+                                                       name="team_name"
+                                                       value="{{ team.name }}"
+                                                       class="form-control form-control-sm"
+                                                       style="font-size:.75rem;"
+                                                       required />
+                                                <button type="submit"
+                                                        class="btn btn-xs btn-outline-secondary flex-shrink-0"
+                                                        style="font-size:.7rem;padding:.2rem .55rem;">Rename</button>
+                                            </form>
+                                            <form method="post"
+                                                  onsubmit="return confirm('Delete team {{ team.name }}? This cannot be undone.');">
+                                                {% csrf_token %}
+                                                <input type="hidden" name="action" value="delete_team" />
+                                                <input type="hidden" name="team_pk" value="{{ team.pk }}" />
+                                                <button type="submit"
+                                                        class="btn btn-xs btn-outline-danger flex-shrink-0"
+                                                        style="font-size:.7rem;padding:.2rem .55rem;">Delete</button>
+                                            </form>
+                                        </div>
                                     </div>
                                 {% endfor %}
                             </div>
@@ -295,7 +338,7 @@
                         <form method="post" class="d-flex gap-2 mt-2">
                             {% csrf_token %}
                             <input type="hidden" name="action" value="create_team" />
-                            <input type="text" name="team_name" placeholder="Team name"
+                            <input type="text" name="team_name" placeholder="New team name"
                                    class="form-control form-control-sm" required />
                             <button type="submit" class="btn btn-sm btn-brand flex-shrink-0">Add Team</button>
                         </form>

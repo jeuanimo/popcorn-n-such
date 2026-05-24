@@ -253,6 +253,10 @@ class FundraiserCampaignDashboardView(LoginRequiredMixin, DetailView):
 			self._delete_image(request, campaign, "campaign_banner", "Campaign banner removed.")
 		elif action == "create_team":
 			self._create_team(request, campaign)
+		elif action == "rename_team":
+			self._rename_team(request, campaign)
+		elif action == "delete_team":
+			self._delete_team(request, campaign)
 		elif action == "change_status":
 			self._change_status(request, campaign)
 		elif action == "send_invite":
@@ -295,6 +299,37 @@ class FundraiserCampaignDashboardView(LoginRequiredMixin, DetailView):
 			captain=request.user,
 		)
 		messages.success(request, f"Team '{name}' created.")
+
+	def _rename_team(self, request, campaign):
+		from teams.models import Team
+		team_pk = request.POST.get("team_pk", "").strip()
+		new_name = request.POST.get("team_name", "").strip()
+		if not team_pk or not new_name:
+			messages.error(request, "Team name is required.")
+			return
+		team = get_object_or_404(Team, pk=team_pk, campaign=campaign)
+		old_name = team.name
+		team.name = new_name
+		team.save(update_fields=["name", "updated_at"])
+		messages.success(request, f"Team renamed from '{old_name}' to '{new_name}'.")
+
+	def _delete_team(self, request, campaign):
+		from django.db import ProtectedError
+		from teams.models import Team
+		team_pk = request.POST.get("team_pk", "").strip()
+		if not team_pk:
+			messages.error(request, "No team specified.")
+			return
+		team = get_object_or_404(Team, pk=team_pk, campaign=campaign)
+		name = team.name
+		try:
+			team.delete()
+			messages.success(request, f"Team '{name}' deleted.")
+		except ProtectedError:
+			# Team has orders — soft delete instead
+			team.is_active = False
+			team.save(update_fields=["is_active", "updated_at"])
+			messages.success(request, f"Team '{name}' deactivated (it has existing orders).")
 
 	def _replace_image(self, request, campaign, field, msg):
 		file = request.FILES.get(field)
