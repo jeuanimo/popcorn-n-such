@@ -222,7 +222,7 @@ class FundraiserCampaignDashboardView(LoginRequiredMixin, DetailView):
 			self.object.campaign_teams.select_related("captain").order_by("name")
 		)
 		context["campaign_sellers"] = (
-			self.object.sellers.select_related("user").order_by("display_name")
+			self.object.seller_stores.select_related("seller").order_by("display_name")
 		)
 		return context
 
