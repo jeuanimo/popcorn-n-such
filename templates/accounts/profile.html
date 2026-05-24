@@ -157,13 +157,10 @@
                 </a>
             </div>
 
-            {# Fundraiser tools #}
+            {# My Campaigns — campaigns the user created/manages #}
             <div class="hero-card p-3 mb-3" id="fundraiser-tools">
-                <h2 class="h6 mb-2">Fundraiser tools</h2>
-
-                {# Campaigns I manage #}
+                <h2 class="h6 mb-2">My campaigns</h2>
                 {% if managed_campaigns %}
-                    <h3 class="small fw-bold text-uppercase text-muted mb-1" style="font-size:.7rem;letter-spacing:.06em;">My campaigns</h3>
                     {% for campaign in managed_campaigns %}
                         <div class="d-flex align-items-center justify-content-between mb-1">
                             <span class="small text-truncate me-2">{{ campaign.campaign_name }}</span>
@@ -173,27 +170,25 @@
                         </div>
                     {% endfor %}
                     <hr class="my-2">
+                {% else %}
+                    <p class="small text-muted mb-2">You haven't started a fundraiser yet.</p>
                 {% endif %}
+                <a href="{% url 'fundraisers:signup' %}" class="btn btn-sm btn-outline-dark w-100">
+                    Start a fundraiser
+                </a>
+            </div>
 
-                {# Campaigns joined via invite #}
-                {% if fundraiser_participations %}
-                    <h3 class="small fw-bold text-uppercase text-muted mb-1" style="font-size:.7rem;letter-spacing:.06em;">Joined campaigns</h3>
-                    {% for p in fundraiser_participations %}
-                        <p class="small mb-1">{{ p.invite.campaign_name }}{% if p.invite.team_name %} — {{ p.invite.team_name }}{% endif %}</p>
-                    {% endfor %}
-                    <hr class="my-2">
-                {% endif %}
-
-                {# Join by invite code #}
-                <form method="post" action="{% url 'accounts:fundraiser-join' %}" class="d-flex gap-2 mb-2">
+            {# Join a Campaign — joining someone else's campaign via invite code #}
+            <div class="hero-card p-3 mb-3">
+                <h2 class="h6 mb-2">Join a campaign</h2>
+                {% for p in fundraiser_participations %}
+                    <p class="small mb-1">{{ p.invite.campaign_name }}{% if p.invite.team_name %} — {{ p.invite.team_name }}{% endif %}</p>
+                {% endfor %}
+                <form method="post" action="{% url 'accounts:fundraiser-join' %}" class="d-flex gap-2">
                     {% csrf_token %}
                     {{ fundraiser_join_form.invite_code }}
                     <button class="btn btn-sm btn-brand flex-shrink-0" type="submit">Join</button>
                 </form>
-
-                <a href="{% url 'fundraisers:signup' %}" class="btn btn-sm btn-outline-dark w-100">
-                    Start a fundraiser
-                </a>
             </div>
 
         </div>{# end left sidebar #}

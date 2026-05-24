@@ -97,6 +97,11 @@ class AccountDashboardView(LoginRequiredMixin, TemplateView):
 			.order_by("next_order_date")[:4]
 		)
 
+		managed_campaigns = (
+			FundraiserCampaign.objects.filter(created_by=user)
+			.select_related("organization")
+			.order_by("-created_at")[:8]
+		)
 		context.update(
 			{
 				"customer_profile": customer_profile,
@@ -108,6 +113,7 @@ class AccountDashboardView(LoginRequiredMixin, TemplateView):
 				"active_subscriptions": active_subscriptions,
 				"team_memberships": TeamMembership.objects.filter(member=user).select_related("team")[:8],
 				"seller_links": SellerLink.objects.filter(user=user, is_active=True)[:8],
+				"managed_campaigns": managed_campaigns,
 			}
 		)
 		return context

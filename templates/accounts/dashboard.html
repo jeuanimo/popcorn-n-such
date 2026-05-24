@@ -84,10 +84,19 @@
                            href="{% url 'accounts:addresses' %}">Manage addresses</a>
                     </div>
                     <div class="hero-card p-4 mb-4">
-                        <h2 class="h5 mb-3">Fundraiser</h2>
-                        <p class="mb-3">Manage your fundraiser participation and submit fundraiser requests from your profile.</p>
-                        <a class="btn btn-sm btn-outline-dark"
-                           href="{% url 'accounts:profile' %}#fundraiser-tools">Open fundraiser tools</a>
+                        <h2 class="h5 mb-3">My campaigns</h2>
+                        {% if managed_campaigns %}
+                            {% for campaign in managed_campaigns %}
+                                <div class="d-flex align-items-center justify-content-between mb-2">
+                                    <span class="small text-truncate me-2">{{ campaign.campaign_name }}</span>
+                                    <a href="{% url 'fundraisers:campaign-dashboard' campaign.slug %}"
+                                       class="btn btn-sm btn-outline-dark flex-shrink-0">Dashboard</a>
+                                </div>
+                            {% endfor %}
+                        {% else %}
+                            <p class="mb-3">You haven't started a fundraiser yet.</p>
+                        {% endif %}
+                        <a class="btn btn-sm btn-brand mt-1" href="{% url 'fundraisers:signup' %}">Start a fundraiser</a>
                     </div>
                 </div>
                 <div class="col-12 col-lg-4">
