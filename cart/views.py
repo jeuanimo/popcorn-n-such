@@ -58,7 +58,8 @@ class CartView(TemplateView):
 		context["coupon_placeholder"] = "POPCORNFUN"
 		context["recommended_products"] = (
 			Product.objects.public_store()
-			.exclude(id__in=cart.items.values_list("sku__product_id", flat=True))[:4]
+			.exclude(id__in=cart.items.values_list("sku__product_id", flat=True))
+			.prefetch_related("skus")[:4]
 		)
 		return context
 

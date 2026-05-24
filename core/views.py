@@ -91,7 +91,7 @@ class HomeView(TemplateView):
 
 	def get_context_data(self, **kwargs):
 		context = super().get_context_data(**kwargs)
-		context["featured_products"] = Product.objects.public_store().filter(is_featured=True)[:6]
+		context["featured_products"] = Product.objects.public_store().filter(is_featured=True).prefetch_related("skus")[:6]
 		return context
 
 
@@ -104,11 +104,11 @@ class StartFundraiserView(TemplateView):
 
 	def get(self, request, *args, **kwargs):
 		if request.user.is_authenticated:
-			return redirect("accounts:fundraiser-request")
+			return redirect("fundraisers:signup")
 		return render(
 			request,
 			self.template_name,
-			{"next_url": request.GET.get("next") or "/accounts/fundraisers/request/"},
+			{"next_url": request.GET.get("next") or "/fundraisers/start/"},
 		)
 
 

@@ -132,7 +132,8 @@ class ProductDetailView(DetailView):
 		context["related_products"] = (
 			Product.objects.public_store()
 			.filter(category=self.object.category)
-			.exclude(id=self.object.id)[:4]
+			.exclude(id=self.object.id)
+			.prefetch_related("skus")[:4]
 		)
 		return context
 
