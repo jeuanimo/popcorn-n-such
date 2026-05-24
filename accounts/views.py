@@ -202,7 +202,7 @@ def notification_preferences_view(request):
 			profile.sms_opt_in = preferences.sms_opt_in
 			profile.save(update_fields=["marketing_opt_in", "sms_opt_in", "updated_at"])
 			messages.success(request, "Notification preferences updated.")
-			return redirect("accounts:preferences")
+			return redirect(ACCOUNT_DASHBOARD_URL)
 	else:
 		form = NotificationPreferencesForm(instance=notification_preference)
 

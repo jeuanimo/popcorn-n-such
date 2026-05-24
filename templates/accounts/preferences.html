@@ -5,11 +5,17 @@
 {% block content %}
     <section class="py-5">
         <div class="container form-container">
-            <h1 class="mb-3">Notification Preferences</h1>
+            <div class="d-flex align-items-center gap-3 mb-3">
+                <h1 class="mb-0">Notification Preferences</h1>
+                <a href="{% url 'accounts:dashboard' %}" class="btn btn-sm btn-outline-secondary ms-auto">&#8592; Back to dashboard</a>
+            </div>
             <form method="post">
                 {% csrf_token %}
                 {{ form.as_p }}
-                <button type="submit" class="btn btn-brand">Save preferences</button>
+                <div class="d-flex gap-2 mt-2">
+                    <button type="submit" class="btn btn-brand">Save preferences</button>
+                    <a href="{% url 'accounts:dashboard' %}" class="btn btn-outline-secondary">Cancel</a>
+                </div>
             </form>
         </div>
     </section>
