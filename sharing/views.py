@@ -36,6 +36,13 @@ class ShareLinkRedirectView(View):
             CartService.set_campaign_attribution(request=request, campaign=link.campaign)
             CartService.set_share_link(request=request, share_link=link)
 
+        # Redirect to the appropriate public page based on link type
+        if link.seller_store_id:
+            return redirect("sellers:public-store", slug=link.seller_store.slug)
+        elif link.team_id:
+            return redirect("teams:public-detail", slug=link.team.slug)
+        elif link.campaign_id:
+            return redirect("fundraisers:public-campaign-detail", slug=link.campaign.slug)
         return redirect("products:list")
 
 
