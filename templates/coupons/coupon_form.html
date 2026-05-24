@@ -4,7 +4,7 @@
 {% endblock title %}
 {% block content %}
     <div class="mb-3">
-        <a class="btn btn-outline-secondary btn-sm"
+        <a class="btn btn-outline-dark btn-sm"
            href="{% url 'coupons:admin-list' %}">← Back to Coupons</a>
     </div>
     <div class="card">
@@ -38,7 +38,7 @@
                 {% if form.non_field_errors %}<div class="alert alert-danger mt-3">{{ form.non_field_errors }}</div>{% endif %}
                 <div class="mt-4 d-flex gap-2">
                     <button type="submit" class="btn btn-brand">{{ submit_label }}</button>
-                    <a class="btn btn-outline-secondary"
+                    <a class="btn btn-outline-dark"
                        href="{% url 'coupons:admin-list' %}">Cancel</a>
                 </div>
             </form>

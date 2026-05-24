@@ -23,7 +23,7 @@
                        aria-label="Search labels" />
                 <button class="btn btn-outline-dark" type="submit">Search</button>
                 {% if q %}
-                    <a class="btn btn-outline-secondary"
+                    <a class="btn btn-outline-dark"
                        href="{% url 'shipping:label-list' %}">Clear</a>
                 {% endif %}
             </div>
@@ -88,7 +88,7 @@
                                         <a class="btn btn-sm btn-outline-dark"
                                            href="{% url 'shipping:label-download' label.id %}">Download</a>
                                         {% if not label.is_voided %}
-                                            <a class="btn btn-sm btn-outline-secondary"
+                                            <a class="btn btn-sm btn-outline-dark"
                                                href="{% url 'shipping:label-print' label.id %}"
                                                target="_blank">Print</a>
                                             <form method="post"

@@ -7,7 +7,7 @@
                 <div class="text-muted small">Unread: {{ unread_count }}</div>
             </div>
             <div class="d-flex gap-2">
-                <a class="btn btn-sm btn-outline-secondary"
+                <a class="btn btn-sm btn-outline-dark"
                    href="{% url 'notifications:user-preferences' %}">Preferences</a>
                 <form method="post" action="{% url 'notifications:inbox-mark-all-read' %}">
                     {% csrf_token %}

@@ -202,7 +202,7 @@
                     {% csrf_token %}
                     {{ post_form.body }}
                     <div class="d-flex align-items-center justify-content-between mt-2 gap-2">
-                        <label class="btn btn-sm btn-outline-secondary d-flex align-items-center gap-1 mb-0" style="cursor:pointer;">
+                        <label class="btn btn-sm btn-outline-dark d-flex align-items-center gap-1 mb-0" style="cursor:pointer;">
                             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
                                 <path d="M6.002 5.5a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0z"/>
                                 <path d="M2.002 1a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V3a2 2 0 0 0-2-2h-12zm12 1a1 1 0 0 1 1 1v6.5l-3.777-1.947a.5.5 0 0 0-.577.093l-3.71 3.71-2.66-1.772a.5.5 0 0 0-.63.062L1.002 12V3a1 1 0 0 1 1-1h12z"/>
@@ -234,7 +234,7 @@
                         </div>
                         <div class="ms-auto d-flex gap-1">
                             <a href="{% url 'accounts:post-edit' post.id %}"
-                               class="btn btn-sm btn-outline-secondary py-0 px-2">Edit</a>
+                               class="btn btn-sm btn-outline-dark py-0 px-2">Edit</a>
                             <form method="post" action="{% url 'accounts:post-delete' post.id %}" class="d-inline">
                                 {% csrf_token %}
                                 <button class="btn btn-sm btn-outline-danger py-0 px-2"

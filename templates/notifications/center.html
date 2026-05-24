@@ -4,7 +4,7 @@
         <div class="d-flex align-items-center justify-content-between mb-3">
             <h1 class="h4 mb-0">Notification Center</h1>
             <div class="d-flex gap-2">
-                <a class="btn btn-sm btn-outline-secondary"
+                <a class="btn btn-sm btn-outline-dark"
                    href="{% url 'notifications:preferences' %}">Staff preferences</a>
                 <form method="post" action="{% url 'notifications:mark-all-read' %}">
                     {% csrf_token %}

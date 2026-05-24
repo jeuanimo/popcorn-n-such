@@ -6,7 +6,7 @@
     <section class="py-5">
         <div class="container" style="max-width:640px">
             <div class="mb-4">
-                <a class="btn btn-outline-secondary btn-sm"
+                <a class="btn btn-outline-dark btn-sm"
                    href="{% url 'teams:members' team.slug %}">← Back to Members</a>
             </div>
             <h1 class="mb-4">Send Reminder to {{ team.name }}</h1>
@@ -22,7 +22,7 @@
                         </div>
                     {% endfor %}
                     <button type="submit" class="btn btn-brand">Send Reminder</button>
-                    <a class="btn btn-outline-secondary ms-2"
+                    <a class="btn btn-outline-dark ms-2"
                        href="{% url 'teams:members' team.slug %}">Cancel</a>
                 </form>
             </div>

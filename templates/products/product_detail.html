@@ -31,7 +31,7 @@
                         <div class="d-flex flex-wrap gap-2" id="size-selector">
                             {% for sku in active_skus %}
                                 <a href="#sku-row-{{ sku.id }}"
-                                   class="btn btn-sm {% if sku.is_purchasable %}btn-outline-dark{% else %}btn-outline-secondary disabled{% endif %} size-chip-link"
+                                   class="btn btn-sm {% if sku.is_purchasable %}btn-outline-dark{% else %}btn-outline-dark disabled{% endif %} size-chip-link"
                                    data-sku-id="{{ sku.id }}"
                                    data-sku-size="{{ sku.size }}"
                                    data-sku-stock="{{ sku.inventory_quantity }}"

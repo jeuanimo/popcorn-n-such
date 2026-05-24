@@ -82,7 +82,7 @@
                                         </form>
                                         <form method="post" action="{% url 'cart:save-for-later' item.id %}">
                                             {% csrf_token %}
-                                            <button class="btn btn-sm btn-outline-secondary" type="submit">Save for later</button>
+                                            <button class="btn btn-sm btn-outline-dark" type="submit">Save for later</button>
                                         </form>
                                     </div>
                                 </div>
@@ -235,7 +235,7 @@
                         {% if coupon_code %}
                             <form method="post" action="{% url 'cart:remove-coupon' %}" class="mb-3">
                                 {% csrf_token %}
-                                <button class="btn btn-sm btn-outline-secondary" type="submit">Remove coupon</button>
+                                <button class="btn btn-sm btn-outline-dark" type="submit">Remove coupon</button>
                             </form>
                         {% endif %}
                         <a class="btn btn-brand w-100 {% if not items %}disabled{% endif %}"
