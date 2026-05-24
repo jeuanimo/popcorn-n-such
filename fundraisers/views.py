@@ -196,9 +196,11 @@ class FundraiserCampaignDashboardView(LoginRequiredMixin, DetailView):
 		user = self.request.user
 		if user.is_staff or user.is_superuser or user.has_any_role("staff", "admin"):
 			return FundraiserCampaign.objects.all()
-		if user.has_any_role("organization_manager"):
-			return FundraiserCampaign.objects.filter(organization__manager=user)
-		raise PermissionDenied("You do not have access to this campaign dashboard.")
+		# Allow the campaign creator or the linked organization's manager
+		from django.db.models import Q
+		return FundraiserCampaign.objects.filter(
+			Q(created_by=user) | Q(organization__manager=user)
+		)
 
 	def get_context_data(self, **kwargs):
 		context = super().get_context_data(**kwargs)
