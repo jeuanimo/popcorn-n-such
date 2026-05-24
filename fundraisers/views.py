@@ -5,7 +5,9 @@ from django.core.exceptions import PermissionDenied
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views.generic import DetailView, ListView
 
+from cart.services import CartService
 from core.security import RoleRequiredMixin
+from products.models import Product
 
 from .forms import FundraiserCampaignApprovalForm, FundraiserCampaignRequestForm, FundraiserRequestReviewForm, FundraiserSignupForm
 from .models import FundraiserCampaign, FundraiserCampaignStatus, FundraiserRequest
@@ -30,9 +32,20 @@ class PublicFundraiserCampaignDetailView(DetailView):
 	def get_queryset(self):
 		return FundraiserCampaign.objects.filter(is_active=True).prefetch_related("teams", "sellers")
 
+	def get(self, request, *args, **kwargs):
+		response = super().get(request, *args, **kwargs)
+		if self.object.is_accepting_orders():
+			CartService.set_campaign_attribution(request=request, campaign=self.object)
+		return response
+
 	def get_context_data(self, **kwargs):
 		context = super().get_context_data(**kwargs)
 		context.update(FundraiserCampaignService.campaign_progress_context(campaign=self.object))
+		context["products"] = (
+			Product.objects.filter(is_active=True)
+			.prefetch_related("skus")
+			.order_by("-is_featured", "name")
+		)
 		return context
 
 
