@@ -8,14 +8,18 @@
         <div class="container">
             <div class="d-flex justify-content-between align-items-center mb-4">
                 <h1 class="mb-0">{{ team.name }} Dashboard</h1>
-                <div>
-                    <a class="btn btn-outline-dark me-1"
+                <div class="d-flex flex-wrap gap-2">
+                    <a class="btn btn-outline-dark btn-sm"
                        href="{% url 'teams:public-detail' team.slug %}">Public page</a>
-                    {% if request.user == team.captain %}
-                        <a class="btn btn-outline-dark me-1"
+                    {% if request.user == team.captain or request.user.is_staff or request.user.is_superuser %}
+                        <a class="btn btn-outline-dark btn-sm"
                            href="{% url 'teams:members' team.slug %}">Members</a>
-                        <a class="btn btn-outline-dark"
+                        <a class="btn btn-outline-dark btn-sm"
                            href="{% url 'teams:send-reminder' team.slug %}">Send Reminder</a>
+                        <a class="btn btn-gold btn-sm"
+                           href="{% url 'teams:edit' team.slug %}">Edit Team</a>
+                        <a class="btn btn-danger btn-sm"
+                           href="{% url 'teams:delete' team.slug %}">Delete Team</a>
                     {% endif %}
                 </div>
             </div>

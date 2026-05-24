@@ -1,0 +1,31 @@
+{% extends "base/base.html" %}
+{% block title %}
+    Edit {{ team.name }}
+{% endblock title %}
+{% block content %}
+    <section class="py-5">
+        <div class="container" style="max-width:600px">
+            <div class="d-flex align-items-center justify-content-between mb-4">
+                <h1 class="mb-0">Edit Team</h1>
+                <a class="btn btn-outline-dark btn-sm" href="{% url 'teams:dashboard' team.slug %}">Back to Dashboard</a>
+            </div>
+            <div class="hero-card p-4">
+                <form method="post" enctype="multipart/form-data" novalidate>
+                    {% csrf_token %}
+                    {% for field in form %}
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold" for="{{ field.id_for_label }}">{{ field.label }}</label>
+                            {{ field }}
+                            {% for error in field.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}
+                            {% if field.help_text %}<div class="form-text">{{ field.help_text }}</div>{% endif %}
+                        </div>
+                    {% endfor %}
+                    <div class="d-flex gap-2 mt-2">
+                        <button type="submit" class="btn btn-brand">Save Changes</button>
+                        <a class="btn btn-outline-dark" href="{% url 'teams:dashboard' team.slug %}">Cancel</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </section>
+{% endblock content %}

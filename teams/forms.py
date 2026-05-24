@@ -27,6 +27,27 @@ class TeamCreateForm(forms.ModelForm):
 			)
 
 
+class TeamEditForm(forms.ModelForm):
+	class Meta:
+		model = Team
+		fields = ["name", "slug", "campaign", "team_goal", "team_image", "is_active"]
+		widgets = {
+			"slug": forms.TextInput(attrs={"placeholder": "e.g. troop-42-popcorn-2026"}),
+		}
+
+	def __init__(self, *args, user=None, **kwargs):
+		super().__init__(*args, **kwargs)
+		if user is not None and not (user.is_staff or user.is_superuser or user.has_any_role("staff", "admin")):
+			from fundraisers.models import FundraiserCampaign
+
+			self.fields["campaign"].queryset = FundraiserCampaign.objects.filter(
+				organization__manager=user,
+				is_active=True,
+			)
+			# Captains cannot deactivate teams directly
+			self.fields.pop("is_active", None)
+
+
 class JoinTeamByCodeForm(forms.Form):
 	invite_code = forms.CharField(
 		max_length=32,

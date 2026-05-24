@@ -21,8 +21,12 @@
                                    href="{% url 'teams:dashboard' team.slug %}">Dashboard</a>
                                 <a class="btn btn-sm btn-outline-dark me-1"
                                    href="{% url 'teams:members' team.slug %}">Members</a>
-                                <a class="btn btn-sm btn-outline-dark"
+                                <a class="btn btn-sm btn-outline-dark me-1"
                                    href="{% url 'teams:public-detail' team.slug %}">Public Page</a>
+                                <a class="btn btn-sm btn-gold me-1"
+                                   href="{% url 'teams:edit' team.slug %}">Edit</a>
+                                <a class="btn btn-sm btn-danger"
+                                   href="{% url 'teams:delete' team.slug %}">Delete</a>
                             </div>
                         </div>
                     {% endfor %}

@@ -10,7 +10,7 @@ from core.security import RoleRequiredMixin, TeamCaptainQuerysetMixin
 from security_audit.models import AuditAction
 from security_audit.utils import log_audit_event
 
-from .forms import JoinTeamByCodeForm, MemberReminderForm, MoveSellerForm, TeamCreateForm
+from .forms import JoinTeamByCodeForm, MemberReminderForm, MoveSellerForm, TeamCreateForm, TeamEditForm
 from .models import Team, TeamMembership, TeamMemberRole
 from .services import TeamService
 
@@ -238,6 +238,69 @@ def team_create_view(request):
         return redirect("teams:dashboard", slug=team.slug)
 
     return render(request, TEAM_FORM_TEMPLATE, {"form": form})
+
+
+# ---------------------------------------------------------------------------
+# Team edit (captain or staff)
+# ---------------------------------------------------------------------------
+
+@login_required
+def team_edit_view(request, slug: str):
+    team = get_object_or_404(Team, slug=slug)
+    is_captain = team.captain_id == request.user.pk
+    if not (is_captain or _is_staff_or_admin(request.user)):
+        raise PermissionDenied("Only the team captain or staff can edit this team.")
+
+    from django.conf import settings as django_settings
+
+    old_slug = team.slug
+    form = TeamEditForm(request.POST or None, request.FILES or None, instance=team, user=request.user)
+    if request.method == "POST" and form.is_valid():
+        updated_team = form.save()
+        if updated_team.slug != old_slug:
+            base_url = getattr(django_settings, "SITE_BASE_URL", "http://localhost:8000")
+            updated_team.public_team_link = f"{base_url}/teams/{updated_team.slug}/"
+            updated_team.save(update_fields=["public_team_link"])
+        log_audit_event(
+            user=request.user,
+            action=AuditAction.UPDATE,
+            resource_type="team",
+            resource_id=str(updated_team.pk),
+            details={"slug": updated_team.slug},
+        )
+        messages.success(request, f"Team '{updated_team.name}' updated.")
+        return redirect("teams:dashboard", slug=updated_team.slug)
+
+    return render(request, "teams/team_edit.html", {"form": form, "team": team})
+
+
+# ---------------------------------------------------------------------------
+# Team delete (captain or staff)
+# ---------------------------------------------------------------------------
+
+@login_required
+def team_delete_view(request, slug: str):
+    team = get_object_or_404(Team, slug=slug)
+    is_captain = team.captain_id == request.user.pk
+    if not (is_captain or _is_staff_or_admin(request.user)):
+        raise PermissionDenied("Only the team captain or staff can delete this team.")
+
+    if request.method == "POST":
+        team_name = team.name
+        log_audit_event(
+            user=request.user,
+            action=AuditAction.DELETE,
+            resource_type="team",
+            resource_id=str(team.pk),
+            details={"name": team_name, "slug": slug},
+        )
+        team.delete()
+        messages.success(request, f"Team '{team_name}' has been deleted.")
+        if _is_staff_or_admin(request.user):
+            return redirect("teams:staff-list")
+        return redirect("teams:my-teams")
+
+    return render(request, "teams/team_confirm_delete.html", {"team": team})
 
 
 # ---------------------------------------------------------------------------
