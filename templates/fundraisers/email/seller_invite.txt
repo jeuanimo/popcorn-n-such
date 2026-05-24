@@ -1,0 +1,36 @@
+Hi{% if recipient_name %} {{ recipient_name }}{% endif %},
+
+{{ inviter_name }} has invited you to join the {{ campaign_name }} fundraiser on Popcorn-N-Such!
+
+----------------------------------------------------------------------
+YOUR INVITE CODE:  {{ invite_code }}
+----------------------------------------------------------------------
+
+Use the link below to create your personal seller storefront and start
+raising money for {{ campaign_name }}. Your invite code is already
+embedded in the link — just click and you're in.
+
+  {{ join_url }}
+
+----------------------------------------------------------------------
+HOW IT WORKS
+----------------------------------------------------------------------
+1. Click the link above and log in (or create a free account).
+2. Set up your personal storefront — takes about 2 minutes.
+3. Share YOUR unique store link with friends & family.
+4. They order online; you track sales from your dashboard.
+5. Proceeds go directly to {{ campaign_name }}.
+
+----------------------------------------------------------------------
+CAMPAIGN DETAILS
+----------------------------------------------------------------------
+Campaign:  {{ campaign_name }}
+Store:     {{ campaign_url }}
+{% if campaign_end_date %}Ends:      {{ campaign_end_date }}{% endif %}
+
+Questions? Contact {{ inviter_name }} or reach us at hello@popcornnsuch.com
+or call (618) 917-5351.
+
+— The Popcorn-N-Such Team
+10607 Lincoln Trl, Ste 4 | Fairview Heights, IL 62208
+hello@popcornnsuch.com

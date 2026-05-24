@@ -1,3 +1,5 @@
+import uuid
+
 from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.core.validators import MaxValueValidator, MinValueValidator
@@ -117,6 +119,7 @@ class FundraiserCampaign(models.Model):
 		related_name="approved_fundraiser_campaigns",
 	)
 	is_active = models.BooleanField(default=True)
+	invite_code = models.CharField(max_length=16, unique=True, blank=True)
 	teams = models.ManyToManyField("teams.Team", blank=True, related_name="fundraiser_campaigns")
 	sellers = models.ManyToManyField("sellers.SellerLink", blank=True, related_name="fundraiser_campaigns")
 	created_at = models.DateTimeField(auto_now_add=True)
@@ -127,6 +130,16 @@ class FundraiserCampaign(models.Model):
 
 	def __str__(self) -> str:
 		return self.campaign_name
+
+	def save(self, *args, **kwargs):
+		if not self.invite_code:
+			# Generate a unique 8-char hex code (e.g. "A3F1C92B")
+			while True:
+				code = uuid.uuid4().hex[:8].upper()
+				if not FundraiserCampaign.objects.filter(invite_code=code).exists():
+					self.invite_code = code
+					break
+		super().save(*args, **kwargs)
 
 	def clean(self):
 		if self.end_date < self.start_date:

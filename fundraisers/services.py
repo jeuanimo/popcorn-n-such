@@ -358,3 +358,59 @@ class FundraiserCampaignService:
         if not campaign.campaign_banner:
             issues.append("Missing campaign banner")
         return issues
+
+    @classmethod
+    def send_seller_invite_email(
+        cls,
+        *,
+        campaign: FundraiserCampaign,
+        recipient_email: str,
+        recipient_name: str = "",
+        inviter_name: str,
+        request=None,
+    ) -> bool:
+        """
+        Send a seller invite email with the embedded invite code and join URL.
+        Returns True if the email was sent without error.
+        """
+        if not recipient_email:
+            return False
+
+        join_path = f"/fundraisers/campaign/{campaign.slug}/join-as-seller/"
+        campaign_path = f"/fundraisers/campaign/{campaign.slug}/"
+
+        if request:
+            join_url = request.build_absolute_uri(join_path)
+            campaign_url = request.build_absolute_uri(campaign_path)
+        else:
+            join_url = join_path
+            campaign_url = campaign_path
+
+        context = {
+            "recipient_name": recipient_name,
+            "inviter_name": inviter_name,
+            "campaign_name": campaign.campaign_name,
+            "invite_code": campaign.invite_code,
+            "join_url": join_url,
+            "campaign_url": campaign_url,
+            "campaign_end_date": campaign.end_date.strftime("%B %-d, %Y") if campaign.end_date else "",
+        }
+
+        subject = render_to_string(
+            "fundraisers/email/seller_invite_subject.txt", context
+        ).strip()
+        body = render_to_string("fundraisers/email/seller_invite.txt", context)
+        html_body = render_to_string("fundraisers/email/seller_invite.html", context)
+
+        try:
+            send_runtime_mail(
+                subject=subject,
+                message=body,
+                html_message=html_body,
+                recipient_list=[recipient_email],
+                fail_silently=False,
+            )
+            return True
+        except Exception:
+            return False
+

@@ -1,0 +1,1 @@
+You're invited to join {{ campaign_name }} — Popcorn-N-Such Fundraiser

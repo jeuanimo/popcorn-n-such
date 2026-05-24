@@ -179,8 +179,25 @@
                                href="{% url 'fundraisers:public-campaign-detail' object.slug %}"
                                target="_blank">Visit Campaign Store ↗</a>
                         </div>
-                        <p class="small fw-semibold mb-1">Seller invite link</p>
-                        <p class="small text-muted mb-2">Send this link to your sellers so they can create their personal storefronts.</p>
+
+                        <hr class="my-3" />
+
+                        <p class="small fw-semibold mb-1">Seller invite</p>
+                        <p class="small text-muted mb-2">Share this code <em>or</em> link — both take sellers directly to their sign-up page for this campaign.</p>
+
+                        <!-- Invite code badge -->
+                        <div class="d-flex align-items-center gap-2 mb-2">
+                            <div class="text-center px-3 py-2 rounded"
+                                 style="background:#fff8e8;border:2px dashed #f9b233;min-width:120px;">
+                                <div class="text-muted" style="font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;">Invite Code</div>
+                                <div class="fw-black font-monospace" style="font-size:1.35rem;letter-spacing:.1em;">{{ object.invite_code }}</div>
+                            </div>
+                            <button class="btn btn-sm btn-outline-dark"
+                                    onclick="navigator.clipboard.writeText('{{ object.invite_code }}');this.textContent='Copied!'">
+                                Copy Code
+                            </button>
+                        </div>
+
                         <div class="input-group input-group-sm mb-1">
                             <input type="text"
                                    class="form-control"
@@ -188,14 +205,35 @@
                                    readonly
                                    id="shareInput" />
                             <button class="btn btn-outline-dark"
-                                    onclick="navigator.clipboard.writeText(document.getElementById('shareInput').value);this.textContent='Copied!'">Copy</button>
+                                    onclick="navigator.clipboard.writeText(document.getElementById('shareInput').value);this.textContent='Copied!'">Copy Link</button>
                         </div>
                         <div class="mb-3">
                             <a class="btn btn-sm btn-brand"
                                href="{{ seller_invite_url }}"
                                target="_blank">Visit Seller Sign-Up ↗</a>
                         </div>
+
+                        <!-- Email invite form -->
+                        <p class="small fw-semibold mb-1">Send invite by email</p>
+                        <form method="post">
+                            {% csrf_token %}
+                            <input type="hidden" name="action" value="send_invite" />
+                            <input type="text"
+                                   name="invite_name"
+                                   placeholder="Recipient name (optional)"
+                                   class="form-control form-control-sm mb-2" />
+                            <textarea name="invite_emails"
+                                      rows="2"
+                                      placeholder="email@example.com, another@example.com"
+                                      class="form-control form-control-sm mb-2"
+                                      required></textarea>
+                            <button type="submit" class="btn btn-sm btn-brand w-100">
+                                ✉ Send Invite Email
+                            </button>
+                        </form>
+
                         {% if qr_data_uri %}
+                            <hr class="my-3" />
                             <img alt="Campaign QR code"
                                  src="{{ qr_data_uri }}"
                                  class="img-fluid mb-2"
@@ -277,9 +315,9 @@
                                 </div>
                             {% endfor %}
                         {% else %}
-                            <p class="small text-muted mb-2">No sellers yet. Share the seller invite link to recruit sellers.</p>
+                            <p class="small text-muted mb-2">No sellers yet. Send an invite email or share the seller invite link to recruit sellers.</p>
                         {% endif %}
-                        <p class="small text-muted mt-3 mb-1">Sellers join by clicking your <strong>Seller invite link</strong> in the Share card above.</p>
+                        <p class="small text-muted mt-3 mb-1">Sellers join by using the <strong>invite code</strong> or clicking your <strong>Seller invite link</strong> in the Share card above.</p>
                     </div>
                 </div>
                 <!-- Recent orders -->

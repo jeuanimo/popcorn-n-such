@@ -255,6 +255,8 @@ class FundraiserCampaignDashboardView(LoginRequiredMixin, DetailView):
 			self._create_team(request, campaign)
 		elif action == "change_status":
 			self._change_status(request, campaign)
+		elif action == "send_invite":
+			self._send_invite(request, campaign)
 		return redirect("fundraisers:campaign-dashboard", slug=campaign.slug)
 
 	def _change_status(self, request, campaign):
@@ -313,6 +315,45 @@ class FundraiserCampaignDashboardView(LoginRequiredMixin, DetailView):
 		setattr(campaign, field, None)
 		campaign.save(update_fields=[field])
 		messages.success(request, msg)
+
+	def _send_invite(self, request, campaign):
+		from django.core.validators import validate_email
+		from django.core.exceptions import ValidationError as DjangoValidationError
+
+		raw_emails = request.POST.get("invite_emails", "")
+		recipient_name = request.POST.get("invite_name", "").strip()
+		inviter_name = (
+			request.user.get_full_name() or request.user.username
+		)
+
+		emails = [e.strip() for e in raw_emails.replace(",", "\n").splitlines() if e.strip()]
+		if not emails:
+			messages.error(request, "Please enter at least one email address.")
+			return
+
+		sent, failed = 0, 0
+		for email in emails:
+			try:
+				validate_email(email)
+			except DjangoValidationError:
+				failed += 1
+				continue
+			ok = FundraiserCampaignService.send_seller_invite_email(
+				campaign=campaign,
+				recipient_email=email,
+				recipient_name=recipient_name,
+				inviter_name=inviter_name,
+				request=request,
+			)
+			if ok:
+				sent += 1
+			else:
+				failed += 1
+
+		if sent:
+			messages.success(request, f"Invite sent to {sent} recipient(s).")
+		if failed:
+			messages.warning(request, f"{failed} address(es) could not be sent.")
 
 
 @login_required

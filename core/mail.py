@@ -6,7 +6,7 @@ from django.core.mail import get_connection, send_mail
 from core.runtime_settings import get_runtime_setting
 
 
-def send_runtime_mail(*, subject: str, message: str, recipient_list: list[str], fail_silently: bool = True):
+def send_runtime_mail(*, subject: str, message: str, recipient_list: list[str], html_message: str | None = None, fail_silently: bool = True):
     host = get_runtime_setting("email_host", settings.EMAIL_HOST)
     port = int(get_runtime_setting("email_port", settings.EMAIL_PORT) or settings.EMAIL_PORT)
     username = get_runtime_setting("email_host_user", settings.EMAIL_HOST_USER)
@@ -27,6 +27,7 @@ def send_runtime_mail(*, subject: str, message: str, recipient_list: list[str], 
         message=message,
         from_email=from_email,
         recipient_list=recipient_list,
+        html_message=html_message,
         fail_silently=fail_silently,
         connection=connection,
     )
