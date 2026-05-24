@@ -24,9 +24,9 @@
     </section>
     <section id="sc-featured" class="py-5">
         <div class="container">
-            <div class="d-flex justify-content-between align-items-center mb-4">
-                <h2 class="mb-0">Featured Popcorn Flavors</h2>
-                <a class="btn btn-outline-dark" href="{% url 'products:list' %}">View all flavors</a>
+            <div class="text-center mb-4">
+                <h2 class="mb-2">Featured Popcorn Flavors</h2>
+                <a class="btn btn-outline-dark btn-sm" href="{% url 'products:list' %}">View all flavors</a>
             </div>
             <div class="s-product-grid">
                 {% for product in featured_products %}

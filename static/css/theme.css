@@ -1325,6 +1325,12 @@ tr.table-info.fw-bold td    { background: rgba(13,202,240,.14) !important; }
   gap: 1rem;
 }
 
+/* Featured section: auto-size columns and center when fewer than 4 items */
+#sc-featured .s-product-grid {
+  grid-template-columns: repeat(auto-fit, minmax(220px, 300px));
+  justify-content: center;
+}
+
 /* Card */
 .s-card {
   background: #fff;

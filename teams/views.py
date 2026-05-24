@@ -89,11 +89,11 @@ def join_team_view(request, slug: str):
                     invite_code=url_code,
                 )
                 log_audit_event(
-                    user=request.user,
+                    actor=request.user,
                     action=AuditAction.UPDATE,
-                    resource_type="team_membership",
-                    resource_id=str(membership.pk),
-                    details={"team_slug": team.slug},
+                    message=f"User joined team {team.slug} via invite link",
+                    request=request,
+                    target=membership,
                 )
                 messages.success(request, f"You joined {team.name}!")
             except ValidationError as exc:
@@ -111,11 +111,11 @@ def join_team_view(request, slug: str):
                 invite_code=form.cleaned_data["invite_code"],
             )
             log_audit_event(
-                user=request.user,
+                actor=request.user,
                 action=AuditAction.UPDATE,
-                resource_type="team_membership",
-                resource_id=str(membership.pk),
-                details={"team_slug": team.slug},
+                message=f"User joined team {team.slug} via invite code",
+                request=request,
+                target=membership,
             )
             messages.success(request, f"You joined {team.name}!")
             return redirect("teams:dashboard", slug=team.slug)
@@ -262,11 +262,11 @@ def team_edit_view(request, slug: str):
             updated_team.public_team_link = f"{base_url}/teams/{updated_team.slug}/"
             updated_team.save(update_fields=["public_team_link"])
         log_audit_event(
-            user=request.user,
+            actor=request.user,
             action=AuditAction.UPDATE,
-            resource_type="team",
-            resource_id=str(updated_team.pk),
-            details={"slug": updated_team.slug},
+            message=f"Team updated: {updated_team.slug}",
+            request=request,
+            target=updated_team,
         )
         messages.success(request, f"Team '{updated_team.name}' updated.")
         return redirect("teams:dashboard", slug=updated_team.slug)
@@ -288,11 +288,11 @@ def team_delete_view(request, slug: str):
     if request.method == "POST":
         team_name = team.name
         log_audit_event(
-            user=request.user,
+            actor=request.user,
             action=AuditAction.DELETE,
-            resource_type="team",
-            resource_id=str(team.pk),
-            details={"name": team_name, "slug": slug},
+            message=f"Team deleted: {team_name} ({slug})",
+            request=request,
+            metadata={"name": team_name, "slug": slug},
         )
         team.delete()
         messages.success(request, f"Team '{team_name}' has been deleted.")
@@ -333,11 +333,12 @@ def staff_move_seller_view(request):
             )
             messages.success(request, "Seller moved successfully.")
             log_audit_event(
-                user=request.user,
+                actor=request.user,
                 action=AuditAction.UPDATE,
-                resource_type="team_seller_move",
-                resource_id=str(form.cleaned_data["seller_link"].pk),
-                details={
+                message="Seller moved between teams",
+                request=request,
+                target=form.cleaned_data["seller_link"],
+                metadata={
                     "from_team": form.cleaned_data["from_team"].slug,
                     "to_team": form.cleaned_data["to_team"].slug,
                 },
