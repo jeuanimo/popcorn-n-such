@@ -97,6 +97,18 @@
                     </form>
                 </div>
             </div>
+            <div class="card border-danger mt-3">
+                <div class="card-header fw-semibold text-danger">Delete Request</div>
+                <div class="card-body">
+                    <p class="small text-muted mb-2">Permanently removes this request record. Cannot be undone.</p>
+                    <form method="post"
+                          action="{% url 'fundraisers:staff-request-delete' fr.pk %}"
+                          onsubmit="return confirm('Permanently delete this request?')">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-sm btn-danger w-100">Delete Request</button>
+                    </form>
+                </div>
+            </div>
         </div>
     </div>
 {% endblock content %}

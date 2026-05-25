@@ -48,6 +48,12 @@
                                                 class="btn btn-sm btn-brand">Restore Live</button>
                                     {% endif %}
                                 </form>
+                                <form method="post"
+                                      action="{% url 'fundraisers:staff-campaign-delete' campaign.slug %}"
+                                      onsubmit="return confirm('Permanently delete campaign \'{{ campaign.campaign_name }}\'? This cannot be undone.')">
+                                    {% csrf_token %}
+                                    <button type="submit" class="btn btn-sm btn-danger">Delete</button>
+                                </form>
                             </div>
                         </div>
                     {% endwith %}

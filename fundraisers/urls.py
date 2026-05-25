@@ -9,6 +9,8 @@ from .views import (
     StaffFundraiserRequestQueueView,
     campaign_create_view,
     campaign_seller_join_view,
+    fundraiser_request_delete_view,
+    fundraiser_campaign_delete_view,
     fundraiser_signup_thanks_view,
     fundraiser_signup_view,
     staff_approve_campaign_view,
@@ -35,4 +37,6 @@ urlpatterns = [
     path("staff/<slug:slug>/live-toggle/", staff_toggle_campaign_live_view, name="staff-campaign-live-toggle"),
     path("staff/requests/", StaffFundraiserRequestQueueView.as_view(), name="staff-request-queue"),
     path("staff/requests/<int:pk>/", staff_provision_campaign_view, name="staff-provision-campaign"),
+    path("staff/requests/<int:pk>/delete/", fundraiser_request_delete_view, name="staff-request-delete"),
+    path("staff/<slug:slug>/delete/", fundraiser_campaign_delete_view, name="staff-campaign-delete"),
 ]
