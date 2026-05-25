@@ -8,6 +8,9 @@
             {% for m in messages %}
                 <div class="alert alert-{{ m.tags }} mb-3">{{ m }}</div>
             {% endfor %}
+            {% if err %}
+                <pre class="bg-light p-3 small mb-3" style="white-space:pre-wrap;word-break:break-all;">{{ err }}</pre>
+            {% endif %}
             <div class="hero-card p-4">
                 <h1 class="h4 mb-3 text-danger">Delete Team?</h1>
                 <p class="mb-1">You are about to permanently delete:</p>

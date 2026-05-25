@@ -286,27 +286,27 @@ def team_delete_view(request, slug: str):
         raise PermissionDenied("Only the team captain or staff can delete this team.")
 
     if request.method == "POST":
-        team_name = team.name
-        log_audit_event(
-            actor=request.user,
-            action=AuditAction.DELETE,
-            message=f"Team deleted: {team_name} ({slug})",
-            request=request,
-            metadata={"name": team_name, "slug": slug},
-        )
-        # Nullify the nullable FK on any orders that reference this team
-        # so PROTECT doesn't block the delete.
-        from orders.models import Order as _Order
-        _Order.objects.filter(team=team).update(team=None)
         try:
+            team_name = team.name
+            log_audit_event(
+                actor=request.user,
+                action=AuditAction.DELETE,
+                message=f"Team deleted: {team_name} ({slug})",
+                request=request,
+                metadata={"name": team_name, "slug": slug},
+            )
+            from orders.models import Order as _Order
+            _Order.objects.filter(team=team).update(team=None)
             team.delete()
+            messages.success(request, f"Team '{team_name}' has been deleted.")
+            if _is_staff_or_admin(request.user):
+                return redirect("teams:staff-list")
+            return redirect("teams:my-teams")
         except Exception as exc:
-            messages.error(request, f"Delete failed: {type(exc).__name__}: {exc}")
-            return render(request, "teams/team_confirm_delete.html", {"team": team})
-        messages.success(request, f"Team '{team_name}' has been deleted.")
-        if _is_staff_or_admin(request.user):
-            return redirect("teams:staff-list")
-        return redirect("teams:my-teams")
+            import traceback
+            err = traceback.format_exc()
+            messages.error(request, f"Delete failed — {type(exc).__name__}: {exc}")
+            return render(request, "teams/team_confirm_delete.html", {"team": team, "err": err})
 
     return render(request, "teams/team_confirm_delete.html", {"team": team})
 
