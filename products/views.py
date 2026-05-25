@@ -241,17 +241,29 @@ class SKUUpdateView(RoleRequiredMixin, UpdateView):
 		return context
 
 
+def _force_delete_sku(sku):
+	"""Remove all referencing records then delete the SKU, bypassing PROTECT constraints."""
+	from cart.models import CartItem, SavedForLaterItem
+	from inventory.models import InventoryReservation
+	from orders.models import OrderItem
+	from purchase_orders.models import PurchaseOrderItem
+
+	CartItem.objects.filter(sku=sku).delete()
+	SavedForLaterItem.objects.filter(sku=sku).delete()
+	InventoryReservation.objects.filter(sku=sku).delete()
+	PurchaseOrderItem.objects.filter(sku=sku).update(sku=None)
+	OrderItem.objects.filter(sku=sku).delete()
+	sku.delete()
+
+
 class SKUDeleteView(RoleRequiredMixin, View):
 	allowed_roles = ("staff", "admin")
 
 	def post(self, request, *args, **kwargs):
 		sku = get_object_or_404(SKU, pk=kwargs["pk"])
 		sku_code = sku.sku_code
-		try:
-			sku.delete()
-			messages.success(request, f"SKU {sku_code} deleted.")
-		except ProtectedError:
-			messages.error(request, f"SKU {sku_code} cannot be deleted — it has associated orders.")
+		_force_delete_sku(sku)
+		messages.success(request, f"SKU {sku_code} deleted.")
 		return redirect(SKU_MANAGEMENT_ROUTE)
 
 
@@ -264,21 +276,15 @@ class SKUBulkDeleteView(RoleRequiredMixin, View):
 			messages.warning(request, "No SKUs selected.")
 			return redirect(SKU_MANAGEMENT_ROUTE)
 		deleted = 0
-		skipped = []
 		for pk in pks:
 			try:
 				sku = SKU.objects.get(pk=pk)
-				sku_code = sku.sku_code
-				sku.delete()
+				_force_delete_sku(sku)
 				deleted += 1
 			except SKU.DoesNotExist:
 				pass
-			except ProtectedError:
-				skipped.append(sku_code)
 		if deleted:
 			messages.success(request, f"Deleted {deleted} SKU(s).")
-		if skipped:
-			messages.error(request, f"{len(skipped)} SKU(s) could not be deleted (have associated orders): {', '.join(skipped)}")
 		return redirect(SKU_MANAGEMENT_ROUTE)
 
 

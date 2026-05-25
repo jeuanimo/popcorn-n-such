@@ -5,6 +5,7 @@ from .views import (
     CheckoutPaymentReturnView,
     CheckoutReviewView,
     CheckoutView,
+    ClearAllOrdersView,
     CustomerOrderDetailView,
     CustomerOrderListView,
     StaffOrderListView,
@@ -20,6 +21,7 @@ app_name = "orders"
 
 urlpatterns = [
     path("staff/", StaffOrderListView.as_view(), name="staff-list"),
+    path("staff/clear-all/", ClearAllOrdersView.as_view(), name="clear-all"),
     path("my-orders/", CustomerOrderListView.as_view(), name="my-orders"),
     path("my-orders/<int:pk>/", CustomerOrderDetailView.as_view(), name="order-detail"),
     path("my-orders/<int:order_id>/reorder/", reorder_view, name="reorder"),

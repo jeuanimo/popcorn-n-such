@@ -6,6 +6,12 @@
 {% block content %}
     <div class="d-flex align-items-center justify-content-between mb-3">
         <h1 class="h4 mb-0">Orders</h1>
+        <form method="post"
+              action="{% url 'orders:clear-all' %}"
+              onsubmit="return confirm('Delete ALL orders permanently? This cannot be undone.');">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-sm btn-danger">Clear All Orders</button>
+        </form>
     </div>
     <div class="staff-toolbar">
         <form method="get" class="d-flex flex-wrap gap-2 align-items-center w-100">

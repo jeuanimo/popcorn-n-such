@@ -47,6 +47,15 @@ def _get_active_cart(request) -> Cart | None:
     return Cart.objects.filter(session_key=session_key, user__isnull=True, is_active=True).first()
 
 
+class ClearAllOrdersView(RoleRequiredMixin, View):
+    allowed_roles = ("staff", "admin")
+
+    def post(self, request, *args, **kwargs):
+        count, _ = Order.objects.all().delete()
+        messages.success(request, f"Cleared {count} order record(s) from the database.")
+        return redirect("orders:staff-list")
+
+
 class StaffOrderListView(RoleRequiredMixin, ListView):
     model = Order
     template_name = "orders/staff_order_list.html"
