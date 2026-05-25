@@ -23,34 +23,21 @@
             </div>
             <div id="qzSetup" class="d-none mt-3">
                 <hr class="my-3">
-                {# Step 1 — JS library #}
-                <div id="qzStepLibrary" class="mb-3">
-                    <p class="small fw-semibold mb-2">Step 1 — Install QZ Tray JS library on this server</p>
-                    <div class="d-flex align-items-center gap-2 flex-wrap">
-                        <button id="installQzBtn" type="button" class="btn btn-sm btn-brand">
-                            Install Library
-                            <span id="installQzSpinner"
-                                  class="spinner-border spinner-border-sm ms-1 d-none"
-                                  aria-hidden="true"></span>
-                        </button>
-                        <span id="installQzResult" class="small"></span>
-                    </div>
-                </div>
-                {# Step 2 — Desktop app #}
+                {# Step 1 — Desktop app #}
                 <div class="mb-3">
-                    <p class="small fw-semibold mb-2">Step 2 — Install QZ Tray desktop app on this workstation</p>
+                    <p class="small fw-semibold mb-2">Step 1 — Install QZ Tray on this workstation</p>
                     <a href="https://qz.io/download"
                        target="_blank"
                        rel="noopener noreferrer"
                        class="btn btn-sm btn-outline-dark">Download QZ Tray App ↗</a>
                     <p class="form-text mt-1">
-                        QZ Tray runs in the system tray and bridges this page to your label printer.
-                        Once installed, this page connects to it automatically.
+                        QZ Tray is a free desktop app that bridges this page directly to your local or network thermal printer.
+                        Once installed and running, this page connects to it automatically.
                     </p>
                 </div>
-                {# Step 3 — Printer name #}
+                {# Step 2 — Printer name #}
                 <p class="small text-muted mb-0">
-                    Step 3 — Set your printer name in
+                    Step 2 — Set your printer name in
                     <a href="{% url 'dashboards:operational-settings' %}">Operational Settings</a>
                     (must match exactly how it appears in the OS print manager).
                 </p>
@@ -161,13 +148,8 @@
 {% endblock content %}
 {% block scripts %}
     {% load static %}
-    {#
-  QZ Tray — browser-to-thermal-printer bridge. Requires QZ Tray desktop app on the workstation.
-  Self-host the library to avoid CDN dependency:
-    curl -o static/js/vendor/qz-tray.js https://cdn.qz.io/qz-tray/qz-tray.js
-  If the file is absent the page falls back silently to PDF/iframe printing.
-#}
-    <script src="{% static 'js/vendor/qz-tray.js' %}"></script>
+    {# QZ Tray — browser-to-desktop-app bridge loaded from CDN. Connects to QZ Tray running on the local workstation. #}
+    <script src="https://cdn.qz.io/qz-tray/qz-tray.js" crossorigin="anonymous"></script>
     <script>
 (function () {
   /* ── DOM refs ─────────────────────────────────────────────── */
@@ -193,59 +175,14 @@
   var qzPrinterName   = "";
 
   /* ── QZ Tray setup card ───────────────────────────────────── */
-  var qzSetupEl      = document.getElementById("qzSetup");
-  var qzStepLibEl    = document.getElementById("qzStepLibrary");
-  var installQzBtn   = document.getElementById("installQzBtn");
-  var installSpinner = document.getElementById("installQzSpinner");
-  var installResult  = document.getElementById("installQzResult");
+  var qzSetupEl = document.getElementById("qzSetup");
 
   function refreshSetupCard(state) {
-    /* Hide the whole setup card if connected; show it otherwise */
     if (state === "connected") {
       qzSetupEl.classList.add("d-none");
-      return;
-    }
-    qzSetupEl.classList.remove("d-none");
-    /* If the JS library is already loaded (qz defined), Step 1 is done */
-    if (typeof qz !== "undefined") {
-      qzStepLibEl.classList.add("d-none");
     } else {
-      qzStepLibEl.classList.remove("d-none");
+      qzSetupEl.classList.remove("d-none");
     }
-  }
-
-  if (installQzBtn) {
-    installQzBtn.addEventListener("click", function () {
-      installQzBtn.disabled = true;
-      installSpinner.classList.remove("d-none");
-      installResult.textContent = "";
-
-      fetch("{% url 'shipping:qz-install' %}", {
-        method: "POST",
-        headers: { "X-CSRFToken": csrfToken },
-      })
-      .then(function (resp) { return resp.json(); })
-      .then(function (data) {
-        installQzBtn.disabled = false;
-        installSpinner.classList.add("d-none");
-        if (data.ok) {
-          installResult.textContent = "Installed (" + data.size_kb + " KB). Refresh the page to activate.";
-          installResult.className = "small text-success fw-semibold";
-          installQzBtn.textContent = "Refresh Page";
-          installQzBtn.disabled = false;
-          installQzBtn.addEventListener("click", function () { window.location.reload(); }, { once: true });
-        } else {
-          installResult.textContent = data.error || "Installation failed.";
-          installResult.className = "small text-danger";
-        }
-      })
-      .catch(function (err) {
-        installQzBtn.disabled = false;
-        installSpinner.classList.add("d-none");
-        installResult.textContent = "Request failed: " + err;
-        installResult.className = "small text-danger";
-      });
-    });
   }
 
   /* ── QZ Tray security & connection ────────────────────────── */
