@@ -52,12 +52,12 @@ class ClearAllOrdersView(RoleRequiredMixin, View):
 
     def post(self, request, *args, **kwargs):
         # Delete PROTECT-guarded children first, then orders.
-        from fulfillment.models import Fulfillment
+        from fulfillment.models import FulfillmentRecord
         from coupons.models import CouponRedemption
         from payments.models import PaymentTransaction
         from shipping.models import ShippingLabel
         ShippingLabel.objects.all().delete()
-        Fulfillment.objects.all().delete()
+        FulfillmentRecord.objects.all().delete()
         CouponRedemption.objects.all().delete()
         PaymentTransaction.objects.all().delete()
         count, _ = Order.objects.all().delete()
