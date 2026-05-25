@@ -294,6 +294,10 @@ def team_delete_view(request, slug: str):
             request=request,
             metadata={"name": team_name, "slug": slug},
         )
+        # Nullify the nullable FK on any orders that reference this team
+        # so PROTECT doesn't block the delete.
+        from orders.models import Order as _Order
+        _Order.objects.filter(team=team).update(team=None)
         team.delete()
         messages.success(request, f"Team '{team_name}' has been deleted.")
         if _is_staff_or_admin(request.user):
