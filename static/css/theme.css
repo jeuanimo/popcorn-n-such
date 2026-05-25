@@ -1360,12 +1360,12 @@ tr.table-info.fw-bold td    { background: rgba(13,202,240,.14) !important; }
 .s-card-img-wrap {
   background: #fff;
   border-bottom: 1px solid rgba(31,31,31,.06);
-  height: 220px;
+  aspect-ratio: 1 / 1;
   display: flex;
   align-items: center;
   justify-content: center;
   overflow: hidden;
-  padding: .5rem;
+  padding: .75rem;
 }
 .s-card-img {
   max-width: 100%;
@@ -1405,16 +1405,16 @@ tr.table-info.fw-bold td    { background: rgba(13,202,240,.14) !important; }
   letter-spacing: .02em;
 }
 
-/* Title — 3-line clamp */
+/* Title — 2-line clamp, Amazon style */
 .s-card-title {
   font-family: "Source Sans 3", sans-serif;
-  font-size: .9rem;
+  font-size: .97rem;
   font-weight: 600;
-  line-height: 1.4;
+  line-height: 1.45;
   color: var(--kettle-black);
   text-decoration: none;
   display: -webkit-box;
-  -webkit-line-clamp: 3;
+  -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
@@ -1475,14 +1475,13 @@ tr.table-info.fw-bold td    { background: rgba(13,202,240,.14) !important; }
   display: flex;
   align-items: center;
   justify-content: center;
-  flex: 1 1 auto;
-  min-width: 0;
-  height: 36px;
+  width: 100%;
+  height: 38px;
   background: var(--butter-gold);
   color: var(--kettle-black);
   border: 1.5px solid var(--butter-gold-dk);
   border-radius: 8px;
-  font-size: .85rem;
+  font-size: .88rem;
   font-weight: 700;
   cursor: pointer;
   text-decoration: none;

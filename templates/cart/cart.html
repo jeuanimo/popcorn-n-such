@@ -170,15 +170,8 @@
                                             {% if product.primary_cart_sku %}
                                                 <form method="post" action="{% url 'cart:add' product.primary_cart_sku.id %}">
                                                     {% csrf_token %}
-                                                    <div class="d-flex gap-2 align-items-center">
-                                                        <fieldset class="qty-stepper">
-                                                            <legend class="visually-hidden">Quantity</legend>
-                                                            <button type="button" class="qty-btn qty-dec" aria-label="Decrease quantity">−</button>
-                                                            <input name="quantity" type="number" min="1" max="{{ product.primary_cart_sku.inventory_quantity }}" value="1" class="qty-input" aria-label="Quantity" />
-                                                            <button type="button" class="qty-btn qty-inc" data-max="{{ product.primary_cart_sku.inventory_quantity }}" aria-label="Increase quantity">+</button>
-                                                        </fieldset>
-                                                        <button class="s-btn-cart" type="submit">Add to Cart</button>
-                                                    </div>
+                                                    <input type="hidden" name="quantity" value="1">
+                                                    <button class="s-btn-cart" type="submit">Add to Cart</button>
                                                 </form>
                                             {% else %}
                                                 <a href="{% url 'products:detail' product.slug %}" class="s-btn-cart">Choose Options</a>
