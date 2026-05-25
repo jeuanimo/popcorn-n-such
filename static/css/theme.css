@@ -1325,10 +1325,16 @@ tr.table-info.fw-bold td    { background: rgba(13,202,240,.14) !important; }
   gap: 1rem;
 }
 
-/* Featured section: auto-size columns and center when fewer than 4 items */
+/* Featured section: flex so every row (incl. last partial row) centers */
 #sc-featured .s-product-grid {
-  grid-template-columns: repeat(auto-fit, minmax(220px, 300px));
+  display: flex;
+  flex-wrap: wrap;
   justify-content: center;
+}
+
+#sc-featured .s-product-grid > .s-card {
+  flex: 0 1 280px;
+  min-width: 0;
 }
 
 /* Card */
