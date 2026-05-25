@@ -168,13 +168,13 @@ def fundraiser_signup_thanks_view(request):
 
 
 class StaffFundraiserRequestQueueView(RoleRequiredMixin, LoginRequiredMixin, ListView):
-	"""Staff queue for pending fundraiser requests (pre-campaign)."""
+	"""Staff queue for fundraiser requests — shows all statuses."""
 	template_name = "fundraisers/staff_request_queue.html"
 	context_object_name = "requests"
 	allowed_roles = ("staff", "admin")
 
 	def get_queryset(self):
-		return FundraiserRequest.objects.filter(status="pending").order_by("-created_at")
+		return FundraiserRequest.objects.order_by("-created_at")
 
 
 @login_required
@@ -200,6 +200,34 @@ def staff_provision_campaign_view(request, pk: int):
 			return redirect("fundraisers:staff-request-queue")
 
 	return render(request, "fundraisers/staff_request_detail.html", {"fr": fr, "review_form": review_form})
+
+
+@login_required
+def fundraiser_request_delete_view(request, pk: int):
+	if not (request.user.is_staff or request.user.is_superuser or request.user.has_any_role("staff", "admin")):
+		raise PermissionDenied("Only staff can delete fundraiser requests.")
+	fr = get_object_or_404(FundraiserRequest, pk=pk)
+	if request.method == "POST":
+		name = fr.organization_name
+		fr.delete()
+		messages.success(request, f"Fundraiser request from '{name}' deleted.")
+	return redirect("fundraisers:staff-request-queue")
+
+
+@login_required
+def fundraiser_campaign_delete_view(request, slug: str):
+	if not (request.user.is_staff or request.user.is_superuser or request.user.has_any_role("staff", "admin")):
+		raise PermissionDenied("Only staff can delete fundraiser campaigns.")
+	campaign = get_object_or_404(FundraiserCampaign, slug=slug)
+	if request.method == "POST":
+		name = campaign.campaign_name
+		from orders.models import Order as _Order
+		_Order.objects.filter(fundraiser_campaign=campaign).update(fundraiser_campaign=None)
+		from teams.models import Team as _Team
+		_Team.objects.filter(campaign=campaign).update(campaign=None)
+		campaign.delete()
+		messages.success(request, f"Campaign '{name}' deleted.")
+	return redirect("fundraisers:staff-campaign-queue")
 
 
 class FundraiserCampaignDashboardView(LoginRequiredMixin, DetailView):
