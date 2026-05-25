@@ -51,6 +51,15 @@ class ClearAllOrdersView(RoleRequiredMixin, View):
     allowed_roles = ("staff", "admin")
 
     def post(self, request, *args, **kwargs):
+        # Delete PROTECT-guarded children first, then orders.
+        from fulfillment.models import Fulfillment
+        from coupons.models import CouponRedemption
+        from payments.models import PaymentTransaction
+        from shipping.models import ShippingLabel
+        ShippingLabel.objects.all().delete()
+        Fulfillment.objects.all().delete()
+        CouponRedemption.objects.all().delete()
+        PaymentTransaction.objects.all().delete()
         count, _ = Order.objects.all().delete()
         messages.success(request, f"Cleared {count} order record(s) from the database.")
         return redirect("orders:staff-list")
