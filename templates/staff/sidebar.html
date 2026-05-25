@@ -1,4 +1,9 @@
 {% comment %}Uses `staff_nav` from context processor.{% endcomment %}
+<div class="px-3 pt-3 pb-2">
+    <a href="{% url 'dashboards:portal' %}" class="btn btn-outline-dark w-100">
+        &#8592; Staff Portal
+    </a>
+</div>
 {% if staff_nav.enabled %}
     {% regroup staff_nav.items by section as sections %}
     <nav class="pt-3">
