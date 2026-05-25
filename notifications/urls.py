@@ -8,6 +8,8 @@ urlpatterns = [
     path("center/", views.NotificationCenterView.as_view(), name="center"),
     path("center/read/<int:delivery_id>/", views.MarkNotificationReadView.as_view(), name="mark-read"),
     path("center/read-all/", views.MarkAllNotificationsReadView.as_view(), name="mark-all-read"),
+    path("center/delete/<int:delivery_id>/", views.DeleteNotificationView.as_view(), name="delete"),
+    path("center/delete-all/", views.DeleteAllNotificationsView.as_view(), name="delete-all"),
     path("preferences/", views.StaffAlertPreferencesView.as_view(), name="preferences"),
 
     path("inbox/", views.UserNotificationInboxView.as_view(), name="inbox"),

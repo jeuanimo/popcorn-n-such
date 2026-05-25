@@ -10,6 +10,11 @@
                     {% csrf_token %}
                     <button class="btn btn-sm btn-outline-dark" type="submit">Mark all read</button>
                 </form>
+                <form method="post" action="{% url 'notifications:delete-all' %}"
+                      onsubmit="return confirm('Delete all notifications? This cannot be undone.');">
+                    {% csrf_token %}
+                    <button class="btn btn-sm btn-danger" type="submit">Delete all</button>
+                </form>
             </div>
         </div>
         <p class="text-muted">Unread: {{ unread_count }}</p>
@@ -25,7 +30,7 @@
                             <div class="small text-muted">{{ delivery.created_at }}</div>
                             {% if delivery.event.message %}<div class="mt-2">{{ delivery.event.message }}</div>{% endif %}
                         </div>
-                        <div class="text-end">
+                        <div class="text-end d-flex flex-column gap-1">
                             {% if not delivery.read_at %}
                                 <form method="post"
                                       action="{% url 'notifications:mark-read' delivery.id %}">
@@ -33,6 +38,11 @@
                                     <button class="btn btn-sm btn-outline-dark" type="submit">Mark read</button>
                                 </form>
                             {% endif %}
+                            <form method="post"
+                                  action="{% url 'notifications:delete' delivery.id %}">
+                                {% csrf_token %}
+                                <button class="btn btn-sm btn-danger" type="submit">Delete</button>
+                            </form>
                         </div>
                     </div>
                 </div>

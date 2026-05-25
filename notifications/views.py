@@ -57,6 +57,26 @@ class MarkAllNotificationsReadView(RoleRequiredMixin, View):
         return HttpResponseRedirect(reverse("notifications:center"))
 
 
+class DeleteNotificationView(RoleRequiredMixin, View):
+    allowed_roles = ("staff", "admin")
+
+    def post(self, request, delivery_id: int):
+        delivery = get_object_or_404(NotificationDeliveryLog, id=delivery_id, user=request.user)
+        delivery.delete()
+        return HttpResponseRedirect(reverse("notifications:center"))
+
+
+class DeleteAllNotificationsView(RoleRequiredMixin, View):
+    allowed_roles = ("staff", "admin")
+
+    def post(self, request):
+        NotificationDeliveryLog.objects.filter(
+            user=request.user,
+            channel=NotificationDeliveryChannel.INTERNAL,
+        ).delete()
+        return HttpResponseRedirect(reverse("notifications:center"))
+
+
 class UserNotificationInboxView(RoleRequiredMixin, View):
     allowed_roles = ("customer", "seller", "team_captain", "organization_manager", "staff", "admin")
     template_name = "notifications/inbox.html"
