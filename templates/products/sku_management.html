@@ -8,15 +8,25 @@
             <div class="d-flex justify-content-between align-items-center mb-4">
                 <h1 class="mb-0">SKU Management</h1>
                 <div class="d-flex gap-2">
+                    <button id="bulkDeleteBtn"
+                            type="submit"
+                            form="bulk-delete-form"
+                            class="btn btn-danger d-none"
+                            onclick="return confirm('Delete all selected SKUs? This cannot be undone.')">Delete Selected (<span id="selectedCount">0</span>)</button>
                     <a class="btn btn-outline-dark" href="{% url 'products:sku-export' %}">Export CSV</a>
                     <a class="btn btn-outline-dark" href="{% url 'products:csv-import' %}">Import CSV</a>
                     <a class="btn btn-brand" href="{% url 'products:sku-create' %}">+ Add SKU</a>
                 </div>
             </div>
+            {# Hidden bulk-delete form — checkboxes reference it via form="bulk-delete-form" #}
+            <form id="bulk-delete-form" method="post" action="{% url 'products:sku-bulk-delete' %}">
+                {% csrf_token %}
+            </form>
             <div class="table-responsive hero-card p-3">
                 <table class="table align-middle mb-0">
                     <thead>
                         <tr>
+                            <th><input type="checkbox" id="selectAll" title="Select all"></th>
                             <th>SKU</th>
                             <th>Product</th>
                             <th>Size</th>
@@ -30,6 +40,7 @@
                     <tbody>
                         {% for sku in skus %}
                             <tr>
+                                <td><input type="checkbox" name="pks" value="{{ sku.pk }}" form="bulk-delete-form" class="sku-select"></td>
                                 <td>{{ sku.sku_code }}</td>
                                 <td>{{ sku.product.name }}</td>
                                 <td>{{ sku.size }}</td>
@@ -108,4 +119,30 @@
             </div>
         </div>
     </section>
+    <script>
+    (function () {
+        var selectAll   = document.getElementById("selectAll");
+        var deleteBtn   = document.getElementById("bulkDeleteBtn");
+        var countEl     = document.getElementById("selectedCount");
+
+        function updateBulkBar() {
+            var checked = document.querySelectorAll(".sku-select:checked").length;
+            countEl.textContent = checked;
+            deleteBtn.classList.toggle("d-none", checked === 0);
+            selectAll.indeterminate = checked > 0 && checked < document.querySelectorAll(".sku-select").length;
+            selectAll.checked = checked > 0 && checked === document.querySelectorAll(".sku-select").length;
+        }
+
+        selectAll.addEventListener("change", function () {
+            document.querySelectorAll(".sku-select").forEach(function (cb) {
+                cb.checked = selectAll.checked;
+            });
+            updateBulkBar();
+        });
+
+        document.querySelectorAll(".sku-select").forEach(function (cb) {
+            cb.addEventListener("change", updateBulkBar);
+        });
+    })();
+    </script>
 {% endblock content %}

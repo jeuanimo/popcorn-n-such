@@ -255,6 +255,33 @@ class SKUDeleteView(RoleRequiredMixin, View):
 		return redirect(SKU_MANAGEMENT_ROUTE)
 
 
+class SKUBulkDeleteView(RoleRequiredMixin, View):
+	allowed_roles = ("staff", "admin")
+
+	def post(self, request, *args, **kwargs):
+		pks = request.POST.getlist("pks")
+		if not pks:
+			messages.warning(request, "No SKUs selected.")
+			return redirect(SKU_MANAGEMENT_ROUTE)
+		deleted = 0
+		skipped = []
+		for pk in pks:
+			try:
+				sku = SKU.objects.get(pk=pk)
+				sku_code = sku.sku_code
+				sku.delete()
+				deleted += 1
+			except SKU.DoesNotExist:
+				pass
+			except ProtectedError:
+				skipped.append(sku_code)
+		if deleted:
+			messages.success(request, f"Deleted {deleted} SKU(s).")
+		if skipped:
+			messages.error(request, f"{len(skipped)} SKU(s) could not be deleted (have associated orders): {', '.join(skipped)}")
+		return redirect(SKU_MANAGEMENT_ROUTE)
+
+
 class SKUManagementView(RoleRequiredMixin, TemplateView):
 	template_name = "products/sku_management.html"
 	allowed_roles = ("staff", "admin")
