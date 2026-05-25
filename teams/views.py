@@ -290,7 +290,7 @@ def team_delete_view(request, slug: str):
             team_name = team.name
             log_audit_event(
                 actor=request.user,
-                action=AuditAction.DELETE,
+                action=AuditAction.ADMIN_ACTION,
                 message=f"Team deleted: {team_name} ({slug})",
                 request=request,
                 metadata={"name": team_name, "slug": slug},
