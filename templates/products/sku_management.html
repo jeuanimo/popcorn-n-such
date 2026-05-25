@@ -46,28 +46,39 @@
                                           method="post"
                                           action="{% url 'products:sku-update' sku.sku_code %}">
                                         {% csrf_token %}
-                                        <div class="d-flex gap-2 align-items-center flex-wrap">
-                                            <input type="number"
-                                                   name="inventory_quantity"
-                                                   value="{{ sku.inventory_quantity }}"
-                                                   min="0"
-                                                   class="form-control form-control-sm sku-field"
-                                                   style="width:80px" />
-                                            <input type="number"
-                                                   name="low_stock_threshold"
-                                                   value="{{ sku.low_stock_threshold }}"
-                                                   min="0"
-                                                   class="form-control form-control-sm sku-field"
-                                                   style="width:80px" />
-                                            <input type="number"
-                                                   name="weight_ounces"
-                                                   value="{{ sku.weight_ounces }}"
-                                                   min="0"
-                                                   step="0.01"
-                                                   class="form-control form-control-sm sku-field"
-                                                   style="width:90px"
-                                                   placeholder="oz" />
-                                            <div class="form-check form-check-inline mb-0">
+                                        <div class="d-flex gap-2 align-items-end flex-wrap">
+                                            <div>
+                                                <label class="form-label small mb-1" for="inv-{{ sku.pk }}">Qty</label>
+                                                <input type="number"
+                                                       id="inv-{{ sku.pk }}"
+                                                       name="inventory_quantity"
+                                                       value="{{ sku.inventory_quantity }}"
+                                                       min="0"
+                                                       class="form-control form-control-sm sku-field"
+                                                       style="width:80px" />
+                                            </div>
+                                            <div>
+                                                <label class="form-label small mb-1" for="thresh-{{ sku.pk }}">Threshold</label>
+                                                <input type="number"
+                                                       id="thresh-{{ sku.pk }}"
+                                                       name="low_stock_threshold"
+                                                       value="{{ sku.low_stock_threshold }}"
+                                                       min="0"
+                                                       class="form-control form-control-sm sku-field"
+                                                       style="width:80px" />
+                                            </div>
+                                            <div>
+                                                <label class="form-label small mb-1" for="wt-{{ sku.pk }}">Weight (oz)</label>
+                                                <input type="number"
+                                                       id="wt-{{ sku.pk }}"
+                                                       name="weight_ounces"
+                                                       value="{{ sku.weight_ounces }}"
+                                                       min="0"
+                                                       step="0.01"
+                                                       class="form-control form-control-sm sku-field"
+                                                       style="width:90px" />
+                                            </div>
+                                            <div class="form-check form-check-inline mb-0 pb-1">
                                                 <input class="form-check-input"
                                                        type="checkbox"
                                                        name="is_active"
