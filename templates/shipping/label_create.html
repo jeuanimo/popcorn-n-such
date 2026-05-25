@@ -19,25 +19,42 @@
                     <h2 class="h5 mb-1">Network Label Printer</h2>
                     <p class="small text-muted mb-0">Direct printing to your thermal printer via QZ Tray.</p>
                 </div>
-                <span id="qzStatus" class="badge text-bg-secondary">Checking…</span>
+                <div class="d-flex align-items-center gap-2">
+                    <span id="qzStatus" class="badge text-bg-secondary">Checking…</span>
+                    <button id="qzRetryBtn" type="button" class="btn btn-sm btn-outline-dark d-none">Retry</button>
+                </div>
             </div>
             <div id="qzSetup" class="d-none mt-3">
                 <hr class="my-3">
+                {# Already installed — troubleshooting #}
+                <div id="qzTroubleshoot" class="mb-3">
+                    <p class="small fw-semibold mb-2">QZ Tray installed but not connecting? Try these steps:</p>
+                    <ol class="small mb-2">
+                        <li class="mb-1">Make sure QZ Tray is <strong>running</strong> — look for it in your system tray (bottom-right on Windows, menu bar on Mac).</li>
+                        <li class="mb-1">
+                            <strong>Trust the QZ Tray certificate</strong> — because this site uses HTTPS, your browser must trust QZ Tray's local certificate once.
+                            Open <a href="https://localhost:8181" target="_blank" rel="noopener noreferrer"><strong>https://localhost:8181</strong></a> in a new tab,
+                            click <em>Advanced → Proceed</em> to accept the warning, then come back here and click <strong>Retry</strong>.
+                        </li>
+                        <li class="mb-1">If still not connecting, right-click the QZ Tray icon → <em>Reload</em>, then retry.</li>
+                    </ol>
+                </div>
+                <hr class="my-3">
                 {# Step 1 — Desktop app #}
                 <div class="mb-3">
-                    <p class="small fw-semibold mb-2">Step 1 — Install QZ Tray on this workstation</p>
+                    <p class="small fw-semibold mb-2">Don't have QZ Tray yet? Install it on this workstation:</p>
                     <a href="https://qz.io/download"
                        target="_blank"
                        rel="noopener noreferrer"
                        class="btn btn-sm btn-outline-dark">Download QZ Tray App ↗</a>
                     <p class="form-text mt-1">
-                        QZ Tray is a free desktop app that bridges this page directly to your local or network thermal printer.
-                        Once installed and running, this page connects to it automatically.
+                        Free desktop app that bridges this page directly to your local or network thermal printer.
+                        Once installed and running, click Retry above.
                     </p>
                 </div>
                 {# Step 2 — Printer name #}
                 <p class="small text-muted mb-0">
-                    Step 2 — Set your printer name in
+                    Once connected — set your printer name in
                     <a href="{% url 'dashboards:operational-settings' %}">Operational Settings</a>
                     (must match exactly how it appears in the OS print manager).
                 </p>
@@ -163,6 +180,7 @@
   var noPrinterAlert = document.getElementById("noPrinterAlert");
   var labelFrame     = document.getElementById("labelFrame");
   var qzStatusEl     = document.getElementById("qzStatus");
+  var qzRetryBtn     = document.getElementById("qzRetryBtn");
   var printModal     = new bootstrap.Modal(document.getElementById("printConfirmModal"));
 
   /* ── State ────────────────────────────────────────────────── */
@@ -180,9 +198,19 @@
   function refreshSetupCard(state) {
     if (state === "connected") {
       qzSetupEl.classList.add("d-none");
+      if (qzRetryBtn) { qzRetryBtn.classList.add("d-none"); }
     } else {
       qzSetupEl.classList.remove("d-none");
+      if (qzRetryBtn) { qzRetryBtn.classList.remove("d-none"); }
     }
+  }
+
+  if (qzRetryBtn) {
+    qzRetryBtn.addEventListener("click", function () {
+      if (qzConnected) { try { qz.websocket.disconnect(); } catch (e) {} }
+      qzConnected = false;
+      qzConnect();
+    });
   }
 
   /* ── QZ Tray security & connection ────────────────────────── */
