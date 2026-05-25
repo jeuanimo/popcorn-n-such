@@ -298,7 +298,11 @@ def team_delete_view(request, slug: str):
         # so PROTECT doesn't block the delete.
         from orders.models import Order as _Order
         _Order.objects.filter(team=team).update(team=None)
-        team.delete()
+        try:
+            team.delete()
+        except Exception as exc:
+            messages.error(request, f"Delete failed: {type(exc).__name__}: {exc}")
+            return render(request, "teams/team_confirm_delete.html", {"team": team})
         messages.success(request, f"Team '{team_name}' has been deleted.")
         if _is_staff_or_admin(request.user):
             return redirect("teams:staff-list")
