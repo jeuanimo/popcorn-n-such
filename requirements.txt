@@ -24,4 +24,4 @@ cloudinary==1.44.2
 django-cloudinary-storage==0.3.0
 
 # Error tracking
-sentry-sdk[django]==2.19.2
+sentry-sdk[django]==2.61.0
