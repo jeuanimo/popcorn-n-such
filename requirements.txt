@@ -20,7 +20,7 @@ celery[redis]==5.4.0
 django-celery-beat==2.7.0
 
 # Media storage (Cloudinary)
-cloudinary==1.44.2
+cloudinary==1.45.0
 django-cloudinary-storage==0.3.0
 
 # Error tracking
