@@ -1,5 +1,6 @@
 import datetime
 import logging
+import uuid
 
 from django.conf import settings
 from django.contrib import messages
@@ -34,8 +35,10 @@ logger = logging.getLogger(__name__)
 _CART_VIEW = "cart:view"
 _CHECKOUT_URL = "orders:checkout"
 _CHECKOUT_REVIEW_URL = "orders:checkout-review"
+_CHECKOUT_COMPLETE_URL = "orders:checkout-complete"
 _SUBSCRIPTIONS_URL = "orders:subscriptions"
 _CART_EXPIRED_MSG = "Your cart has expired. Please start over."
+_ORDER_CREATION_ERROR_MSG = "Something went wrong processing your order. Please try again."
 
 
 def _get_active_cart(request) -> Cart | None:
@@ -224,6 +227,85 @@ class CheckoutView(View):
 class CheckoutReviewView(View):
     template_name = "orders/checkout_review.html"
 
+    @staticmethod
+    def _collect_ids():
+        from core.runtime_settings import get_runtime_setting
+
+        business_id = str(get_runtime_setting("godaddy_collect_business_id", getattr(settings, "GODADDY_COLLECT_BUSINESS_ID", "") or "")).strip()
+        application_id = str(get_runtime_setting("godaddy_collect_application_id", getattr(settings, "GODADDY_COLLECT_APPLICATION_ID", "") or "")).strip()
+
+        combined = str(get_runtime_setting("godaddy_collect_application_key", getattr(settings, "GODADDY_COLLECT_APPLICATION_KEY", "") or "")).strip()
+        if combined and (not business_id or not application_id) and "=" in combined:
+            left, right = combined.split("=", 1)
+            if not business_id:
+                business_id = left.strip()
+            if not application_id:
+                application_id = right.strip()
+
+        return {"business_id": business_id, "application_id": application_id}
+
+    def _poynt_collect_context(self):
+        from core.runtime_settings import get_runtime_setting
+
+        enabled = bool(get_runtime_setting("godaddy_collect_enabled", getattr(settings, "GODADDY_COLLECT_ENABLED", False)))
+        sdk_url = str(get_runtime_setting("godaddy_collect_sdk_url", getattr(settings, "GODADDY_COLLECT_SDK_URL", "") or "")).strip()
+        iframe_height = str(get_runtime_setting("godaddy_collect_iframe_height", getattr(settings, "GODADDY_COLLECT_IFRAME_HEIGHT", "460px") or "460px")).strip()
+
+        recaptcha_type = str(get_runtime_setting("godaddy_collect_recaptcha_type", getattr(settings, "GODADDY_COLLECT_RECAPTCHA_TYPE", "DEFAULT") or "DEFAULT")).strip().upper()
+        if recaptcha_type not in {"DEFAULT", "TEXT"}:
+            recaptcha_type = "DEFAULT"
+
+        recaptcha_text_font_size = str(
+            get_runtime_setting(
+                "godaddy_collect_recaptcha_text_font_size",
+                getattr(settings, "GODADDY_COLLECT_RECAPTCHA_TEXT_FONT_SIZE", "14px") or "14px",
+            )
+        ).strip()
+        recaptcha_text_color = str(
+            get_runtime_setting(
+                "godaddy_collect_recaptcha_text_color",
+                getattr(settings, "GODADDY_COLLECT_RECAPTCHA_TEXT_COLOR", "#111827") or "#111827",
+            )
+        ).strip()
+        recaptcha_link_color = str(
+            get_runtime_setting(
+                "godaddy_collect_recaptcha_link_color",
+                getattr(settings, "GODADDY_COLLECT_RECAPTCHA_LINK_COLOR", "#0d6efd") or "#0d6efd",
+            )
+        ).strip()
+        recaptcha_link_text_decoration = str(
+            get_runtime_setting(
+                "godaddy_collect_recaptcha_link_text_decoration",
+                getattr(settings, "GODADDY_COLLECT_RECAPTCHA_LINK_TEXT_DECORATION", "underline") or "underline",
+            )
+        ).strip()
+        charge_source = str(
+            get_runtime_setting(
+                "godaddy_payments_charge_source",
+                getattr(settings, "GODADDY_PAYMENTS_CHARGE_SOURCE", "nonce") or "nonce",
+            )
+        ).strip().lower()
+        if charge_source not in {"nonce", "payment_token"}:
+            charge_source = "nonce"
+
+        ids = self._collect_ids()
+        is_configured = bool(sdk_url and ids["business_id"] and ids["application_id"])
+        return {
+            "enabled": enabled and is_configured,
+            "configured": is_configured,
+            "sdk_url": sdk_url,
+            "telemetry_url": reverse("payments:collect-telemetry"),
+            "business_id": ids["business_id"],
+            "application_id": ids["application_id"],
+            "iframe_height": iframe_height,
+            "recaptcha_type": recaptcha_type,
+            "recaptcha_text_font_size": recaptcha_text_font_size,
+            "recaptcha_text_color": recaptcha_text_color,
+            "recaptcha_link_color": recaptcha_link_color,
+            "recaptcha_link_text_decoration": recaptcha_link_text_decoration,
+            "charge_source": charge_source,
+        }
+
     def _payment_methods(self):
         active_provider = (getattr(settings, "PAYMENTS_PROVIDER", "godaddy") or "godaddy").lower().strip()
         label_map = {
@@ -363,7 +445,180 @@ class CheckoutReviewView(View):
             return None
         except Exception:
             logger.exception("Unexpected error creating order")
-            messages.error(request, "Something went wrong processing your order. Please try again.")
+            messages.error(request, _ORDER_CREATION_ERROR_MSG)
+            return None
+
+    @staticmethod
+    def _bool_from_runtime(value) -> bool:
+        return str(value).strip().lower() in {"1", "true", "yes", "on"}
+
+    def _collect_charge_options(self):
+        from core.runtime_settings import get_runtime_setting
+
+        charge_source = str(
+            get_runtime_setting(
+                "godaddy_payments_charge_source",
+                getattr(settings, "GODADDY_PAYMENTS_CHARGE_SOURCE", "nonce") or "nonce",
+            )
+        ).strip().lower()
+        if charge_source not in {"nonce", "payment_token"}:
+            charge_source = "nonce"
+
+        charge_action = str(
+            get_runtime_setting(
+                "godaddy_payments_charge_nonce_action",
+                getattr(settings, "GODADDY_PAYMENTS_CHARGE_NONCE_ACTION", "SALE") or "SALE",
+            )
+        ).strip().upper()
+
+        auth_only_runtime = get_runtime_setting(
+            "godaddy_payments_charge_nonce_auth_only",
+            getattr(settings, "GODADDY_PAYMENTS_CHARGE_NONCE_AUTH_ONLY", False),
+        )
+        return {
+            "charge_source": charge_source,
+            "charge_action": charge_action,
+            "auth_only": self._bool_from_runtime(auth_only_runtime),
+        }
+
+    def _build_collect_charge_kwargs(self, *, request, summary, checkout_input):
+        receipt_email = (checkout_input.guest_email or getattr(request.user, "email", "") or "").strip()
+        options = self._collect_charge_options()
+        return {
+            "amount_cents": summary.total_cents,
+            "currency": "USD",
+            "idempotency_key": f"checkout-{checkout_input.cart.pk}-{uuid.uuid4().hex[:12]}",
+            "action": options["charge_action"],
+            "auth_only": options["auth_only"],
+            "business_id": self._collect_ids().get("business_id", ""),
+            "email_receipt": bool(receipt_email),
+            "receipt_email_address": receipt_email,
+            "actor": request.user if request.user.is_authenticated else None,
+            "request": request,
+            "metadata": {
+                "cart_id": checkout_input.cart.pk,
+                "guest_email": checkout_input.guest_email,
+            },
+            "charge_source": options["charge_source"],
+        }
+
+    def _charge_via_payment_token(self, *, gateway, nonce, charge_kwargs, checkout_input):
+        tokenize_details = gateway.create_payment_token(
+            nonce=nonce,
+            idempotency_key=f"tokenize-{checkout_input.cart.pk}-{uuid.uuid4().hex[:12]}",
+            business_id=charge_kwargs["business_id"],
+            actor=charge_kwargs["actor"],
+            request=charge_kwargs["request"],
+            metadata=charge_kwargs["metadata"],
+        )
+        if (tokenize_details.get("status") or "").upper() != "ACTIVE":
+            raise ValueError("Payment token validation failed.")
+
+        payment_token = (tokenize_details.get("payment_token") or "").strip()
+        if not payment_token:
+            raise ValueError("Payment token was not returned by provider.")
+
+        charge_result = gateway.charge_payment_token(
+            payment_token=payment_token,
+            **{k: v for k, v in charge_kwargs.items() if k != "charge_source"},
+        )
+        return charge_result, tokenize_details
+
+    @staticmethod
+    def _build_payment_result(*, charge_result, charge_source: str, tokenize_details):
+        payment_result = {
+            "provider": "godaddy",
+            "status": "confirmed",
+            "provider_ref": charge_result.provider_transaction_id or "",
+            "verification": charge_result.raw or {},
+            "charge_source": charge_source,
+        }
+        if charge_source == "payment_token" and tokenize_details:
+            payment_result["tokenize"] = {
+                "status": tokenize_details.get("status", ""),
+                "cvv_response": tokenize_details.get("cvv_response", ""),
+                "avs_address_result": tokenize_details.get("avs_address_result", ""),
+                "avs_postal_result": tokenize_details.get("avs_postal_result", ""),
+                "card_status": tokenize_details.get("card_status", ""),
+            }
+        return payment_result
+
+    def _execute_collect_charge(self, *, gateway, nonce, charge_kwargs, checkout_input):
+        tokenize_details = None
+        if charge_kwargs["charge_source"] == "payment_token":
+            charge_result, tokenize_details = self._charge_via_payment_token(
+                gateway=gateway,
+                nonce=nonce,
+                charge_kwargs=charge_kwargs,
+                checkout_input=checkout_input,
+            )
+            return charge_result, tokenize_details
+
+        charge_result = gateway.charge_nonce(
+            nonce=nonce,
+            **{k: v for k, v in charge_kwargs.items() if k != "charge_source"},
+        )
+        return charge_result, tokenize_details
+
+    def _handle_collect_charge_error(self, request, exc: Exception) -> None:
+        msg = str(exc).strip()
+        if msg == "Payment token validation failed.":
+            messages.error(request, "Payment token validation failed. Please check your card details and try again.")
+            return
+        if msg == "Payment token was not returned by provider.":
+            messages.error(request, msg)
+            return
+        messages.error(request, f"Could not charge payment method: {exc}")
+
+    def _create_order_after_collect_charge(self, request, *, service, summary, checkout_input, nonce):
+        charge_kwargs = self._build_collect_charge_kwargs(
+            request=request,
+            summary=summary,
+            checkout_input=checkout_input,
+        )
+
+        try:
+            gateway = get_payment_gateway("godaddy")
+            charge_result, tokenize_details = self._execute_collect_charge(
+                gateway=gateway,
+                nonce=nonce,
+                charge_kwargs=charge_kwargs,
+                checkout_input=checkout_input,
+            )
+        except Exception as exc:
+            logger.exception("Poynt Collect nonce charge failed")
+            self._handle_collect_charge_error(request, exc)
+            return None
+
+        if not charge_result.is_confirmed:
+            status = charge_result.status or "pending"
+            failure_message = charge_result.failure_message or ""
+            if failure_message:
+                messages.error(request, f"Payment was not approved (status: {status}). {failure_message}")
+            else:
+                messages.error(request, f"Payment was not approved (status: {status}).")
+            return None
+
+        payment_result = self._build_payment_result(
+            charge_result=charge_result,
+            charge_source=charge_kwargs["charge_source"],
+            tokenize_details=tokenize_details,
+        )
+
+        try:
+            return service.create_confirmed_order(
+                summary=summary,
+                checkout_input=checkout_input,
+                payment_result=payment_result,
+                actor=request.user if request.user.is_authenticated else None,
+                django_request=request,
+            )
+        except ValidationError as exc:
+            messages.error(request, " ".join(exc.messages))
+            return None
+        except Exception:
+            logger.exception("Unexpected error creating order after collect nonce charge")
+            messages.error(request, _ORDER_CREATION_ERROR_MSG)
             return None
 
     def get(self, request):
@@ -387,6 +642,7 @@ class CheckoutReviewView(View):
                 "payment_methods": self._payment_methods(),
                 "selected_payment_method": request.session.get("selected_payment_method", ""),
                 "stub_checkout_enabled": bool(getattr(settings, "ALLOW_STUB_CHECKOUT_PAYMENT", False)),
+                "poynt_collect": self._poynt_collect_context(),
             },
         )
 
@@ -419,6 +675,32 @@ class CheckoutReviewView(View):
         if not selected_payment_method:
             return redirect(_CHECKOUT_REVIEW_URL)
 
+        poynt_collect = self._poynt_collect_context()
+        if selected_payment_method == "godaddy" and poynt_collect["enabled"]:
+            nonce = (request.POST.get("poynt_nonce") or "").strip()
+            if not nonce:
+                messages.error(request, "Card details are required. Please enter your payment information.")
+                return redirect(_CHECKOUT_REVIEW_URL)
+
+            order = self._create_order_after_collect_charge(
+                request,
+                service=service,
+                summary=summary,
+                checkout_input=checkout_input,
+                nonce=nonce,
+            )
+            if not order:
+                return redirect(_CHECKOUT_REVIEW_URL)
+
+            from orders.tasks import run_post_order_tasks
+            run_post_order_tasks.delay(order.id)
+
+            request.session.pop("checkout_data", None)
+            request.session.pop("checkout_summary", None)
+            request.session.pop("pending_payment", None)
+
+            return redirect(_CHECKOUT_COMPLETE_URL, order_number=order.order_number or order.pk)
+
         if not getattr(settings, "ALLOW_STUB_CHECKOUT_PAYMENT", False):
             return self._start_hosted_session(
                 request,
@@ -447,7 +729,7 @@ class CheckoutReviewView(View):
         request.session.pop("checkout_summary", None)
         request.session.pop("pending_payment", None)
 
-        return redirect("orders:checkout-complete", order_number=order.order_number or order.pk)
+        return redirect(_CHECKOUT_COMPLETE_URL, order_number=order.order_number or order.pk)
 
 
 class CheckoutPaymentReturnView(View):
@@ -561,7 +843,7 @@ class CheckoutPaymentReturnView(View):
             return redirect(_CHECKOUT_URL)
         except Exception:
             logger.exception("Unexpected error creating order after payment confirmation")
-            messages.error(request, "Something went wrong processing your order. Please try again.")
+            messages.error(request, _ORDER_CREATION_ERROR_MSG)
             return redirect(_CHECKOUT_URL)
 
         from orders.tasks import run_post_order_tasks
@@ -571,7 +853,7 @@ class CheckoutPaymentReturnView(View):
         request.session.pop("checkout_summary", None)
         request.session.pop("pending_payment", None)
 
-        return redirect("orders:checkout-complete", order_number=order.order_number or order.pk)
+        return redirect(_CHECKOUT_COMPLETE_URL, order_number=order.order_number or order.pk)
 
 
 class CheckoutCompleteView(View):

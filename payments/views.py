@@ -4,10 +4,13 @@ import json
 
 from django.http import HttpRequest, HttpResponse, JsonResponse
 from django.utils import timezone
+from django.views.decorators.http import require_POST
 
 from payments.gateways.registry import get_payment_gateway
 from payments.models import PaymentEventLog, PaymentTransaction
 from payments.services import record_payment_event
+from security_audit.models import AuditAction
+from security_audit.utils import log_audit_event
 
 
 def _header_dict(request: HttpRequest) -> dict[str, str]:
@@ -60,4 +63,48 @@ def payment_webhook(request: HttpRequest, provider: str) -> HttpResponse:
     PaymentEventLog.objects.filter(id=event.id).update(processed_at=timezone.now())
 
     return JsonResponse({"ok": True, "signature_valid": signature_valid})
+
+
+@require_POST
+def collect_telemetry(request: HttpRequest) -> HttpResponse:
+    try:
+        payload = json.loads((request.body or b"{}").decode("utf-8") or "{}")
+    except json.JSONDecodeError:
+        return JsonResponse({"ok": False, "error": "invalid_json"}, status=400)
+
+    event_name = str(payload.get("event") or "").strip().lower()
+    allowed_events = {"ready", "error", "nonce", "iframe_height_change", "sdk_load_error"}
+    if event_name not in allowed_events:
+        return JsonResponse({"ok": False, "error": "invalid_event"}, status=400)
+
+    details = payload.get("details") if isinstance(payload.get("details"), dict) else {}
+    allowed_detail_keys = {
+        "code",
+        "requestId",
+        "source",
+        "type",
+        "height",
+        "hasNonce",
+        "recaptchaType",
+        "chargeSource",
+    }
+    sanitized_details = {
+        key: str(details.get(key))[:120]
+        for key in allowed_detail_keys
+        if details.get(key) not in (None, "")
+    }
+
+    actor = request.user if getattr(request, "user", None) and request.user.is_authenticated else None
+    log_audit_event(
+        action=AuditAction.PAYMENT_EVENT,
+        message=f"Poynt Collect event listener: {event_name}",
+        actor=actor,
+        request=request,
+        metadata={
+            "provider": "godaddy",
+            "collect_event": event_name,
+            "details": sanitized_details,
+        },
+    )
+    return JsonResponse({"ok": True})
 

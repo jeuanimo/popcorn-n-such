@@ -8,6 +8,7 @@ A Django 5.2 e-commerce and fundraising platform for popcorn sales.
 
 - [Local Development](#local-development)
 - [Environment Variables](#environment-variables)
+- [Poynt Collect Setup](#poynt-collect-setup)
 - [Deployment](#deployment)
   - [Render (recommended)](#render-recommended)
   - [Docker](#docker)
@@ -81,6 +82,93 @@ Generate a secret key:
 ```bash
 python -c "import secrets; print(secrets.token_urlsafe(64))"
 ```
+
+---
+
+## Poynt Collect Setup
+
+This project now supports a direct Poynt Collect card form at checkout for GoDaddy Payments.
+
+Prerequisites:
+
+- Active GoDaddy / Poynt developer account
+- Business ID and Application ID from Poynt HQ
+- API credentials configured in environment variables
+
+Required environment variables:
+
+```bash
+# Keep payments provider on GoDaddy
+PAYMENTS_PROVIDER=godaddy
+
+# Core GoDaddy API credentials
+GODADDY_API_KEY=...
+GODADDY_API_SECRET=...
+GODADDY_MERCHANT_ID=...
+
+# Poynt Collect frontend
+GODADDY_COLLECT_ENABLED=true
+GODADDY_COLLECT_SDK_URL=https://collect.commerce.godaddy.com/sdk.js
+GODADDY_COLLECT_BUSINESS_ID=<businessId>
+GODADDY_COLLECT_APPLICATION_ID=<applicationId>
+# Optional alternative combined key format:
+# GODADDY_COLLECT_APPLICATION_KEY=<businessId>=<applicationId>
+
+# reCAPTCHA display (required by Google branding rules)
+GODADDY_COLLECT_IFRAME_HEIGHT=460px
+GODADDY_COLLECT_RECAPTCHA_TYPE=DEFAULT  # DEFAULT or TEXT
+GODADDY_COLLECT_RECAPTCHA_TEXT_FONT_SIZE=14px
+GODADDY_COLLECT_RECAPTCHA_TEXT_COLOR=#111827
+GODADDY_COLLECT_RECAPTCHA_LINK_COLOR=#0d6efd
+GODADDY_COLLECT_RECAPTCHA_LINK_TEXT_DECORATION=underline
+
+# Poynt/GoDaddy services backend
+GODADDY_SERVICES_BASE_URL=https://services.poynt.net
+
+# One-time charge flow (nonce -> charge)
+GODADDY_PAYMENTS_CHARGE_NONCE_PATH=/businesses/{business_id}/cards/tokenize/charge
+GODADDY_PAYMENTS_CHARGE_SOURCE=nonce   # nonce or payment_token
+GODADDY_PAYMENTS_CHARGE_NONCE_ACTION=SALE   # SALE or AUTHORIZE
+GODADDY_PAYMENTS_CHARGE_NONCE_AUTH_ONLY=false
+GODADDY_STORE_ID=<store-id>
+
+# Recurring flow (nonce -> payment token -> charge token)
+GODADDY_PAYMENTS_CREATE_TOKEN_PATH=/businesses/{business_id}/cards/tokenize
+GODADDY_PAYMENTS_CHARGE_TOKEN_PATH=/businesses/{business_id}/cards/tokenize/charge
+```
+
+Environment variants:
+
+- US production:
+  - SDK: https://collect.commerce.godaddy.com/sdk.js
+  - Services: https://services.poynt.net
+- OTE staging:
+  - SDK: https://collect.commerce.ote-godaddy.com/sdk.js
+  - Services: https://services-ote.poynt.net
+
+Flow implemented:
+
+- One-time charge: collect nonce in checkout page -> server charges nonce -> order is created only on confirmed status.
+  - collect.getNonce is called with customer/shipping payload so stored checkout data can be sent directly with nonce creation.
+  - Server request body for charge follows Poynt schema: action, context.businessId/storeId, amounts, fundingSource.nonce, and optional receipt fields.
+- Recurring-ready gateway methods are available for:
+  - create payment token from nonce
+  - charge payment token
+- Optional token-charge checkout path:
+  - Set GODADDY_PAYMENTS_CHARGE_SOURCE=payment_token to run tokenize first and then charge fundingSource.cardToken.
+  - Tokenize response status/cvv/avs results are interpreted and attached to payment verification metadata for downstream decisions.
+- reCAPTCHA is explicitly enabled in collect.mount using enableReCaptcha: true.
+- Event listeners wired in checkout integration:
+  - ready: confirms Collect form readiness
+  - nonce: captures nonce payload and submits checkout
+  - error: displays structured provider error details (message/code/source/requestId)
+  - iframe_height_change: dynamically adjusts wrapper height to avoid clipping
+  - a same-origin telemetry endpoint logs non-PII listener diagnostics to audit logs for troubleshooting
+
+Notes:
+
+- The exact API paths for your tenant/environment must be set in the env vars above.
+- No PAN/CVV data is stored by this app; only provider references and metadata are persisted.
 
 ---
 

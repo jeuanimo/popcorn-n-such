@@ -208,6 +208,25 @@ class OperationalSettingsView(RoleRequiredMixin, View):
 		"godaddy_payments_test_path": "GODADDY_PAYMENTS_TEST_PATH",
 		"godaddy_payments_test_method": "GODADDY_PAYMENTS_TEST_METHOD",
 		"godaddy_payments_allowed_redirect_hosts": "GODADDY_PAYMENTS_ALLOWED_REDIRECT_HOSTS",
+		"godaddy_services_base_url": "GODADDY_SERVICES_BASE_URL",
+		"godaddy_collect_business_id": "GODADDY_COLLECT_BUSINESS_ID",
+		"godaddy_collect_application_id": "GODADDY_COLLECT_APPLICATION_ID",
+		"godaddy_collect_application_key": "GODADDY_COLLECT_APPLICATION_KEY",
+		"godaddy_store_id": "GODADDY_STORE_ID",
+		"godaddy_collect_enabled": "GODADDY_COLLECT_ENABLED",
+		"godaddy_collect_sdk_url": "GODADDY_COLLECT_SDK_URL",
+		"godaddy_collect_iframe_height": "GODADDY_COLLECT_IFRAME_HEIGHT",
+		"godaddy_collect_recaptcha_type": "GODADDY_COLLECT_RECAPTCHA_TYPE",
+		"godaddy_collect_recaptcha_text_font_size": "GODADDY_COLLECT_RECAPTCHA_TEXT_FONT_SIZE",
+		"godaddy_collect_recaptcha_text_color": "GODADDY_COLLECT_RECAPTCHA_TEXT_COLOR",
+		"godaddy_collect_recaptcha_link_color": "GODADDY_COLLECT_RECAPTCHA_LINK_COLOR",
+		"godaddy_collect_recaptcha_link_text_decoration": "GODADDY_COLLECT_RECAPTCHA_LINK_TEXT_DECORATION",
+		"godaddy_payments_charge_source": "GODADDY_PAYMENTS_CHARGE_SOURCE",
+		"godaddy_payments_charge_nonce_path": "GODADDY_PAYMENTS_CHARGE_NONCE_PATH",
+		"godaddy_payments_charge_nonce_action": "GODADDY_PAYMENTS_CHARGE_NONCE_ACTION",
+		"godaddy_payments_charge_nonce_auth_only": "GODADDY_PAYMENTS_CHARGE_NONCE_AUTH_ONLY",
+		"godaddy_payments_create_token_path": "GODADDY_PAYMENTS_CREATE_TOKEN_PATH",
+		"godaddy_payments_charge_token_path": "GODADDY_PAYMENTS_CHARGE_TOKEN_PATH",
 		"contact_email": "CONTACT_EMAIL",
 		"default_from_email": "DEFAULT_FROM_EMAIL",
 		"email_host": "EMAIL_HOST",
@@ -244,11 +263,16 @@ class OperationalSettingsView(RoleRequiredMixin, View):
 
 	def get(self, request):
 		initial = {}
+		bool_fields = {
+			"email_use_tls",
+			"godaddy_collect_enabled",
+			"godaddy_payments_charge_nonce_auth_only",
+		}
 		for form_field, env_key in self.ENV_MAP.items():
 			if form_field in self.SECRET_FIELDS:
 				continue
 			value = os.getenv(env_key, "")
-			if form_field == "email_use_tls":
+			if form_field in bool_fields:
 				initial[form_field] = str(value).lower() in {"1", "true", "yes", "on"}
 			elif form_field == "email_port":
 				initial[form_field] = int(value) if str(value).strip().isdigit() else None
@@ -271,11 +295,16 @@ class OperationalSettingsView(RoleRequiredMixin, View):
 
 	def _persist_settings(self, form: OperationalSettingsForm) -> None:
 		env_path = settings.BASE_DIR / ".env"
+		bool_fields = {
+			"email_use_tls",
+			"godaddy_collect_enabled",
+			"godaddy_payments_charge_nonce_auth_only",
+		}
 		for form_field, env_key in self.ENV_MAP.items():
 			value = form.cleaned_data.get(form_field)
 			if form_field in self.SECRET_FIELDS and (value is None or str(value).strip() == ""):
 				continue
-			if form_field == "email_use_tls":
+			if form_field in bool_fields:
 				value = "true" if bool(value) else "false"
 			if value is None:
 				value = ""

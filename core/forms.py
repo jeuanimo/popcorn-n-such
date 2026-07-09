@@ -106,6 +106,37 @@ class OperationalSettingsForm(forms.Form):
         widget=forms.Select(attrs={"class": "form-select"}),
     )
     godaddy_payments_allowed_redirect_hosts = forms.CharField(required=False, widget=forms.TextInput(attrs={"class": "form-control"}))
+    godaddy_services_base_url = forms.CharField(required=False, widget=forms.TextInput(attrs={"class": "form-control"}))
+    godaddy_collect_business_id = forms.CharField(required=False, widget=forms.TextInput(attrs={"class": "form-control"}))
+    godaddy_collect_application_id = forms.CharField(required=False, widget=forms.TextInput(attrs={"class": "form-control"}))
+    godaddy_collect_application_key = forms.CharField(required=False, widget=forms.TextInput(attrs={"class": "form-control"}))
+    godaddy_store_id = forms.CharField(required=False, widget=forms.TextInput(attrs={"class": "form-control"}))
+    godaddy_collect_enabled = forms.BooleanField(required=False, widget=forms.CheckboxInput(attrs={"class": "form-check-input"}))
+    godaddy_collect_sdk_url = forms.CharField(required=False, widget=forms.TextInput(attrs={"class": "form-control"}))
+    godaddy_collect_iframe_height = forms.CharField(required=False, widget=forms.TextInput(attrs={"class": "form-control"}))
+    godaddy_collect_recaptcha_type = forms.ChoiceField(
+        required=False,
+        choices=[("DEFAULT", "DEFAULT"), ("TEXT", "TEXT")],
+        widget=forms.Select(attrs={"class": "form-select"}),
+    )
+    godaddy_collect_recaptcha_text_font_size = forms.CharField(required=False, widget=forms.TextInput(attrs={"class": "form-control"}))
+    godaddy_collect_recaptcha_text_color = forms.CharField(required=False, widget=forms.TextInput(attrs={"class": "form-control"}))
+    godaddy_collect_recaptcha_link_color = forms.CharField(required=False, widget=forms.TextInput(attrs={"class": "form-control"}))
+    godaddy_collect_recaptcha_link_text_decoration = forms.CharField(required=False, widget=forms.TextInput(attrs={"class": "form-control"}))
+    godaddy_payments_charge_source = forms.ChoiceField(
+        required=False,
+        choices=[("nonce", "nonce"), ("payment_token", "payment_token")],
+        widget=forms.Select(attrs={"class": "form-select"}),
+    )
+    godaddy_payments_charge_nonce_path = forms.CharField(required=False, widget=forms.TextInput(attrs={"class": "form-control"}))
+    godaddy_payments_charge_nonce_action = forms.ChoiceField(
+        required=False,
+        choices=[("SALE", "SALE"), ("AUTHORIZE", "AUTHORIZE")],
+        widget=forms.Select(attrs={"class": "form-select"}),
+    )
+    godaddy_payments_charge_nonce_auth_only = forms.BooleanField(required=False, widget=forms.CheckboxInput(attrs={"class": "form-check-input"}))
+    godaddy_payments_create_token_path = forms.CharField(required=False, widget=forms.TextInput(attrs={"class": "form-control"}))
+    godaddy_payments_charge_token_path = forms.CharField(required=False, widget=forms.TextInput(attrs={"class": "form-control"}))
     contact_email = forms.EmailField(required=False, widget=forms.EmailInput(attrs={"class": "form-control"}))
     default_from_email = forms.EmailField(required=False, widget=forms.EmailInput(attrs={"class": "form-control"}))
     email_host = forms.CharField(required=False, widget=forms.TextInput(attrs={"class": "form-control"}))

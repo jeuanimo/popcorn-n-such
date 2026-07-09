@@ -90,8 +90,9 @@
                             <strong>Total</strong><strong>${{ summary.total_cents|cents_to_dollars }}</strong>
                         </div>
                         <h3 class="h6 mb-2">Payment Option</h3>
-                        <form method="post" class="d-grid gap-3">
+                        <form method="post" class="d-grid gap-3" id="checkout-payment-form">
                             {% csrf_token %}
+                            <input type="hidden" name="poynt_nonce" id="id_poynt_nonce" value="" />
                             <div class="d-grid gap-2">
                                 {% for method in payment_methods %}
                                     <label class="border rounded-3 px-3 py-2 d-flex align-items-center gap-2 bg-white">
@@ -103,12 +104,24 @@
                                     </label>
                                 {% endfor %}
                             </div>
+                                                        {% if poynt_collect.enabled %}
+                                                                <div id="poynt-collect-wrapper" class="border rounded-3 p-3 bg-white">
+                                                                        <div id="poynt-card-element">
+                                                                                <!-- Poynt Collect iFrame mounts here -->
+                                                                        </div>
+                                                                        <p class="small text-muted mb-0 mt-2" id="poynt-collect-status">Initializing secure card form...</p>
+                                                                </div>
+                                                        {% elif selected_payment_method == "godaddy" and not poynt_collect.configured %}
+                                                                <p class="small text-danger mb-0">
+                                                                        GoDaddy Collect is not configured. Set business ID, application ID, and SDK URL settings.
+                                                                </p>
+                                                        {% endif %}
                             {% if not stub_checkout_enabled %}
                                 <p class="small text-muted mb-0">
                                     Payment selection is visible, but live payment confirmation is required before an order can be placed.
                                 </p>
                             {% endif %}
-                            <button class="btn btn-brand w-100" type="submit">Pay &amp; Place Order</button>
+                                                        <button class="btn btn-brand w-100" type="submit" id="checkout-submit-btn">Pay &amp; Place Order</button>
                         </form>
                     </div>
                 </div>
@@ -116,3 +129,297 @@
         </div>
     </section>
 {% endblock content %}
+
+{% block scripts %}
+        {{ block.super }}
+        {% if poynt_collect.enabled %}
+                <script>
+    (function () {
+        var form = document.getElementById("checkout-payment-form");
+        var nonceInput = document.getElementById("id_poynt_nonce");
+        var statusEl = document.getElementById("poynt-collect-status");
+        var submitBtn = document.getElementById("checkout-submit-btn");
+        var wrapper = document.getElementById("poynt-collect-wrapper");
+        if (!form || !nonceInput || !submitBtn || !wrapper) return;
+
+        var businessId = "{{ poynt_collect.business_id|escapejs }}";
+        var applicationId = "{{ poynt_collect.application_id|escapejs }}";
+        var sdkUrl = "{{ poynt_collect.sdk_url|escapejs }}";
+        var iframeHeight = "{{ poynt_collect.iframe_height|escapejs }}";
+        var recaptchaType = "{{ poynt_collect.recaptcha_type|escapejs }}";
+        var recaptchaTextFontSize = "{{ poynt_collect.recaptcha_text_font_size|escapejs }}";
+        var recaptchaTextColor = "{{ poynt_collect.recaptcha_text_color|escapejs }}";
+        var recaptchaLinkColor = "{{ poynt_collect.recaptcha_link_color|escapejs }}";
+        var recaptchaLinkTextDecoration = "{{ poynt_collect.recaptcha_link_text_decoration|escapejs }}";
+        var telemetryUrl = "{{ poynt_collect.telemetry_url|escapejs }}";
+        var collect = null;
+        var collectingNonce = false;
+        var formSubmitting = false;
+        var lastIFrameTelemetryAt = 0;
+        var csrfInput = form.querySelector("input[name='csrfmiddlewaretoken']");
+        var csrfToken = csrfInput ? csrfInput.value : "";
+
+        function selectedPaymentMethod() {
+            var selected = form.querySelector("input[name='payment_method']:checked");
+            return selected ? selected.value : "";
+        }
+
+        function setStatus(text, isError) {
+            if (!statusEl) return;
+            statusEl.textContent = text;
+            statusEl.classList.toggle("text-danger", !!isError);
+            statusEl.classList.toggle("text-muted", !isError);
+        }
+
+        function setSubmittingState(disabled) {
+            submitBtn.disabled = !!disabled;
+            submitBtn.textContent = disabled ? "Processing..." : "Pay & Place Order";
+        }
+
+        function extractNonce(eventPayload) {
+            if (!eventPayload || typeof eventPayload !== "object") return "";
+            if (typeof eventPayload.nonce === "string") return eventPayload.nonce;
+            if (eventPayload.data && typeof eventPayload.data.nonce === "string") return eventPayload.data.nonce;
+            if (eventPayload.payload && typeof eventPayload.payload.nonce === "string") return eventPayload.payload.nonce;
+            return "";
+        }
+
+        function extractError(eventPayload) {
+            if (!eventPayload || typeof eventPayload !== "object") {
+                return { message: "Card form error. Please verify card details." };
+            }
+            var raw = eventPayload.data || eventPayload;
+            if (raw && raw.error && typeof raw.error === "object") {
+                raw = raw.error;
+            }
+            var message = raw.message || raw.developerMessage || "Card form error. Please verify card details.";
+            return {
+                message: message,
+                code: raw.code || "",
+                requestId: raw.requestId || "",
+                source: raw.source || "",
+                type: raw.type || ""
+            };
+        }
+
+        function extractIFrameHeight(eventPayload) {
+            if (!eventPayload || typeof eventPayload !== "object") return 0;
+            var data = eventPayload.data || eventPayload;
+            var height = parseInt(data.height, 10);
+            return Number.isFinite(height) && height > 0 ? height : 0;
+        }
+
+        function sendTelemetry(eventName, details) {
+            if (!telemetryUrl || !eventName) return;
+            try {
+                fetch(telemetryUrl, {
+                    method: "POST",
+                    credentials: "same-origin",
+                    headers: {
+                        "Content-Type": "application/json",
+                        "X-CSRFToken": csrfToken
+                    },
+                    body: JSON.stringify({
+                        event: eventName,
+                        details: details || {}
+                    }),
+                    keepalive: true
+                }).catch(function () {});
+            } catch (_err) {
+                // Telemetry should never block checkout behavior.
+            }
+        }
+
+        function splitName(fullName) {
+            var name = (fullName || "").trim();
+            if (!name) {
+                return { firstName: "", lastName: "" };
+            }
+            var parts = name.split(/\s+/);
+            if (parts.length === 1) {
+                return { firstName: parts[0], lastName: "" };
+            }
+            return {
+                firstName: parts[0],
+                lastName: parts.slice(1).join(" ")
+            };
+        }
+
+        function buildNoncePayload() {
+            var nameParts = splitName("{{ checkout_data.recipient_name|default:''|escapejs }}");
+            var payload = {
+                firstName: nameParts.firstName,
+                lastName: nameParts.lastName,
+                emailAddress: "{{ checkout_data.guest_email|default:''|escapejs }}",
+                phone: "{{ checkout_data.guest_phone|default:''|escapejs }}" || "{{ checkout_data.shipping_phone|default:''|escapejs }}",
+                zipCode: "{{ checkout_data.postal_code|default:''|escapejs }}",
+                line1: "{{ checkout_data.address_line_1|default:''|escapejs }}",
+                line2: "{{ checkout_data.address_line_2|default:''|escapejs }}",
+                city: "{{ checkout_data.city|default:''|escapejs }}",
+                territory: "{{ checkout_data.state|default:''|escapejs }}",
+                countryCode: "{{ checkout_data.country|default:'US'|escapejs }}",
+                shippingLine1: "{{ checkout_data.address_line_1|default:''|escapejs }}",
+                shippingLine2: "{{ checkout_data.address_line_2|default:''|escapejs }}",
+                shippingCity: "{{ checkout_data.city|default:''|escapejs }}",
+                shippingTerritory: "{{ checkout_data.state|default:''|escapejs }}",
+                shippingZip: "{{ checkout_data.postal_code|default:''|escapejs }}"
+            };
+
+            Object.keys(payload).forEach(function (key) {
+                if (!payload[key]) {
+                    delete payload[key];
+                }
+            });
+            return payload;
+        }
+
+        function mountCollect() {
+            if (typeof window.TokenizeJs !== "function") {
+                setStatus("Unable to initialize card form. Please refresh and try again.", true);
+                return;
+            }
+
+            collect = new window.TokenizeJs(businessId, applicationId);
+            collect.on("ready", function (_event) {
+                setStatus("Secure card form ready. reCAPTCHA protection is enabled.", false);
+                sendTelemetry("ready", {
+                    recaptchaType: recaptchaType || "DEFAULT",
+                    chargeSource: "{{ poynt_collect.charge_source|default:''|escapejs }}"
+                });
+            });
+            collect.on("error", function (event) {
+                collectingNonce = false;
+                setSubmittingState(false);
+                var parsed = extractError(event);
+                var details = [];
+                if (parsed.code) details.push("code: " + parsed.code);
+                if (parsed.source) details.push("source: " + parsed.source);
+                if (parsed.requestId) details.push("request: " + parsed.requestId);
+                var detailText = details.length ? " (" + details.join(", ") + ")" : "";
+                setStatus(parsed.message + detailText, true);
+                sendTelemetry("error", {
+                    code: parsed.code,
+                    requestId: parsed.requestId,
+                    source: parsed.source,
+                    type: parsed.type
+                });
+            });
+            collect.on("nonce", function (event) {
+                var nonce = extractNonce(event);
+                if (!collectingNonce) {
+                    return;
+                }
+                if (!nonce) {
+                    collectingNonce = false;
+                    setSubmittingState(false);
+                    setStatus("Payment nonce was not returned. Please try again.", true);
+                    sendTelemetry("nonce", { hasNonce: "false" });
+                    return;
+                }
+                nonceInput.value = nonce;
+                collectingNonce = false;
+                formSubmitting = true;
+                setStatus("Card accepted. Submitting order...", false);
+                sendTelemetry("nonce", { hasNonce: "true" });
+                form.submit();
+            });
+            collect.on("iframe_height_change", function (event) {
+                var dynamicHeight = extractIFrameHeight(event);
+                if (!dynamicHeight) {
+                    return;
+                }
+                var nextHeight = Math.max(dynamicHeight + 24, 420);
+                wrapper.style.minHeight = String(nextHeight) + "px";
+
+                 var now = Date.now();
+                 if (now - lastIFrameTelemetryAt >= 5000) {
+                    lastIFrameTelemetryAt = now;
+                    sendTelemetry("iframe_height_change", { height: String(dynamicHeight) });
+                 }
+            });
+
+            var mountOptions = {
+                displayComponents: {
+                    labels: true,
+                    firstName: true,
+                    lastName: true,
+                    emailAddress: true
+                },
+                iFrame: {
+                    width: "100%",
+                    height: iframeHeight || "460px",
+                    border: "0px"
+                },
+                style: {
+                    theme: "default"
+                },
+                locale: "en-US",
+                enableReCaptcha: true,
+                reCaptchaOptions: {
+                    type: recaptchaType || "DEFAULT"
+                },
+                inlineErrors: true
+            };
+
+            if ((recaptchaType || "DEFAULT") === "TEXT") {
+                mountOptions.customCss = {
+                    reCaptcha: {
+                        text: {
+                            "font-size": recaptchaTextFontSize || "14px",
+                            "color": recaptchaTextColor || "#111827"
+                        },
+                        link: {
+                            "text-decoration": recaptchaLinkTextDecoration || "underline",
+                            "color": recaptchaLinkColor || "#0d6efd"
+                        }
+                    }
+                };
+            }
+
+            collect.mount("poynt-card-element", document, mountOptions);
+        }
+
+        function loadSdkThenMount() {
+            var script = document.createElement("script");
+            script.src = sdkUrl;
+            script.async = true;
+            script.defer = true;
+            script.onload = mountCollect;
+            script.onerror = function () {
+                setStatus("Unable to load payment form. Please refresh and try again.", true);
+                sendTelemetry("sdk_load_error", {});
+            };
+            document.head.appendChild(script);
+        }
+
+        form.addEventListener("submit", function (event) {
+            if (formSubmitting) {
+                return;
+            }
+
+            if (selectedPaymentMethod() !== "godaddy") {
+                return;
+            }
+
+            if (!collect) {
+                event.preventDefault();
+                setStatus("Payment form is not ready yet. Please wait a moment and try again.", true);
+                return;
+            }
+
+            if (nonceInput.value) {
+                return;
+            }
+
+            event.preventDefault();
+            collectingNonce = true;
+            setSubmittingState(true);
+            setStatus("Validating card details...", false);
+            collect.getNonce(buildNoncePayload());
+        });
+
+        loadSdkThenMount();
+    }());
+                </script>
+        {% endif %}
+{% endblock scripts %}

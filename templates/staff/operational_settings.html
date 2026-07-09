@@ -239,6 +239,93 @@
                         <strong>{{ request.scheme }}://{{ request.get_host }}{% url 'payments:webhook' provider='godaddy' %}</strong>
                     </div>
                 </div>
+
+                <div class="col-12 col-md-6">
+                    <label class="form-label"
+                           for="{{ form.godaddy_services_base_url.id_for_label }}">Services Base URL</label>
+                    {{ form.godaddy_services_base_url }}
+                    <div class="form-text">US prod: https://services.poynt.net, OTE: https://services-ote.poynt.net</div>
+                </div>
+                <div class="col-12 col-md-6 d-flex align-items-end">
+                    <div class="form-check">
+                        {{ form.godaddy_collect_enabled }}
+                        <label class="form-check-label" for="{{ form.godaddy_collect_enabled.id_for_label }}">Enable Poynt Collect</label>
+                    </div>
+                </div>
+
+                <div class="col-12 col-md-6">
+                    <label class="form-label" for="{{ form.godaddy_collect_business_id.id_for_label }}">Business ID</label>
+                    {{ form.godaddy_collect_business_id }}
+                </div>
+                <div class="col-12 col-md-6">
+                    <label class="form-label" for="{{ form.godaddy_store_id.id_for_label }}">Store ID</label>
+                    {{ form.godaddy_store_id }}
+                </div>
+                <div class="col-12 col-md-6">
+                    <label class="form-label" for="{{ form.godaddy_collect_application_id.id_for_label }}">Application ID</label>
+                    {{ form.godaddy_collect_application_id }}
+                </div>
+                <div class="col-12 col-md-6">
+                    <label class="form-label" for="{{ form.godaddy_collect_application_key.id_for_label }}">Application Key (businessId=applicationId)</label>
+                    {{ form.godaddy_collect_application_key }}
+                </div>
+                <div class="col-12 col-md-6">
+                    <label class="form-label" for="{{ form.godaddy_collect_sdk_url.id_for_label }}">Collect SDK URL</label>
+                    {{ form.godaddy_collect_sdk_url }}
+                </div>
+                <div class="col-12 col-md-6">
+                    <label class="form-label" for="{{ form.godaddy_collect_iframe_height.id_for_label }}">Collect iFrame Height</label>
+                    {{ form.godaddy_collect_iframe_height }}
+                </div>
+
+                <div class="col-12 col-md-4">
+                    <label class="form-label" for="{{ form.godaddy_collect_recaptcha_type.id_for_label }}">reCAPTCHA Type</label>
+                    {{ form.godaddy_collect_recaptcha_type }}
+                </div>
+                <div class="col-12 col-md-4">
+                    <label class="form-label" for="{{ form.godaddy_collect_recaptcha_text_font_size.id_for_label }}">reCAPTCHA Text Font Size</label>
+                    {{ form.godaddy_collect_recaptcha_text_font_size }}
+                </div>
+                <div class="col-12 col-md-4">
+                    <label class="form-label" for="{{ form.godaddy_collect_recaptcha_text_color.id_for_label }}">reCAPTCHA Text Color</label>
+                    {{ form.godaddy_collect_recaptcha_text_color }}
+                </div>
+                <div class="col-12 col-md-6">
+                    <label class="form-label" for="{{ form.godaddy_collect_recaptcha_link_color.id_for_label }}">reCAPTCHA Link Color</label>
+                    {{ form.godaddy_collect_recaptcha_link_color }}
+                </div>
+                <div class="col-12 col-md-6">
+                    <label class="form-label" for="{{ form.godaddy_collect_recaptcha_link_text_decoration.id_for_label }}">reCAPTCHA Link Decoration</label>
+                    {{ form.godaddy_collect_recaptcha_link_text_decoration }}
+                </div>
+
+                <div class="col-12 col-md-4">
+                    <label class="form-label" for="{{ form.godaddy_payments_charge_source.id_for_label }}">Checkout Charge Source</label>
+                    {{ form.godaddy_payments_charge_source }}
+                    <div class="form-text">nonce = direct nonce charge, payment_token = tokenize then charge.</div>
+                </div>
+                <div class="col-12 col-md-4">
+                    <label class="form-label" for="{{ form.godaddy_payments_charge_nonce_action.id_for_label }}">Charge Action</label>
+                    {{ form.godaddy_payments_charge_nonce_action }}
+                </div>
+                <div class="col-12 col-md-4 d-flex align-items-end">
+                    <div class="form-check">
+                        {{ form.godaddy_payments_charge_nonce_auth_only }}
+                        <label class="form-check-label" for="{{ form.godaddy_payments_charge_nonce_auth_only.id_for_label }}">Auth Only</label>
+                    </div>
+                </div>
+                <div class="col-12 col-md-4">
+                    <label class="form-label" for="{{ form.godaddy_payments_charge_nonce_path.id_for_label }}">Charge Nonce Path</label>
+                    {{ form.godaddy_payments_charge_nonce_path }}
+                </div>
+                <div class="col-12 col-md-4">
+                    <label class="form-label" for="{{ form.godaddy_payments_create_token_path.id_for_label }}">Create Token Path</label>
+                    {{ form.godaddy_payments_create_token_path }}
+                </div>
+                <div class="col-12 col-md-4">
+                    <label class="form-label" for="{{ form.godaddy_payments_charge_token_path.id_for_label }}">Charge Token Path</label>
+                    {{ form.godaddy_payments_charge_token_path }}
+                </div>
             </div>
         </div>
         <div class="hero-card p-4">

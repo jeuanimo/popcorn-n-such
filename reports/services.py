@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import date, datetime, time
+from decimal import Decimal, InvalidOperation
 
 from django.db.models import Count, F, Q, Sum
 from django.db.models.functions import TruncDate
@@ -37,6 +38,31 @@ class TabularReport:
     rows: list[dict]
 
 
+def _cents_to_dollar_str(value) -> str:
+    try:
+        cents = Decimal(str(value or 0))
+    except (InvalidOperation, ValueError, TypeError):
+        cents = Decimal("0")
+    return f"{cents / Decimal('100'):.2f}"
+
+
+def _convert_cents_columns(report: TabularReport) -> TabularReport:
+    """Rename any column ending in '_cents' and convert its values to dollar strings."""
+    cents_cols = [c for c in report.columns if c.endswith("_cents")]
+    if not cents_cols:
+        return report
+    col_rename = {c: c[: -len("_cents")] + "_dollars" for c in cents_cols}
+    new_columns = [col_rename.get(c, c) for c in report.columns]
+    new_rows = []
+    for row in report.rows:
+        new_row = {}
+        for c in report.columns:
+            new_key = col_rename.get(c, c)
+            new_row[new_key] = _cents_to_dollar_str(row.get(c)) if c in cents_cols else row.get(c)
+        new_rows.append(new_row)
+    return TabularReport(key=report.key, title=report.title, columns=new_columns, rows=new_rows)
+
+
 class ReportService:
     @staticmethod
     def _orders_in_range(*, start: date, end: date):
@@ -65,12 +91,12 @@ class ReportService:
             )
             .order_by("day")
         )
-        return TabularReport(
+        return _convert_cents_columns(TabularReport(
             key="sales_by_date",
             title="Sales by Date",
             columns=["day", "order_count", "total_sales_cents", "tax_cents", "shipping_cents"],
             rows=list(rows),
-        )
+        ))
 
     @classmethod
     def sales_by_product(cls, *, start: date, end: date, base_order_qs=None) -> TabularReport:
@@ -85,12 +111,12 @@ class ReportService:
             )
             .order_by("-total_sales_cents", "product__name")
         )
-        return TabularReport(
+        return _convert_cents_columns(TabularReport(
             key="sales_by_product",
             title="Sales by Product",
             columns=["product_id", "product__name", "order_count", "total_units", "total_sales_cents"],
             rows=list(rows),
-        )
+        ))
 
     @classmethod
     def sales_by_sku(cls, *, start: date, end: date, base_order_qs=None) -> TabularReport:
@@ -105,12 +131,12 @@ class ReportService:
             )
             .order_by("-total_sales_cents", "sku__sku_code")
         )
-        return TabularReport(
+        return _convert_cents_columns(TabularReport(
             key="sales_by_sku",
             title="Sales by SKU",
             columns=["sku_id", "sku__sku_code", "product_name_snapshot", "order_count", "total_units", "total_sales_cents"],
             rows=list(rows),
-        )
+        ))
 
     @classmethod
     def sales_by_fundraiser(cls, *, start: date, end: date, base_qs=None) -> TabularReport:
@@ -121,12 +147,12 @@ class ReportService:
             .annotate(order_count=Count("id"), total_sales_cents=Sum("total_cents"))
             .order_by("-total_sales_cents", "fundraiser_campaign__campaign_name")
         )
-        return TabularReport(
+        return _convert_cents_columns(TabularReport(
             key="sales_by_fundraiser",
             title="Sales by Fundraiser",
             columns=["fundraiser_campaign_id", "fundraiser_campaign__campaign_name", "order_count", "total_sales_cents"],
             rows=list(rows),
-        )
+        ))
 
     @classmethod
     def sales_by_team(cls, *, start: date, end: date, base_qs=None) -> TabularReport:
@@ -137,12 +163,12 @@ class ReportService:
             .annotate(order_count=Count("id"), total_sales_cents=Sum("total_cents"))
             .order_by("-total_sales_cents", "team__name")
         )
-        return TabularReport(
+        return _convert_cents_columns(TabularReport(
             key="sales_by_team",
             title="Sales by Team",
             columns=["team_id", "team__name", "order_count", "total_sales_cents"],
             rows=list(rows),
-        )
+        ))
 
     @classmethod
     def sales_by_seller(cls, *, start: date, end: date, base_qs=None) -> TabularReport:
@@ -153,12 +179,12 @@ class ReportService:
             .annotate(order_count=Count("id"), total_sales_cents=Sum("total_cents"))
             .order_by("-total_sales_cents", "seller__display_name")
         )
-        return TabularReport(
+        return _convert_cents_columns(TabularReport(
             key="sales_by_seller",
             title="Sales by Seller",
             columns=["seller_id", "seller__display_name", "seller__slug", "order_count", "total_sales_cents"],
             rows=list(rows),
-        )
+        ))
 
     @classmethod
     def sales_by_organization(cls, *, start: date, end: date, base_qs=None) -> TabularReport:
@@ -169,7 +195,7 @@ class ReportService:
             .annotate(order_count=Count("id"), total_sales_cents=Sum("total_cents"))
             .order_by("-total_sales_cents", "fundraiser_campaign__organization__name")
         )
-        return TabularReport(
+        return _convert_cents_columns(TabularReport(
             key="sales_by_organization",
             title="Sales by Organization (Fundraisers)",
             columns=[
@@ -179,7 +205,7 @@ class ReportService:
                 "total_sales_cents",
             ],
             rows=list(rows),
-        )
+        ))
 
     @classmethod
     def sales_by_channel(cls, *, start: date, end: date, base_qs=None) -> TabularReport:
@@ -197,12 +223,12 @@ class ReportService:
         for r in rows:
             r["order_count"] = r["order_count"] or 0
             r["total_sales_cents"] = r["total_sales_cents"] or 0
-        return TabularReport(
+        return _convert_cents_columns(TabularReport(
             key="sales_by_channel",
             title="Sales by Channel",
             columns=["channel", "order_count", "total_sales_cents"],
             rows=rows,
-        )
+        ))
 
     # ------------------------------------------------------------------
     # Finance-ish reports
@@ -216,12 +242,12 @@ class ReportService:
             .annotate(order_count=Count("id"), tax_cents=Sum("tax_cents"), taxable_sales_cents=Sum("subtotal_cents"))
             .order_by("-tax_cents", "shipping_state")
         )
-        return TabularReport(
+        return _convert_cents_columns(TabularReport(
             key="tax_report",
             title="Tax Report (by shipping state)",
             columns=["shipping_state", "order_count", "taxable_sales_cents", "tax_cents"],
             rows=list(rows),
-        )
+        ))
 
     @classmethod
     def shipping_report(cls, *, start: date, end: date, base_order_qs=None) -> TabularReport:
@@ -232,12 +258,12 @@ class ReportService:
             .annotate(label_count=Count("id"), total_rate_cents=Sum("rate_cents"))
             .order_by("-label_count", "provider", "carrier", "service_name")
         )
-        return TabularReport(
+        return _convert_cents_columns(TabularReport(
             key="shipping_report",
             title="Shipping Report (labels created)",
             columns=["provider", "carrier", "service_name", "label_count", "total_rate_cents"],
             rows=list(rows),
-        )
+        ))
 
     # ------------------------------------------------------------------
     # Inventory / supplies
