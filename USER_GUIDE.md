@@ -29,6 +29,7 @@
   - [Label Printer (QZ Tray)](#label-printer-qz-tray)
   - [Pitney Bowes API](#pitney-bowes-api)
   - [GoDaddy Payments](#godaddy-payments)
+  - [Payments: refunds and unconfirmed charges](#payments-refunds-and-unconfirmed-charges)
   - [Email / SMTP](#email--smtp)
 - [Site Content (CMS)](#site-content-cms)
 - [Fundraisers & Organizations](#fundraisers--organizations)
@@ -52,9 +53,25 @@ After logging in, your dashboard shows:
 2. When ready, click **Checkout** from the cart page.
 3. Enter your shipping address and contact details.
 4. Review your order totals (subtotal, shipping, tax, and any discounts).
-5. Complete payment. You will receive a confirmation email if outbound email is configured.
+5. Enter your card details in the secure payment box and click **Pay & Place Order**.
+6. You will receive a confirmation email if outbound email is configured.
 
-Prices and totals are always calculated on the server — the amounts you see are authoritative.
+**About your card details.** The payment box is provided directly by GoDaddy
+Payments. Your card number, security code and expiry date go straight to GoDaddy
+and are never stored by this site. We keep only the card brand and last four
+digits so you can recognise the payment later.
+
+**Prices are calculated on the server**, so the amount charged always matches
+the order as we have it recorded.
+
+**If the Pay button stops responding**, wait a moment rather than clicking again
+— the button is disabled while payment is in progress, and the system is built
+so a double submit cannot charge you twice.
+
+**If you see "We're confirming your payment"**, it means the connection to the
+payment processor was interrupted and we do not yet know whether the payment
+succeeded. Do **not** pay again. We will confirm with the processor and email
+you, usually within a few minutes.
 
 ---
 
@@ -258,15 +275,49 @@ This address appears in the **FROM** field on every shipping label. Enter your a
 
 #### GoDaddy Payments
 
-Configure your GoDaddy Payments integration here. The webhook URL to enter in GoDaddy's dashboard is shown at the bottom of the GoDaddy section — copy it directly from there.
+Card payments run through **GoDaddy Payments (Poynt)**. Customers type their card
+into a secure form supplied by GoDaddy — the card number, security code and
+expiry date never reach this application's servers.
+
+Credentials are set by your developer as environment variables, not in this
+screen, because they include a private cryptographic key. See
+[docs/PAYMENTS.md](docs/PAYMENTS.md).
 
 | Setting | Description |
 |---|---|
-| API Key | GoDaddy API key |
-| Merchant ID | Your GoDaddy merchant ID |
-| Webhook Secret | Signature verification — never shown after save |
-| API Base URL, Session / Verify / Refund paths | Configure as supplied by GoDaddy |
-| Allowed Redirect Hosts | Comma-separated hostnames from GoDaddy checkout redirects |
+| Environment | `st` = test mode (no real money), `prod` = live |
+| Application ID / Business ID | From your Poynt HQ portal |
+| Store ID | Optional; identifies which store the sale belongs to |
+| Private key | Issued with your Poynt application — never share it |
+| Webhook Secret | Verifies messages sent to us by GoDaddy |
+
+The webhook URL to enter in GoDaddy's dashboard is shown at the bottom of the
+GoDaddy section — copy it directly from there.
+
+**Checking payments are working.** Ask your developer to run
+`python manage.py check_payments_ready`. It reports anything missing or unsafe
+before you go live.
+
+#### Payments: refunds and unconfirmed charges
+
+**Issuing a refund.** Go to **Django admin → Payment transactions**, open the
+payment, and use **Payment refunds** to record a full or partial refund. Only
+staff accounts can refund. The original payment record is never deleted — the
+refund is stored alongside it, so the history stays complete. You cannot refund
+more than was originally charged.
+
+**"Payment being confirmed" orders.** Occasionally the connection to GoDaddy
+drops after we send a charge but before we hear back. When that happens we do
+*not* know whether the customer was charged, so the system:
+
+- shows the customer a page telling them **not** to try paying again,
+- creates no order,
+- marks the payment `ambiguous` and keeps asking GoDaddy what happened.
+
+This resolves itself automatically, usually within minutes. **Never manually
+charge a customer again in this situation** — that is how double charges happen.
+If a payment stays unresolved, it appears in Django admin with
+*Requires reconciliation* ticked; escalate it to your developer.
 
 #### Email / SMTP
 

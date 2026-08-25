@@ -8,6 +8,7 @@ from django.contrib.auth.decorators import login_required
 from django.core.exceptions import ValidationError
 from django.db.models import Q
 from django.http import HttpResponseBadRequest
+from django.http.response import HttpResponseRedirectBase
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils import timezone
@@ -16,7 +17,17 @@ from django.views.generic import DetailView, ListView, View
 
 from cart.models import Cart, CartItem
 from core.security import OwnerFilteredQuerysetMixin, RoleRequiredMixin
+from payments.gateways.poynt_auth import is_configured as poynt_is_configured
+from payments.checkout import (
+    PAYMENT_INTENT_SESSION_KEY,
+    PaymentAlreadyInFlight,
+    attach_order,
+    charge_checkout,
+    clear_payment_intent_key,
+    issue_payment_intent_key,
+)
 from payments.gateways.registry import get_payment_gateway
+from payments.models import PaymentTransaction
 
 from .forms import CheckoutForm
 from .models import (
@@ -229,6 +240,12 @@ class CheckoutReviewView(View):
 
     @staticmethod
     def _collect_ids():
+        """
+        Resolve the Business/Application IDs used to initialise the browser SDK.
+
+        These two values are safe to render into the page. The private key is
+        not, and is never read here.
+        """
         from core.runtime_settings import get_runtime_setting
 
         business_id = str(get_runtime_setting("godaddy_collect_business_id", getattr(settings, "GODADDY_COLLECT_BUSINESS_ID", "") or "")).strip()
@@ -279,20 +296,17 @@ class CheckoutReviewView(View):
                 getattr(settings, "GODADDY_COLLECT_RECAPTCHA_LINK_TEXT_DECORATION", "underline") or "underline",
             )
         ).strip()
-        charge_source = str(
-            get_runtime_setting(
-                "godaddy_payments_charge_source",
-                getattr(settings, "GODADDY_PAYMENTS_CHARGE_SOURCE", "nonce") or "nonce",
-            )
-        ).strip().lower()
-        if charge_source not in {"nonce", "payment_token"}:
-            charge_source = "nonce"
-
         ids = self._collect_ids()
-        is_configured = bool(sdk_url and ids["business_id"] and ids["application_id"])
+        # The browser form needs the SDK URL and both IDs; the server also needs
+        # working API credentials before a charge can possibly succeed.
+        browser_ready = bool(sdk_url and ids["business_id"] and ids["application_id"])
+        server_ready = poynt_is_configured()
+        is_configured = browser_ready and server_ready
         return {
             "enabled": enabled and is_configured,
             "configured": is_configured,
+            "browser_ready": browser_ready,
+            "server_ready": server_ready,
             "sdk_url": sdk_url,
             "telemetry_url": reverse("payments:collect-telemetry"),
             "business_id": ids["business_id"],
@@ -303,7 +317,6 @@ class CheckoutReviewView(View):
             "recaptcha_text_color": recaptcha_text_color,
             "recaptcha_link_color": recaptcha_link_color,
             "recaptcha_link_text_decoration": recaptcha_link_text_decoration,
-            "charge_source": charge_source,
         }
 
     def _payment_methods(self):
@@ -448,178 +461,107 @@ class CheckoutReviewView(View):
             messages.error(request, _ORDER_CREATION_ERROR_MSG)
             return None
 
-    @staticmethod
-    def _bool_from_runtime(value) -> bool:
-        return str(value).strip().lower() in {"1", "true", "yes", "on"}
+    # ------------------------------------------------------------------
+    # Poynt Collect charge path
+    #
+    # The browser hands us only {nonce}. Everything that determines what is
+    # charged — the amount, the currency, who may be charged — is derived here
+    # from the database and the session, never from the POST body.
+    # ------------------------------------------------------------------
 
-    def _collect_charge_options(self):
-        from core.runtime_settings import get_runtime_setting
+    def _charge_and_create_order(self, request, *, service, summary, checkout_input, nonce, intent_key):
+        """
+        Charge the card, then create the order only if the charge is approved.
 
-        charge_source = str(
-            get_runtime_setting(
-                "godaddy_payments_charge_source",
-                getattr(settings, "GODADDY_PAYMENTS_CHARGE_SOURCE", "nonce") or "nonce",
-            )
-        ).strip().lower()
-        if charge_source not in {"nonce", "payment_token"}:
-            charge_source = "nonce"
-
-        charge_action = str(
-            get_runtime_setting(
-                "godaddy_payments_charge_nonce_action",
-                getattr(settings, "GODADDY_PAYMENTS_CHARGE_NONCE_ACTION", "SALE") or "SALE",
-            )
-        ).strip().upper()
-
-        auth_only_runtime = get_runtime_setting(
-            "godaddy_payments_charge_nonce_auth_only",
-            getattr(settings, "GODADDY_PAYMENTS_CHARGE_NONCE_AUTH_ONLY", False),
-        )
-        return {
-            "charge_source": charge_source,
-            "charge_action": charge_action,
-            "auth_only": self._bool_from_runtime(auth_only_runtime),
-        }
-
-    def _build_collect_charge_kwargs(self, *, request, summary, checkout_input):
-        receipt_email = (checkout_input.guest_email or getattr(request.user, "email", "") or "").strip()
-        options = self._collect_charge_options()
-        return {
-            "amount_cents": summary.total_cents,
-            "currency": "USD",
-            "idempotency_key": f"checkout-{checkout_input.cart.pk}-{uuid.uuid4().hex[:12]}",
-            "action": options["charge_action"],
-            "auth_only": options["auth_only"],
-            "business_id": self._collect_ids().get("business_id", ""),
-            "email_receipt": bool(receipt_email),
-            "receipt_email_address": receipt_email,
-            "actor": request.user if request.user.is_authenticated else None,
-            "request": request,
-            "metadata": {
-                "cart_id": checkout_input.cart.pk,
-                "guest_email": checkout_input.guest_email,
-            },
-            "charge_source": options["charge_source"],
-        }
-
-    def _charge_via_payment_token(self, *, gateway, nonce, charge_kwargs, checkout_input):
-        tokenize_details = gateway.create_payment_token(
-            nonce=nonce,
-            idempotency_key=f"tokenize-{checkout_input.cart.pk}-{uuid.uuid4().hex[:12]}",
-            business_id=charge_kwargs["business_id"],
-            actor=charge_kwargs["actor"],
-            request=charge_kwargs["request"],
-            metadata=charge_kwargs["metadata"],
-        )
-        if (tokenize_details.get("status") or "").upper() != "ACTIVE":
-            raise ValueError("Payment token validation failed.")
-
-        payment_token = (tokenize_details.get("payment_token") or "").strip()
-        if not payment_token:
-            raise ValueError("Payment token was not returned by provider.")
-
-        charge_result = gateway.charge_payment_token(
-            payment_token=payment_token,
-            **{k: v for k, v in charge_kwargs.items() if k != "charge_source"},
-        )
-        return charge_result, tokenize_details
-
-    @staticmethod
-    def _build_payment_result(*, charge_result, charge_source: str, tokenize_details):
-        payment_result = {
-            "provider": "godaddy",
-            "status": "confirmed",
-            "provider_ref": charge_result.provider_transaction_id or "",
-            "verification": charge_result.raw or {},
-            "charge_source": charge_source,
-        }
-        if charge_source == "payment_token" and tokenize_details:
-            payment_result["tokenize"] = {
-                "status": tokenize_details.get("status", ""),
-                "cvv_response": tokenize_details.get("cvv_response", ""),
-                "avs_address_result": tokenize_details.get("avs_address_result", ""),
-                "avs_postal_result": tokenize_details.get("avs_postal_result", ""),
-                "card_status": tokenize_details.get("card_status", ""),
-            }
-        return payment_result
-
-    def _execute_collect_charge(self, *, gateway, nonce, charge_kwargs, checkout_input):
-        tokenize_details = None
-        if charge_kwargs["charge_source"] == "payment_token":
-            charge_result, tokenize_details = self._charge_via_payment_token(
-                gateway=gateway,
-                nonce=nonce,
-                charge_kwargs=charge_kwargs,
-                checkout_input=checkout_input,
-            )
-            return charge_result, tokenize_details
-
-        charge_result = gateway.charge_nonce(
-            nonce=nonce,
-            **{k: v for k, v in charge_kwargs.items() if k != "charge_source"},
-        )
-        return charge_result, tokenize_details
-
-    def _handle_collect_charge_error(self, request, exc: Exception) -> None:
-        msg = str(exc).strip()
-        if msg == "Payment token validation failed.":
-            messages.error(request, "Payment token validation failed. Please check your card details and try again.")
-            return
-        if msg == "Payment token was not returned by provider.":
-            messages.error(request, msg)
-            return
-        messages.error(request, f"Could not charge payment method: {exc}")
-
-    def _create_order_after_collect_charge(self, request, *, service, summary, checkout_input, nonce):
-        charge_kwargs = self._build_collect_charge_kwargs(
-            request=request,
-            summary=summary,
-            checkout_input=checkout_input,
-        )
+        Returns the Order on success, or None after flashing a customer-safe
+        message. The order is never created before the processor confirms.
+        """
+        receipt_email = (
+            checkout_input.guest_email or getattr(request.user, "email", "") or ""
+        ).strip()
 
         try:
-            gateway = get_payment_gateway("godaddy")
-            charge_result, tokenize_details = self._execute_collect_charge(
-                gateway=gateway,
+            outcome = charge_checkout(
                 nonce=nonce,
-                charge_kwargs=charge_kwargs,
-                checkout_input=checkout_input,
+                # Server-authoritative total, recalculated from the cart above.
+                amount_cents=summary.total_cents,
+                idempotency_key=intent_key,
+                currency="USD",
+                actor=request.user if request.user.is_authenticated else None,
+                request=request,
+                receipt_email=receipt_email,
+                metadata={"cart_id": checkout_input.cart.pk},
             )
-        except Exception as exc:
-            logger.exception("Poynt Collect nonce charge failed")
-            self._handle_collect_charge_error(request, exc)
+        except PaymentAlreadyInFlight as exc:
+            # A duplicate submit (double click, refresh, replayed POST).
+            existing = exc.transaction_obj
+            if existing is not None and existing.is_confirmed and existing.order_id:
+                # The first submit already succeeded — show that order.
+                clear_payment_intent_key(request.session)
+                request.session.pop("checkout_data", None)
+                request.session.pop("checkout_summary", None)
+                return redirect(
+                    _CHECKOUT_COMPLETE_URL,
+                    order_number=existing.order.order_number or existing.order_id,
+                )
+            messages.warning(request, str(exc))
+            return None
+        except ValueError as exc:
+            logger.error("Refused to charge: %s", exc)
+            messages.error(request, _ORDER_CREATION_ERROR_MSG)
             return None
 
-        if not charge_result.is_confirmed:
-            status = charge_result.status or "pending"
-            failure_message = charge_result.failure_message or ""
-            if failure_message:
-                messages.error(request, f"Payment was not approved (status: {status}). {failure_message}")
-            else:
-                messages.error(request, f"Payment was not approved (status: {status}).")
+        if outcome.ambiguous:
+            # Outcome unknown. Never retry automatically; hand off to reconciliation.
+            clear_payment_intent_key(request.session)
+            request.session["ambiguous_payment_id"] = outcome.transaction_obj.id
+            return redirect("orders:payment-pending")
+
+        if not outcome.succeeded:
+            # Let the customer correct the card and try again under a fresh key.
+            clear_payment_intent_key(request.session)
+            messages.error(request, outcome.customer_message)
             return None
 
-        payment_result = self._build_payment_result(
-            charge_result=charge_result,
-            charge_source=charge_kwargs["charge_source"],
-            tokenize_details=tokenize_details,
-        )
-
+        # -- charge approved; now create the order ------------------------
         try:
-            return service.create_confirmed_order(
+            order = service.create_confirmed_order(
                 summary=summary,
                 checkout_input=checkout_input,
-                payment_result=payment_result,
+                payment_result=outcome.payment_result,
                 actor=request.user if request.user.is_authenticated else None,
                 django_request=request,
             )
         except ValidationError as exc:
+            # Money has been taken but the order could not be written. Flag it
+            # loudly — this needs a human, and possibly a refund.
+            logger.error(
+                "Charge approved but order creation failed",
+                extra={
+                    "payment_id": outcome.transaction_obj.id,
+                    "transaction_id": outcome.transaction_obj.provider_transaction_id,
+                },
+            )
+            outcome.transaction_obj.requires_reconciliation = True
+            outcome.transaction_obj.save(update_fields=["requires_reconciliation", "updated_at"])
             messages.error(request, " ".join(exc.messages))
             return None
         except Exception:
-            logger.exception("Unexpected error creating order after collect nonce charge")
+            logger.exception(
+                "Charge approved but order creation raised",
+                extra={
+                    "payment_id": outcome.transaction_obj.id,
+                    "transaction_id": outcome.transaction_obj.provider_transaction_id,
+                },
+            )
+            outcome.transaction_obj.requires_reconciliation = True
+            outcome.transaction_obj.save(update_fields=["requires_reconciliation", "updated_at"])
             messages.error(request, _ORDER_CREATION_ERROR_MSG)
             return None
+
+        attach_order(outcome.transaction_obj, order)
+        clear_payment_intent_key(request.session)
+        return order
 
     def get(self, request):
         checkout_data = request.session.get("checkout_data")
@@ -643,15 +585,19 @@ class CheckoutReviewView(View):
                 "selected_payment_method": request.session.get("selected_payment_method", ""),
                 "stub_checkout_enabled": bool(getattr(settings, "ALLOW_STUB_CHECKOUT_PAYMENT", False)),
                 "poynt_collect": self._poynt_collect_context(),
+                # Server-issued idempotency key for this checkout attempt. It is
+                # echoed back on POST purely so a replayed submit is recognised;
+                # the authoritative copy lives in the session.
+                "payment_intent_key": issue_payment_intent_key(request.session),
             },
         )
 
     def post(self, request):
         """
-        Submits the order after the customer reviews the summary.
+        Place the order after the customer reviews the summary.
 
-        In production, replace the stub payment_result with the real provider
-        payload from a tokenized card charge or redirect callback.
+        Order of operations matters: totals are recalculated from the database,
+        the card is charged, and only an approved charge creates an Order.
         """
         checkout_data = request.session.get("checkout_data")
         if not checkout_data:
@@ -682,15 +628,28 @@ class CheckoutReviewView(View):
                 messages.error(request, "Card details are required. Please enter your payment information.")
                 return redirect(_CHECKOUT_REVIEW_URL)
 
-            order = self._create_order_after_collect_charge(
+            # The idempotency key comes from the session, not the POST body, so
+            # a client cannot force a fresh key to bypass the duplicate guard.
+            intent_key = request.session.get(PAYMENT_INTENT_SESSION_KEY)
+            if not intent_key:
+                messages.error(request, "Your checkout session expired. Please review your order again.")
+                return redirect(_CHECKOUT_REVIEW_URL)
+
+            result = self._charge_and_create_order(
                 request,
                 service=service,
                 summary=summary,
                 checkout_input=checkout_input,
                 nonce=nonce,
+                intent_key=intent_key,
             )
-            if not order:
+            # _charge_and_create_order may return a redirect (duplicate submit
+            # that already succeeded, or an ambiguous outcome).
+            if isinstance(result, HttpResponseRedirectBase):
+                return result
+            if not result:
                 return redirect(_CHECKOUT_REVIEW_URL)
+            order = result
 
             from orders.tasks import run_post_order_tasks
             run_post_order_tasks.delay(order.id)
@@ -730,6 +689,39 @@ class CheckoutReviewView(View):
         request.session.pop("pending_payment", None)
 
         return redirect(_CHECKOUT_COMPLETE_URL, order_number=order.order_number or order.pk)
+
+
+class PaymentPendingView(View):
+    """
+    Shown when a charge outcome could not be determined.
+
+    Deliberately offers no "retry" button: the whole point is that retrying
+    could double-charge the customer. Resolution happens through reconciliation.
+    """
+
+    template_name = "orders/payment_pending.html"
+
+    def get(self, request):
+        payment_id = request.session.get("ambiguous_payment_id")
+        reference = ""
+        if payment_id:
+            tx = PaymentTransaction.objects.filter(pk=payment_id).first()
+            if tx is not None:
+                reference = tx.provider_transaction_id or f"PAY-{tx.pk}"
+        return render(request, self.template_name, {"reference": reference})
+
+
+class PaymentFailedView(View):
+    """Terminal failure page. Never renders raw gateway responses."""
+
+    template_name = "orders/payment_failed.html"
+
+    def get(self, request):
+        return render(
+            request,
+            self.template_name,
+            {"customer_message": request.session.pop("payment_failure_message", "")},
+        )
 
 
 class CheckoutPaymentReturnView(View):

@@ -180,13 +180,48 @@
             <strong>GoDaddy Payments</strong>
         </p>
         <p class="mb-3">
-            Enter API Key, Merchant ID, Webhook Secret, and API endpoint paths as supplied by GoDaddy. The webhook URL to register in GoDaddy's dashboard is shown at the bottom of the GoDaddy section — copy it from there.
+            Card payments run through GoDaddy Payments (Poynt). The Application ID, Business ID and private key are set by your developer as
+            environment variables — not on this screen — because they include a private security key. The webhook URL to register in GoDaddy's
+            dashboard is shown at the bottom of the GoDaddy section; copy it from there. Ask your developer to run
+            <code>manage.py check_payments_ready</code> to confirm everything is configured before going live.
         </p>
         <p class="mb-1">
             <strong>Email / SMTP</strong>
         </p>
         <p class="mb-0">
             Configure Contact Email, Default From Email, and your SMTP credentials. These settings power all transactional emails — order confirmations, tracking notifications, and password resets. Click <strong>Save Operational Settings</strong> for changes to take effect.
+        </p>
+    </div>
+    {# ── Payments, Refunds & Unconfirmed Charges ── #}
+    <div class="hero-card p-4 mb-3">
+        <h2 class="h6 fw-bold mb-2">Payments, Refunds &amp; Unconfirmed Charges</h2>
+        <p class="mb-2">
+            Customers enter their card into a secure box supplied by GoDaddy. The card number, security code and expiry date never reach this
+            site — we store only the card brand and last four digits. An order is created <em>only</em> after GoDaddy approves the payment, so a
+            declined card never produces an order.
+        </p>
+        <p class="mb-1">
+            <strong>Issuing a refund</strong>
+        </p>
+        <ul class="mb-3 ps-3">
+            <li>Open <strong>Django admin → Payment transactions</strong> and find the payment</li>
+            <li>Record the refund under <strong>Payment refunds</strong> — full or partial</li>
+            <li>Only staff accounts may refund, and never more than was originally charged</li>
+            <li>
+                The original payment is never deleted; the refund is stored next to it so the history stays complete
+            </li>
+        </ul>
+        <p class="mb-1">
+            <strong>"We're confirming your payment" orders</strong>
+        </p>
+        <p class="mb-2">
+            Occasionally the connection to GoDaddy drops after a charge is sent but before we hear back, so we cannot tell whether the customer
+            was charged. The system creates no order, tells the customer <strong>not</strong> to pay again, and keeps asking GoDaddy what
+            happened until it knows. This usually resolves itself within minutes.
+        </p>
+        <p class="mb-0 text-danger">
+            <strong>Never manually charge the customer again in this situation.</strong> That is how double charges happen. Unresolved payments
+            show in Django admin with <em>Requires reconciliation</em> ticked — escalate those to your developer.
         </p>
     </div>
     {# ── Customer Subscriptions ── #}

@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from payments.models import PaymentEventLog, PaymentTransaction
+from payments.models import PaymentEventLog, PaymentRefund, PaymentTransaction
 
 
 @admin.register(PaymentTransaction)
@@ -37,3 +37,21 @@ class PaymentEventLogAdmin(admin.ModelAdmin):
     list_filter = ("provider", "signature_valid", "event_type", "received_at")
     search_fields = ("id", "external_event_id", "transaction__id", "request_id")
     readonly_fields = ("received_at", "processed_at")
+
+
+@admin.register(PaymentRefund)
+class PaymentRefundAdmin(admin.ModelAdmin):
+    list_display = (
+        "id",
+        "payment",
+        "amount_cents",
+        "currency",
+        "status",
+        "provider_refund_id",
+        "issued_by",
+        "created_at",
+        "completed_at",
+    )
+    list_filter = ("status", "currency", "created_at")
+    search_fields = ("id", "payment__id", "provider_refund_id", "idempotency_key", "reason")
+    readonly_fields = ("created_at", "completed_at", "provider_metadata")

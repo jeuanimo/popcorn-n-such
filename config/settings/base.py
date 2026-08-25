@@ -83,7 +83,13 @@ MIDDLEWARE = [
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
+    # Content-Security-Policy. Report-only until CSP_ENFORCE=true; see core/csp.py.
+    "core.csp.ContentSecurityPolicyMiddleware",
 ]
+
+# Start in report-only so a missing Poynt origin cannot break checkout on deploy.
+CSP_ENFORCE = env_bool("CSP_ENFORCE", False)
+CSP_EXTRA_ORIGINS = env_list("CSP_EXTRA_ORIGINS", "")
 
 ROOT_URLCONF = "config.urls"
 
@@ -160,41 +166,112 @@ REFERRER_POLICY = "strict-origin-when-cross-origin"
 DATA_UPLOAD_MAX_MEMORY_SIZE = 2_097_152  # 2 MB — reject oversized POST bodies before they hit views
 DATA_UPLOAD_MAX_NUMBER_FIELDS = 500       # guard against hash-flood attacks on form parsing
 
-# Service-provider abstraction placeholders; wire concrete services per env.
+# -----------------------------------------------------------------------------
+# Payments — GoDaddy Payments via the Poynt Commerce Platform
+# -----------------------------------------------------------------------------
+# Active gateway slug: godaddy | stripe | paypal
 PAYMENTS_PROVIDER = os.getenv("PAYMENTS_PROVIDER", "godaddy")
 PAYMENTS_WEBHOOK_SECRET = os.getenv("PAYMENTS_WEBHOOK_SECRET", "")
-GODADDY_API_KEY = os.getenv("GODADDY_API_KEY", "")
-GODADDY_MERCHANT_ID = os.getenv("GODADDY_MERCHANT_ID", "")
 GODADDY_PAYMENTS_WEBHOOK_SECRET = os.getenv("GODADDY_PAYMENTS_WEBHOOK_SECRET", "")
-GODADDY_PAYMENTS_BASE_URL = os.getenv("GODADDY_PAYMENTS_BASE_URL", "")
-GODADDY_PAYMENTS_CREATE_SESSION_PATH = os.getenv("GODADDY_PAYMENTS_CREATE_SESSION_PATH", "/v1/payments/sessions")
-GODADDY_PAYMENTS_VERIFY_PATH = os.getenv("GODADDY_PAYMENTS_VERIFY_PATH", "/v1/payments/verify")
-GODADDY_PAYMENTS_VERIFY_METHOD = os.getenv("GODADDY_PAYMENTS_VERIFY_METHOD", "POST")
-GODADDY_PAYMENTS_REFUND_PATH = os.getenv("GODADDY_PAYMENTS_REFUND_PATH", "/v1/payments/refunds")
-GODADDY_PAYMENTS_TEST_PATH = os.getenv("GODADDY_PAYMENTS_TEST_PATH", "/v1/merchants/{merchant_id}")
-GODADDY_PAYMENTS_TEST_METHOD = os.getenv("GODADDY_PAYMENTS_TEST_METHOD", "GET")
-GODADDY_PAYMENTS_TIMEOUT_SECONDS = os.getenv("GODADDY_PAYMENTS_TIMEOUT_SECONDS", "15")
-GODADDY_PAYMENTS_AUTH_SCHEME = os.getenv("GODADDY_PAYMENTS_AUTH_SCHEME", "Bearer")
-GODADDY_PAYMENTS_ALLOWED_REDIRECT_HOSTS = os.getenv("GODADDY_PAYMENTS_ALLOWED_REDIRECT_HOSTS", "")
-GODADDY_SERVICES_BASE_URL = os.getenv("GODADDY_SERVICES_BASE_URL", "https://services.poynt.net")
-GODADDY_PAYMENTS_CHARGE_NONCE_PATH = os.getenv("GODADDY_PAYMENTS_CHARGE_NONCE_PATH", "/businesses/{business_id}/cards/tokenize/charge")
-GODADDY_PAYMENTS_CHARGE_SOURCE = os.getenv("GODADDY_PAYMENTS_CHARGE_SOURCE", "nonce")  # nonce | payment_token
-GODADDY_PAYMENTS_CHARGE_NONCE_ACTION = os.getenv("GODADDY_PAYMENTS_CHARGE_NONCE_ACTION", "SALE")
-GODADDY_PAYMENTS_CHARGE_NONCE_AUTH_ONLY = env_bool("GODADDY_PAYMENTS_CHARGE_NONCE_AUTH_ONLY", False)
-GODADDY_PAYMENTS_CREATE_TOKEN_PATH = os.getenv("GODADDY_PAYMENTS_CREATE_TOKEN_PATH", "/businesses/{business_id}/cards/tokenize")
-GODADDY_PAYMENTS_CHARGE_TOKEN_PATH = os.getenv("GODADDY_PAYMENTS_CHARGE_TOKEN_PATH", "/businesses/{business_id}/cards/tokenize/charge")
+
+# --- Poynt environment -------------------------------------------------------
+# Selects the API host. Use "st" (staging/OTE) for all development and testing;
+# only "prod" touches real money. An explicit GODADDY_POYNT_API_HOST wins.
+GODADDY_POYNT_ENV = os.getenv("GODADDY_POYNT_ENV", "ote").strip().lower()
+
+# Verified reachable Aug 2026. Note there is NO services-st.poynt.net — that
+# name appears in an old SDK host map but does not resolve in public DNS.
+# GoDaddy's staging environment is "OTE".
+POYNT_API_HOSTS = {
+    "prod": "https://services.poynt.net",
+    "production": "https://services.poynt.net",
+    "ote": "https://services-ote.poynt.net",
+    "staging": "https://services-ote.poynt.net",
+    "st": "https://services-ote.poynt.net",
+    "ci": "https://services-ci.poynt.net",
+    "dev": "https://services-ci.poynt.net",
+    "eu": "https://services-eu.poynt.net",
+}
+
+# The browser SDK is served from a different host per environment.
+POYNT_COLLECT_SDK_URLS = {
+    "prod": "https://collect.commerce.godaddy.com/sdk.js",
+    "production": "https://collect.commerce.godaddy.com/sdk.js",
+    "ote": "https://collect.commerce.ote-godaddy.com/sdk.js",
+    "staging": "https://collect.commerce.ote-godaddy.com/sdk.js",
+    "st": "https://collect.commerce.ote-godaddy.com/sdk.js",
+    "ci": "https://collect.commerce.ote-godaddy.com/sdk.js",
+    "dev": "https://collect.commerce.ote-godaddy.com/sdk.js",
+    "eu": "https://collect.commerce.godaddy.com/sdk.js",
+}
+
+GODADDY_POYNT_API_HOST = (
+    os.getenv("GODADDY_POYNT_API_HOST", "").strip().rstrip("/")
+    or POYNT_API_HOSTS.get(GODADDY_POYNT_ENV, POYNT_API_HOSTS["ote"])
+)
+GODADDY_POYNT_IS_PRODUCTION = GODADDY_POYNT_API_HOST == POYNT_API_HOSTS["prod"]
+
+# --- Poynt application credentials -------------------------------------------
+# Application ID and Business ID come from the Poynt HQ portal. The private key
+# is the PEM half of the RSA keypair issued when the application was registered.
+GODADDY_POYNT_APPLICATION_ID = os.getenv("GODADDY_POYNT_APPLICATION_ID", "")
+GODADDY_POYNT_BUSINESS_ID = os.getenv("GODADDY_POYNT_BUSINESS_ID", "")
+GODADDY_POYNT_STORE_ID = os.getenv("GODADDY_POYNT_STORE_ID", "")
+
+# Supply the key EITHER inline (newlines may be written as literal \n) OR as a
+# path to a PEM file mounted outside the repository. Never commit either one.
+GODADDY_POYNT_PRIVATE_KEY = os.getenv("GODADDY_POYNT_PRIVATE_KEY", "").replace("\\n", "\n")
+GODADDY_POYNT_PRIVATE_KEY_PATH = os.getenv("GODADDY_POYNT_PRIVATE_KEY_PATH", "")
+
+# --- Poynt API behaviour -----------------------------------------------------
+GODADDY_POYNT_API_VERSION = os.getenv("GODADDY_POYNT_API_VERSION", "1.2")
+GODADDY_POYNT_TIMEOUT_SECONDS = float(os.getenv("GODADDY_POYNT_TIMEOUT_SECONDS", "20"))
+# Seconds of headroom before expiry at which a cached access token is renewed.
+GODADDY_POYNT_TOKEN_LEEWAY_SECONDS = int(os.getenv("GODADDY_POYNT_TOKEN_LEEWAY_SECONDS", "300"))
+
+# Endpoint paths are PINNED here on purpose. They are deliberately NOT resolved
+# through runtime_settings: those are staff-editable at runtime, and letting an
+# operator repoint payment traffic at an arbitrary path would be a live exploit.
+GODADDY_POYNT_TOKEN_PATH = "/token"
+GODADDY_POYNT_TOKENIZE_PATH = "/businesses/{business_id}/cards/tokenize"
+GODADDY_POYNT_CHARGE_PATH = "/businesses/{business_id}/cards/tokenize/charge"
+GODADDY_POYNT_TRANSACTION_PATH = "/businesses/{business_id}/transactions/{transaction_id}"
+GODADDY_POYNT_TRANSACTIONS_PATH = "/businesses/{business_id}/transactions"
+
+# SALE = authorize and capture in one step (normal e-commerce checkout).
+# AUTHORIZE = authorize only; requires a later capture call.
+GODADDY_PAYMENTS_CHARGE_ACTION = os.getenv("GODADDY_PAYMENTS_CHARGE_ACTION", "SALE").strip().upper()
+
+# --- Poynt Collect (browser SDK) ---------------------------------------------
 GODADDY_COLLECT_ENABLED = env_bool("GODADDY_COLLECT_ENABLED", True)
-GODADDY_COLLECT_SDK_URL = os.getenv("GODADDY_COLLECT_SDK_URL", "https://collect.commerce.godaddy.com/sdk.js")
-GODADDY_COLLECT_BUSINESS_ID = os.getenv("GODADDY_COLLECT_BUSINESS_ID", "")
-GODADDY_COLLECT_APPLICATION_ID = os.getenv("GODADDY_COLLECT_APPLICATION_ID", "")
+GODADDY_COLLECT_SDK_URL = (
+    os.getenv("GODADDY_COLLECT_SDK_URL", "").strip()
+    or POYNT_COLLECT_SDK_URLS.get(GODADDY_POYNT_ENV, POYNT_COLLECT_SDK_URLS["ote"])
+)
+# Business/Application IDs used to initialise the browser SDK. These are safe to
+# expose to the page; the private key never is. Default to the server-side IDs.
+GODADDY_COLLECT_BUSINESS_ID = os.getenv("GODADDY_COLLECT_BUSINESS_ID", "") or GODADDY_POYNT_BUSINESS_ID
+GODADDY_COLLECT_APPLICATION_ID = os.getenv("GODADDY_COLLECT_APPLICATION_ID", "") or GODADDY_POYNT_APPLICATION_ID
 GODADDY_COLLECT_APPLICATION_KEY = os.getenv("GODADDY_COLLECT_APPLICATION_KEY", "")
-GODADDY_STORE_ID = os.getenv("GODADDY_STORE_ID", "")
 GODADDY_COLLECT_IFRAME_HEIGHT = os.getenv("GODADDY_COLLECT_IFRAME_HEIGHT", "460px")
 GODADDY_COLLECT_RECAPTCHA_TYPE = os.getenv("GODADDY_COLLECT_RECAPTCHA_TYPE", "DEFAULT")
 GODADDY_COLLECT_RECAPTCHA_TEXT_FONT_SIZE = os.getenv("GODADDY_COLLECT_RECAPTCHA_TEXT_FONT_SIZE", "14px")
 GODADDY_COLLECT_RECAPTCHA_TEXT_COLOR = os.getenv("GODADDY_COLLECT_RECAPTCHA_TEXT_COLOR", "#111827")
 GODADDY_COLLECT_RECAPTCHA_LINK_COLOR = os.getenv("GODADDY_COLLECT_RECAPTCHA_LINK_COLOR", "#0d6efd")
 GODADDY_COLLECT_RECAPTCHA_LINK_TEXT_DECORATION = os.getenv("GODADDY_COLLECT_RECAPTCHA_LINK_TEXT_DECORATION", "underline")
+
+# --- Legacy / hosted-redirect settings (kept for the non-Collect fallback) ----
+GODADDY_API_KEY = os.getenv("GODADDY_API_KEY", "")
+GODADDY_MERCHANT_ID = os.getenv("GODADDY_MERCHANT_ID", "")
+GODADDY_STORE_ID = os.getenv("GODADDY_STORE_ID", "") or GODADDY_POYNT_STORE_ID
+GODADDY_PAYMENTS_BASE_URL = os.getenv("GODADDY_PAYMENTS_BASE_URL", "")
+GODADDY_PAYMENTS_CREATE_SESSION_PATH = os.getenv("GODADDY_PAYMENTS_CREATE_SESSION_PATH", "/v1/payments/sessions")
+GODADDY_PAYMENTS_VERIFY_PATH = os.getenv("GODADDY_PAYMENTS_VERIFY_PATH", "/v1/payments/verify")
+GODADDY_PAYMENTS_VERIFY_METHOD = os.getenv("GODADDY_PAYMENTS_VERIFY_METHOD", "POST")
+GODADDY_PAYMENTS_REFUND_PATH = os.getenv("GODADDY_PAYMENTS_REFUND_PATH", "/v1/payments/refunds")
+GODADDY_PAYMENTS_TIMEOUT_SECONDS = os.getenv("GODADDY_PAYMENTS_TIMEOUT_SECONDS", "15")
+GODADDY_PAYMENTS_ALLOWED_REDIRECT_HOSTS = os.getenv("GODADDY_PAYMENTS_ALLOWED_REDIRECT_HOSTS", "")
+
 SHIPPING_PROVIDER = os.getenv("SHIPPING_PROVIDER", "shippo")
 TAX_PROVIDER = os.getenv("TAX_PROVIDER", "manual")
 TAX_FALLBACK_PROVIDER = os.getenv("TAX_FALLBACK_PROVIDER", "manual")
@@ -266,13 +343,31 @@ LOGGING = {
     "formatters": {
         "standard": {
             "format": "%(asctime)s [%(levelname)s] %(name)s: %(message)s",
-        }
+        },
+        # Appends order_id / payment_id / transaction_id / status / amount so a
+        # payment can be traced end to end without logging anything sensitive.
+        "payment": {
+            "()": "payments.log_filters.PaymentContextFormatter",
+            "format": "%(asctime)s [%(levelname)s] %(name)s: %(message)s",
+        },
+    },
+    "filters": {
+        # Backstop that scrubs card numbers, JWTs and private keys from any
+        # payment log line that somehow contains one.
+        "redact_sensitive": {
+            "()": "payments.log_filters.RedactSensitiveFilter",
+        },
     },
     "handlers": {
         "console": {
             "class": "logging.StreamHandler",
             "formatter": "standard",
-        }
+        },
+        "payment_console": {
+            "class": "logging.StreamHandler",
+            "formatter": "payment",
+            "filters": ["redact_sensitive"],
+        },
     },
     "root": {
         "handlers": ["console"],
@@ -287,6 +382,12 @@ LOGGING = {
         "security_audit": {
             "handlers": ["console"],
             "level": "INFO",
+            "propagate": False,
+        },
+        # All payment logging goes through the redacting handler.
+        "payments": {
+            "handlers": ["payment_console"],
+            "level": os.getenv("PAYMENTS_LOG_LEVEL", "INFO"),
             "propagate": False,
         },
     },
@@ -326,5 +427,12 @@ CELERY_BEAT_SCHEDULE = {
     "process-abandoned-carts": {
         "task": "abandoned_carts.tasks.process_abandoned_carts",
         "schedule": 1800.0,  # every 30 minutes
+    },
+    # Resolve charges whose outcome we never received. Runs often because an
+    # unresolved ambiguous payment means a customer may have been charged for
+    # an order that does not exist.
+    "reconcile-ambiguous-payments": {
+        "task": "payments.tasks.reconcile_ambiguous_payments",
+        "schedule": 120.0,  # every 2 minutes
     },
 }

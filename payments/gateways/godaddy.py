@@ -3,18 +3,31 @@ from __future__ import annotations
 import hashlib
 import hmac
 import json
+import logging
+from dataclasses import replace
 from decimal import Decimal
 from typing import Any
 from urllib.error import HTTPError, URLError
-from urllib.parse import urljoin, urlparse
+from urllib.parse import urlencode, urljoin, urlparse
 from urllib.request import Request, urlopen
 
 from django.conf import settings
 
 from core.runtime_settings import get_runtime_setting
 from payments.gateways.base import PaymentGateway, PaymentSession, PaymentVerificationResult, RefundResult
+from payments.gateways.poynt_auth import (
+    PoyntAPIError,
+    PoyntAuthError,
+    PoyntClient,
+    PoyntConfigurationError,
+    PoyntTimeoutError,
+    describe_configuration,
+    is_configured,
+)
 from security_audit.models import AuditAction
 from security_audit.utils import log_audit_event
+
+logger = logging.getLogger("payments.godaddy")
 
 
 class GoDaddyPaymentGateway(PaymentGateway):
@@ -382,196 +395,67 @@ class GoDaddyPaymentGateway(PaymentGateway):
             failure_message=failure_message or None,
         )
 
-    def _runtime_bool(self, key: str, default: str = "false") -> bool:
-        raw = str(self._runtime(key, default) or default).strip().lower()
-        return raw in {"1", "true", "yes", "on"}
+    # ------------------------------------------------------------------
+    # Poynt Collect flow (server-side half)
+    #
+    # Documented sequence:  nonce -> payment token -> charge
+    # The browser SDK produces a single-use nonce; the server exchanges it for
+    # a payment token, then charges that token. Endpoint paths come from pinned
+    # settings, never from staff-editable runtime settings.
+    # ------------------------------------------------------------------
+
+    def _poynt_client(self) -> PoyntClient:
+        return PoyntClient()
 
     def _resolve_business_id(self, business_id: str | None = None) -> str:
-        resolved_business_id = (business_id or self._runtime("godaddy_collect_business_id", "") or self._merchant_id()).strip()
-        if not resolved_business_id:
-            raise ValueError("Business ID is required for payment requests.")
-        return resolved_business_id
+        resolved = (
+            business_id
+            or (getattr(settings, "GODADDY_POYNT_BUSINESS_ID", "") or "").strip()
+            or self._runtime("godaddy_collect_business_id", "")
+            or self._merchant_id()
+        ).strip()
+        if not resolved:
+            raise ValueError("A GoDaddy/Poynt Business ID is required for payment requests.")
+        return resolved
 
-    def _resolve_charge_config(
-        self,
-        *,
-        action: str | None,
-        auth_only: bool | None,
-        business_id: str | None,
-        store_id: str | None,
-        path_setting_key: str,
-        path_default: str,
-    ) -> dict[str, Any]:
-        resolved_business_id = self._resolve_business_id(business_id)
-
-        charge_path = self._runtime(
-            path_setting_key,
-            path_default,
-        )
-        if self._BUSINESS_ID_PLACEHOLDER in charge_path:
-            charge_path = charge_path.replace(self._BUSINESS_ID_PLACEHOLDER, resolved_business_id)
-
-        resolved_action = (action or self._runtime("godaddy_payments_charge_nonce_action", "SALE") or "SALE").strip().upper()
-        if resolved_action not in {"SALE", "AUTHORIZE"}:
-            resolved_action = "SALE"
-
-        resolved_auth_only = bool(auth_only) if auth_only is not None else self._runtime_bool(
-            "godaddy_payments_charge_nonce_auth_only",
-            "false",
-        )
-
-        return {
-            "business_id": resolved_business_id,
-            "store_id": (store_id or self._runtime("godaddy_store_id", "")).strip(),
-            "action": resolved_action,
-            "auth_only": resolved_auth_only,
-            "charge_path": charge_path,
-        }
-
-    def _resolve_tokenize_path(self, *, business_id: str | None = None) -> tuple[str, str]:
-        resolved_business_id = self._resolve_business_id(business_id)
-        tokenize_path = self._runtime(
-            "godaddy_payments_create_token_path",
-            "/businesses/{business_id}/cards/tokenize",
-        )
-        if self._BUSINESS_ID_PLACEHOLDER in tokenize_path:
-            tokenize_path = tokenize_path.replace(self._BUSINESS_ID_PLACEHOLDER, resolved_business_id)
-        return resolved_business_id, tokenize_path
+    def _resolve_store_id(self, store_id: str | None = None) -> str:
+        return (store_id or (getattr(settings, "GODADDY_POYNT_STORE_ID", "") or "").strip()).strip()
 
     @staticmethod
-    def _build_nonce_charge_payload(
-        *,
-        nonce: str,
-        amount_cents: int,
-        currency: str,
-        config: dict[str, Any],
-        email_receipt: bool,
-        receipt_email_address: str,
-        metadata: dict[str, Any] | None,
-    ) -> dict[str, Any]:
-        payload: dict[str, Any] = {
-            "action": config["action"],
-            "context": {
-                "businessId": config["business_id"],
-            },
-            "amounts": {
-                "transactionAmount": int(amount_cents),
-                "orderAmount": int(amount_cents),
-                "currency": currency,
-            },
-            "fundingSource": {
-                "nonce": nonce,
-            },
-        }
-        if config.get("store_id"):
-            payload["context"]["storeId"] = config["store_id"]
-        if config["action"] == "AUTHORIZE":
-            payload["authOnly"] = bool(config["auth_only"])
-        if email_receipt and receipt_email_address:
-            payload["emailReceipt"] = True
-            payload["receiptEmailAddress"] = receipt_email_address
-        if metadata:
-            payload["metadata"] = metadata
-        return payload
+    def _resolve_action(action: str | None) -> str:
+        """
+        SALE authorises and captures in one call — the correct action for a
+        normal e-commerce checkout. AUTHORIZE defers capture to a later call.
+        """
+        resolved = (action or getattr(settings, "GODADDY_PAYMENTS_CHARGE_ACTION", "SALE") or "SALE").strip().upper()
+        return resolved if resolved in {"SALE", "AUTHORIZE"} else "SALE"
 
-    def _extract_nonce_charge_details(self, response_data: dict[str, Any]) -> tuple[str, str, str]:
-        provider_txn = self._first_str(response_data, ("provider_transaction_id", "transaction_id", "payment_id", "charge_id", "id"))
-        processor_response = response_data.get("processorResponse") if isinstance(response_data.get("processorResponse"), dict) else {}
-        if not provider_txn:
-            provider_txn = self._first_str(processor_response, ("transactionId", "id"))
+    def _charge_path(self, business_id: str) -> str:
+        return settings.GODADDY_POYNT_CHARGE_PATH.format(business_id=business_id)
 
-        failure_code = self._first_str(response_data, ("failure_code", "error_code", "code"))
-        if not failure_code:
-            failure_code = self._first_str(processor_response, ("statusCode", "code"))
+    def _tokenize_path(self, business_id: str) -> str:
+        return settings.GODADDY_POYNT_TOKENIZE_PATH.format(business_id=business_id)
 
-        failure_message = self._first_str(response_data, ("failure_message", "error_message", "message"))
-        if not failure_message:
-            failure_message = self._first_str(processor_response, ("statusMessage", "status"))
-        return provider_txn, failure_code, failure_message
+    @staticmethod
+    def _card_details(response_data: dict[str, Any]) -> dict[str, str]:
+        """
+        Extract PCI-safe card descriptors from a tokenize/charge response.
 
-    def _token_response_interpretation(self, response_data: dict[str, Any]) -> dict[str, Any]:
-        status = self._first_str(response_data, ("status",))
+        Only brand and last four digits are kept. PAN, CVV and expiry are
+        explicitly ignored even when the provider returns them.
+        """
         card = response_data.get("card") if isinstance(response_data.get("card"), dict) else {}
+        if not card:
+            funding = response_data.get("fundingSource") if isinstance(response_data.get("fundingSource"), dict) else {}
+            card = funding.get("card") if isinstance(funding.get("card"), dict) else {}
+
         avs = response_data.get("avsResponse") if isinstance(response_data.get("avsResponse"), dict) else {}
-        cvv = self._first_str(response_data, ("cvvResponse",))
-        payment_token = self._first_str(response_data, ("paymentToken", "token"))
         return {
-            "status": status,
-            "card_status": self._first_str(card, ("status",)),
-            "cvv_response": cvv,
-            "avs_address_result": self._first_str(avs, ("addressResult",)),
-            "avs_postal_result": self._first_str(avs, ("postalCodeResult",)),
-            "payment_token": payment_token,
+            "card_brand": str(card.get("type") or "").strip()[:32],
+            "card_last4": str(card.get("numberLast4") or "").strip()[:4],
+            "avs_result": str(avs.get("addressResult") or "").strip()[:32],
+            "cvv_result": str(response_data.get("cvvResponse") or "").strip()[:32],
         }
-
-    def charge_nonce(
-        self,
-        *,
-        nonce: str,
-        amount_cents: int,
-        currency: str,
-        idempotency_key: str,
-        action: str | None = None,
-        auth_only: bool | None = None,
-        business_id: str | None = None,
-        store_id: str | None = None,
-        email_receipt: bool = False,
-        receipt_email_address: str = "",
-        actor=None,
-        request=None,
-        metadata: dict[str, Any] | None = None,
-    ) -> PaymentVerificationResult:
-        config = self._resolve_charge_config(
-            action=action,
-            auth_only=auth_only,
-            business_id=business_id,
-            store_id=store_id,
-            path_setting_key="godaddy_payments_charge_nonce_path",
-            path_default="/businesses/{business_id}/cards/tokenize/charge",
-        )
-        payload = self._build_nonce_charge_payload(
-            nonce=nonce,
-            amount_cents=amount_cents,
-            currency=currency,
-            config=config,
-            email_receipt=email_receipt,
-            receipt_email_address=receipt_email_address,
-            metadata=metadata,
-        )
-
-        response_data = self._request_services_json(
-            method="POST",
-            endpoint_path=config["charge_path"],
-            payload=payload,
-            idempotency_key=idempotency_key,
-        )
-
-        raw_status = self._first_str(response_data, ("status", "payment_status", "result", "state"))
-        normalized_status = self._normalize_status(raw_status)
-        provider_txn, failure_code, failure_message = self._extract_nonce_charge_details(response_data)
-
-        log_audit_event(
-            action=AuditAction.PAYMENT_EVENT,
-            message="GoDaddy nonce charge requested",
-            actor=actor,
-            request=request,
-            metadata={
-                "provider": self.slug,
-                "idempotency_key": idempotency_key,
-                "amount_cents": amount_cents,
-                "currency": currency,
-                "action": config["action"],
-            },
-        )
-        return PaymentVerificationResult(
-            provider=self.slug,
-            is_confirmed=(normalized_status == "confirmed"),
-            status=normalized_status,
-            provider_transaction_id=provider_txn or None,
-            raw=response_data,
-            failure_code=failure_code or None,
-            failure_message=failure_message or None,
-        )
 
     def create_payment_token(
         self,
@@ -583,40 +467,40 @@ class GoDaddyPaymentGateway(PaymentGateway):
         request=None,
         metadata: dict[str, Any] | None = None,
     ) -> dict[str, Any]:
-        resolved_business_id, token_path = self._resolve_tokenize_path(business_id=business_id)
+        """
+        Exchange a single-use Poynt Collect nonce for a reusable payment token.
 
-        payload = {
-            "nonce": nonce,
-        }
-        if metadata:
-            payload["metadata"] = metadata
-
-        response_data = self._request_services_json(
+        POST /businesses/{businessId}/cards/tokenize   body: {"nonce": "..."}
+        """
+        resolved_business_id = self._resolve_business_id(business_id)
+        response_data = self._poynt_client().request(
             method="POST",
-            endpoint_path=token_path,
-            payload=payload,
-            idempotency_key=idempotency_key,
+            endpoint_path=self._tokenize_path(resolved_business_id),
+            json_body={"nonce": nonce},
+            # Tokenizing does not move money, so a distinct id per attempt is fine.
+            request_id=f"{idempotency_key}-tok",
         )
-        interpreted = self._token_response_interpretation(response_data)
+
+        payment_token = self._first_str(response_data, ("paymentToken", "token"))
+        card_details = self._card_details(response_data)
 
         log_audit_event(
             action=AuditAction.PAYMENT_EVENT,
-            message="GoDaddy payment token requested",
+            message="GoDaddy payment token created",
             actor=actor,
             request=request,
             metadata={
                 "provider": self.slug,
-                "idempotency_key": idempotency_key,
                 "business_id": resolved_business_id,
-                "token_status": interpreted["status"],
-                "cvv_response": interpreted["cvv_response"],
-                "avs_address_result": interpreted["avs_address_result"],
-                "avs_postal_result": interpreted["avs_postal_result"],
+                "token_status": self._first_str(response_data, ("status",)),
+                **card_details,
             },
         )
         return {
+            "payment_token": payment_token,
+            "status": self._first_str(response_data, ("status",)),
             "raw": response_data,
-            **interpreted,
+            **card_details,
         }
 
     def charge_payment_token(
@@ -636,53 +520,172 @@ class GoDaddyPaymentGateway(PaymentGateway):
         request=None,
         metadata: dict[str, Any] | None = None,
     ) -> PaymentVerificationResult:
-        config = self._resolve_charge_config(
-            action=action,
-            auth_only=auth_only,
-            business_id=business_id,
-            store_id=store_id,
-            path_setting_key="godaddy_payments_charge_token_path",
-            path_default="/businesses/{business_id}/cards/tokenize/charge",
-        )
+        """
+        Charge a payment token.
 
-        payload = {
-            "action": config["action"],
-            "context": {
-                "businessId": config["business_id"],
-            },
+        POST /businesses/{businessId}/cards/tokenize/charge
+
+        `idempotency_key` is sent as Poynt-Request-Id. Replaying the same key
+        returns the original transaction instead of charging a second time,
+        which is what makes safe retry possible.
+        """
+        resolved_business_id = self._resolve_business_id(business_id)
+        resolved_action = self._resolve_action(action)
+
+        payload: dict[str, Any] = {
+            "action": resolved_action,
+            "context": {"businessId": resolved_business_id},
             "amounts": {
                 "transactionAmount": int(amount_cents),
                 "orderAmount": int(amount_cents),
                 "currency": currency,
             },
-            "fundingSource": {
-                "cardToken": payment_token,
-            },
+            "fundingSource": {"cardToken": payment_token},
         }
-        if config.get("store_id"):
-            payload["context"]["storeId"] = config["store_id"]
-        if config["action"] == "AUTHORIZE":
-            payload["authOnly"] = bool(config["auth_only"])
+        resolved_store_id = self._resolve_store_id(store_id)
+        if resolved_store_id:
+            payload["context"]["storeId"] = resolved_store_id
+        if resolved_action == "AUTHORIZE":
+            payload["authOnly"] = True if auth_only is None else bool(auth_only)
         if email_receipt and receipt_email_address:
             payload["emailReceipt"] = True
             payload["receiptEmailAddress"] = receipt_email_address
         if metadata:
             payload["metadata"] = metadata
 
-        response_data = self._request_services_json(
+        response_data = self._poynt_client().request(
             method="POST",
-            endpoint_path=config["charge_path"],
-            payload=payload,
+            endpoint_path=self._charge_path(resolved_business_id),
+            json_body=payload,
+            request_id=idempotency_key,
+        )
+        return self._build_charge_result(
+            response_data,
+            action=resolved_action,
+            amount_cents=amount_cents,
+            currency=currency,
             idempotency_key=idempotency_key,
+            actor=actor,
+            request=request,
         )
 
+    def charge_nonce(
+        self,
+        *,
+        nonce: str,
+        amount_cents: int,
+        currency: str,
+        idempotency_key: str,
+        action: str | None = None,
+        auth_only: bool | None = None,
+        business_id: str | None = None,
+        store_id: str | None = None,
+        email_receipt: bool = False,
+        receipt_email_address: str = "",
+        actor=None,
+        request=None,
+        metadata: dict[str, Any] | None = None,
+    ) -> PaymentVerificationResult:
+        """
+        Charge a Poynt Collect nonce.
+
+        GoDaddy documents no direct nonce->charge endpoint, so this performs the
+        documented two-step exchange (tokenize, then charge the token) and
+        returns the charge result. Card descriptors captured during tokenization
+        are merged into the result's raw payload for storage.
+        """
+        token_details = self.create_payment_token(
+            nonce=nonce,
+            idempotency_key=idempotency_key,
+            business_id=business_id,
+            actor=actor,
+            request=request,
+            metadata=metadata,
+        )
+        payment_token = token_details.get("payment_token") or ""
+        if not payment_token:
+            return PaymentVerificationResult(
+                provider=self.slug,
+                is_confirmed=False,
+                status="failed",
+                provider_transaction_id=None,
+                raw=token_details.get("raw") or {},
+                failure_code="tokenization_failed",
+                failure_message="The card could not be tokenized. Please re-enter your card details.",
+            )
+
+        result = self.charge_payment_token(
+            payment_token=payment_token,
+            amount_cents=amount_cents,
+            currency=currency,
+            idempotency_key=idempotency_key,
+            action=action,
+            auth_only=auth_only,
+            business_id=business_id,
+            store_id=store_id,
+            email_receipt=email_receipt,
+            receipt_email_address=receipt_email_address,
+            actor=actor,
+            request=request,
+            metadata=metadata,
+        )
+
+        # Preserve tokenization-time card descriptors (AVS/CVV are only
+        # returned on the tokenize call) alongside the charge response.
+        merged_raw = dict(result.raw or {})
+        merged_raw["_card_details"] = {
+            key: token_details.get(key, "")
+            for key in ("card_brand", "card_last4", "avs_result", "cvv_result")
+        }
+        return replace(result, raw=merged_raw)
+
+    def _extract_nonce_charge_details(self, response_data: dict[str, Any]) -> tuple[str, str, str]:
+        """Pull the transaction id and any failure detail out of a charge response."""
+        provider_txn = self._first_str(
+            response_data,
+            ("provider_transaction_id", "transaction_id", "payment_id", "charge_id", "id"),
+        )
+        processor_response = (
+            response_data.get("processorResponse")
+            if isinstance(response_data.get("processorResponse"), dict)
+            else {}
+        )
+        if not provider_txn:
+            provider_txn = self._first_str(processor_response, ("transactionId", "id"))
+
+        failure_code = self._first_str(response_data, ("failure_code", "error_code", "code"))
+        if not failure_code:
+            failure_code = self._first_str(processor_response, ("statusCode", "code"))
+
+        failure_message = self._first_str(response_data, ("failure_message", "error_message", "message"))
+        if not failure_message:
+            failure_message = self._first_str(processor_response, ("statusMessage", "status"))
+        return provider_txn, failure_code, failure_message
+
+    def _build_charge_result(
+        self,
+        response_data: dict[str, Any],
+        *,
+        action: str,
+        amount_cents: int,
+        currency: str,
+        idempotency_key: str,
+        actor=None,
+        request=None,
+    ) -> PaymentVerificationResult:
         raw_status = self._first_str(response_data, ("status", "payment_status", "result", "state"))
         normalized_status = self._normalize_status(raw_status)
         provider_txn, failure_code, failure_message = self._extract_nonce_charge_details(response_data)
 
+        # An AUTHORIZE-only transaction is authorised but not captured; it must
+        # not be treated as a completed payment for a normal storefront order.
+        is_confirmed = normalized_status == "confirmed"
+        if action == "AUTHORIZE":
+            is_confirmed = False
+
         log_audit_event(
             action=AuditAction.PAYMENT_EVENT,
-            message="GoDaddy payment token charge requested",
+            message="GoDaddy card charge completed",
             actor=actor,
             request=request,
             metadata={
@@ -690,12 +693,15 @@ class GoDaddyPaymentGateway(PaymentGateway):
                 "idempotency_key": idempotency_key,
                 "amount_cents": amount_cents,
                 "currency": currency,
-                "action": config["action"],
+                "action": action,
+                "status": normalized_status,
+                "provider_transaction_id": provider_txn,
+                **self._card_details(response_data),
             },
         )
         return PaymentVerificationResult(
             provider=self.slug,
-            is_confirmed=(normalized_status == "confirmed"),
+            is_confirmed=is_confirmed,
             status=normalized_status,
             provider_transaction_id=provider_txn or None,
             raw=response_data,
@@ -703,12 +709,185 @@ class GoDaddyPaymentGateway(PaymentGateway):
             failure_message=failure_message or None,
         )
 
+    def get_transaction(self, *, transaction_id: str, business_id: str | None = None) -> dict[str, Any]:
+        """
+        Fetch a single transaction by its provider id.
+
+        GET /businesses/{businessId}/transactions/{transactionId}
+
+        Read-only and safe to retry — this is the primary tool for resolving an
+        ambiguous charge outcome without risking a second charge.
+        """
+        resolved_business_id = self._resolve_business_id(business_id)
+        path = settings.GODADDY_POYNT_TRANSACTION_PATH.format(
+            business_id=resolved_business_id,
+            transaction_id=transaction_id,
+        )
+        return self._poynt_client().request(method="GET", endpoint_path=path, idempotent=True)
+
+    def find_transactions(self, *, business_id: str | None = None, params: dict[str, Any] | None = None) -> dict[str, Any]:
+        """
+        List transactions for the business.
+
+        GET /businesses/{businessId}/transactions
+
+        Used by reconciliation to locate a charge whose id was never received
+        because the connection dropped before the response arrived.
+        """
+        resolved_business_id = self._resolve_business_id(business_id)
+        path = settings.GODADDY_POYNT_TRANSACTIONS_PATH.format(business_id=resolved_business_id)
+        if params:
+            path = f"{path}?{urlencode(params)}"
+        return self._poynt_client().request(method="GET", endpoint_path=path, idempotent=True)
+
+    def refund_transaction(
+        self,
+        *,
+        provider_transaction_id: str,
+        amount_cents: int | None = None,
+        currency: str = "USD",
+        idempotency_key: str | None = None,
+        business_id: str | None = None,
+        actor=None,
+        request=None,
+    ) -> RefundResult:
+        """
+        Refund a settled transaction, fully or partially.
+
+        POST /businesses/{businessId}/transactions
+            {"action": "REFUND", "parentId": "<original transaction id>",
+             "amounts": {...}}   # amounts omitted => full refund
+
+        A refund is recorded by the provider as its own transaction referencing
+        the original via parentId; the original is never modified or deleted.
+        """
+        resolved_business_id = self._resolve_business_id(business_id)
+        payload: dict[str, Any] = {
+            "action": "REFUND",
+            "parentId": provider_transaction_id,
+        }
+        if amount_cents is not None:
+            payload["amounts"] = {
+                "transactionAmount": int(amount_cents),
+                "orderAmount": int(amount_cents),
+                "tipAmount": 0,
+                "currency": currency,
+            }
+
+        response_data = self._poynt_client().request(
+            method="POST",
+            endpoint_path=settings.GODADDY_POYNT_TRANSACTIONS_PATH.format(
+                business_id=resolved_business_id
+            ),
+            json_body=payload,
+            request_id=idempotency_key,
+        )
+
+        raw_status = self._first_str(response_data, ("status", "state"))
+        normalized_status = self._normalize_status(raw_status)
+        refund_id = self._first_str(response_data, ("id", "refund_id"))
+
+        log_audit_event(
+            action=AuditAction.PAYMENT_EVENT,
+            message="GoDaddy refund processed",
+            actor=actor,
+            request=request,
+            metadata={
+                "provider": self.slug,
+                "parent_transaction_id": provider_transaction_id,
+                "refund_transaction_id": refund_id,
+                "amount_cents": amount_cents,
+                "currency": currency,
+                "status": raw_status,
+                "idempotency_key": idempotency_key,
+            },
+        )
+        return RefundResult(
+            provider=self.slug,
+            # Poynt reports a successful refund as status REFUNDED.
+            status="refunded" if raw_status.strip().upper() == "REFUNDED" else normalized_status,
+            provider_refund_id=refund_id or None,
+            raw=response_data,
+            failure_code=self._first_str(response_data, ("failure_code", "code")) or None,
+            failure_message=self._first_str(response_data, ("failure_message", "message")) or None,
+        )
+
+    def void_transaction(
+        self,
+        *,
+        provider_transaction_id: str,
+        idempotency_key: str | None = None,
+        business_id: str | None = None,
+        actor=None,
+        request=None,
+    ) -> RefundResult:
+        """
+        Void an authorization that has not yet settled.
+
+        POST /businesses/{businessId}/transactions/{transactionId}/void
+
+        Voiding is preferable to refunding when the transaction has not settled,
+        because it releases the hold rather than moving money back.
+        """
+        resolved_business_id = self._resolve_business_id(business_id)
+        response_data = self._poynt_client().request(
+            method="POST",
+            endpoint_path=(
+                f"/businesses/{resolved_business_id}/transactions/"
+                f"{provider_transaction_id}/void"
+            ),
+            request_id=idempotency_key,
+        )
+        raw_status = self._first_str(response_data, ("status", "state"))
+
+        log_audit_event(
+            action=AuditAction.PAYMENT_EVENT,
+            message="GoDaddy transaction voided",
+            actor=actor,
+            request=request,
+            metadata={
+                "provider": self.slug,
+                "provider_transaction_id": provider_transaction_id,
+                "status": raw_status,
+                "idempotency_key": idempotency_key,
+            },
+        )
+        return RefundResult(
+            provider=self.slug,
+            status="cancelled" if raw_status.strip().upper() == "VOIDED" else self._normalize_status(raw_status),
+            provider_refund_id=self._first_str(response_data, ("id",)) or None,
+            raw=response_data,
+        )
+
+    def test_poynt_connection(self, *, actor=None, request=None) -> dict[str, Any]:
+        """Authenticate and make one harmless read to prove credentials work."""
+        client = self._poynt_client()
+        client.get_access_token(force_refresh=True)
+        business_id = self._resolve_business_id()
+        client.request(
+            method="GET",
+            endpoint_path=f"/businesses/{business_id}",
+            idempotent=True,
+        )
+        log_audit_event(
+            action=AuditAction.PAYMENT_EVENT,
+            message="GoDaddy/Poynt connection test succeeded",
+            actor=actor,
+            request=request,
+            metadata={"provider": self.slug, **describe_configuration()},
+        )
+        return {"ok": True, **describe_configuration()}
+
+
     def verify_webhook_signature(self, *, body: bytes, headers: dict[str, str]) -> bool:
         secret = (
             get_runtime_setting("godaddy_payments_webhook_secret", getattr(settings, "GODADDY_PAYMENTS_WEBHOOK_SECRET", "") or getattr(settings, "PAYMENTS_WEBHOOK_SECRET", ""))
         ).strip()
         if not secret:
-            return True
+            # Fail closed. An unsigned webhook must never be treated as
+            # authentic just because no secret happens to be configured.
+            logger.error("Rejecting GoDaddy webhook: no webhook secret is configured")
+            return False
 
         # Accept common signature header keys.
         signature = ""

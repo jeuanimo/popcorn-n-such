@@ -1,0 +1,35 @@
+{% extends "base/base.html" %}
+{% block title %}
+    Payment Being Confirmed
+{% endblock title %}
+{% block content %}
+    <section class="py-5">
+        <div class="container form-container">
+            <div class="hero-card p-4 p-lg-5 text-center">
+                <h1 class="mb-3">We're Confirming Your Payment</h1>
+                <p class="mb-3">
+                    Your card details reached our payment processor, but the connection
+                    dropped before we received a final answer. We do not yet know whether
+                    the payment went through.
+                </p>
+                <p class="mb-3">
+                    <strong>Please do not try to pay again.</strong> Submitting a second
+                    payment could charge you twice. Our team is checking directly with the
+                    processor and you will receive an email as soon as this is resolved —
+                    usually within a few minutes.
+                </p>
+                {% if reference %}
+                    <p class="small text-muted mb-4">
+                        Reference for support: <strong>{{ reference }}</strong>
+                    </p>
+                {% endif %}
+                <div class="d-flex justify-content-center gap-2 flex-wrap">
+                    {% if user.is_authenticated %}
+                        <a class="btn btn-brand" href="{% url 'orders:my-orders' %}">View My Orders</a>
+                    {% endif %}
+                    <a class="btn btn-outline-dark" href="{% url 'products:list' %}">Continue Shopping</a>
+                </div>
+            </div>
+        </div>
+    </section>
+{% endblock content %}

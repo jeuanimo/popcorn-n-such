@@ -93,6 +93,7 @@
                         <form method="post" class="d-grid gap-3" id="checkout-payment-form">
                             {% csrf_token %}
                             <input type="hidden" name="poynt_nonce" id="id_poynt_nonce" value="" />
+                            <input type="hidden" name="payment_intent_key" value="{{ payment_intent_key }}" />
                             <div class="d-grid gap-2">
                                 {% for method in payment_methods %}
                                     <label class="border rounded-3 px-3 py-2 d-flex align-items-center gap-2 bg-white">
@@ -113,7 +114,9 @@
                                                                 </div>
                                                         {% elif selected_payment_method == "godaddy" and not poynt_collect.configured %}
                                                                 <p class="small text-danger mb-0">
-                                                                        GoDaddy Collect is not configured. Set business ID, application ID, and SDK URL settings.
+                                                                        Card payments are unavailable right now.
+                                                                        {% if not poynt_collect.browser_ready %}The secure card form is not configured.{% endif %}
+                                                                        {% if not poynt_collect.server_ready %}The payment processor credentials are not configured.{% endif %}
                                                                 </p>
                                                         {% endif %}
                             {% if not stub_checkout_enabled %}
@@ -284,7 +287,7 @@
                 setStatus("Secure card form ready. reCAPTCHA protection is enabled.", false);
                 sendTelemetry("ready", {
                     recaptchaType: recaptchaType || "DEFAULT",
-                    chargeSource: "{{ poynt_collect.charge_source|default:''|escapejs }}"
+                    chargeSource: "payment_token"
                 });
             });
             collect.on("error", function (event) {

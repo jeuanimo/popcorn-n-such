@@ -23,5 +23,8 @@ django-celery-beat==2.7.0
 cloudinary==1.44.2
 django-cloudinary-storage==0.3.0
 
+# Payments — RS256 JWT signing for GoDaddy/Poynt application authentication
+PyJWT[crypto]==2.10.1
+
 # Error tracking
 sentry-sdk[django]==2.19.2

@@ -367,6 +367,26 @@ class CheckoutService:
 
     @staticmethod
     def _record_payment(order: Order, summary: CheckoutSummary, payment_result: dict, actor) -> None:
+        """
+        Attach the payment record to the order.
+
+        When the charge was made through the Poynt Collect flow, a
+        PaymentTransaction already exists (it was created before the provider
+        was called, so that failed and ambiguous attempts are recorded too). In
+        that case link it rather than writing a second row — an order must
+        never have two transactions claiming to have taken the money.
+        """
+        existing_id = payment_result.get("payment_transaction_id")
+        if existing_id:
+            updated = PaymentTransaction.objects.filter(pk=existing_id, order__isnull=True).update(
+                order=order
+            )
+            if updated:
+                return
+            # Already linked to this order: nothing further to do.
+            if PaymentTransaction.objects.filter(pk=existing_id, order=order).exists():
+                return
+
         PaymentTransaction.objects.create(
             order=order,
             provider=payment_result.get("provider", "unknown"),

@@ -20,6 +20,12 @@ venv/
 # Env files
 .env
 .env.*
+!.env.example
+
+# Payment provider private keys — never commit
+*.pem
+*.key
+secrets/
 
 # IDE
 .vscode/

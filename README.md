@@ -8,7 +8,7 @@ A Django 5.2 e-commerce and fundraising platform for popcorn sales.
 
 - [Local Development](#local-development)
 - [Environment Variables](#environment-variables)
-- [Poynt Collect Setup](#poynt-collect-setup)
+- [GoDaddy Payments (Poynt Collect) Setup](#godaddy-payments-poynt-collect-setup)
 - [Deployment](#deployment)
   - [Render (recommended)](#render-recommended)
   - [Docker](#docker)
@@ -85,90 +85,90 @@ python -c "import secrets; print(secrets.token_urlsafe(64))"
 
 ---
 
-## Poynt Collect Setup
+## GoDaddy Payments (Poynt Collect) Setup
 
-This project now supports a direct Poynt Collect card form at checkout for GoDaddy Payments.
+Card payments at checkout run through GoDaddy Payments on the Poynt Commerce
+Platform. Full developer reference: **[docs/PAYMENTS.md](docs/PAYMENTS.md)**.
 
 Prerequisites:
 
-- Active GoDaddy / Poynt developer account
-- Business ID and Application ID from Poynt HQ
-- API credentials configured in environment variables
+- Active GoDaddy / Poynt account
+- An application registered in Poynt HQ, giving you an Application ID and an
+  RSA private key
+- Your Business ID (and optionally Store ID)
 
-Required environment variables:
+### Environment variables
 
 ```bash
-# Keep payments provider on GoDaddy
 PAYMENTS_PROVIDER=godaddy
 
-# Core GoDaddy API credentials
-GODADDY_API_KEY=...
-GODADDY_API_SECRET=...
-GODADDY_MERCHANT_ID=...
+# Environment: "ote" = staging (no real money), "prod" = live.
+# Defaults to ote, so development can never accidentally charge a real card.
+GODADDY_POYNT_ENV=ote
 
-# Poynt Collect frontend
+# From Poynt HQ.
+GODADDY_POYNT_APPLICATION_ID=<applicationId>
+GODADDY_POYNT_BUSINESS_ID=<businessId>
+GODADDY_POYNT_STORE_ID=<storeId>
+
+# RSA private key. Provide EITHER of these — never commit either one.
+#   inline: paste the PEM with newlines written as the two characters \n
+GODADDY_POYNT_PRIVATE_KEY=
+#   or a path to a .pem file stored outside the repository
+GODADDY_POYNT_PRIVATE_KEY_PATH=
+
+# SALE = authorize and capture together (normal checkout).
+GODADDY_PAYMENTS_CHARGE_ACTION=SALE
+
+# Browser card form.
 GODADDY_COLLECT_ENABLED=true
-GODADDY_COLLECT_SDK_URL=https://collect.commerce.godaddy.com/sdk.js
-GODADDY_COLLECT_BUSINESS_ID=<businessId>
-GODADDY_COLLECT_APPLICATION_ID=<applicationId>
-# Optional alternative combined key format:
-# GODADDY_COLLECT_APPLICATION_KEY=<businessId>=<applicationId>
-
-# reCAPTCHA display (required by Google branding rules)
+# Blank = follow GODADDY_POYNT_ENV automatically (OTE vs production host).
+GODADDY_COLLECT_SDK_URL=
 GODADDY_COLLECT_IFRAME_HEIGHT=460px
-GODADDY_COLLECT_RECAPTCHA_TYPE=DEFAULT  # DEFAULT or TEXT
-GODADDY_COLLECT_RECAPTCHA_TEXT_FONT_SIZE=14px
-GODADDY_COLLECT_RECAPTCHA_TEXT_COLOR=#111827
-GODADDY_COLLECT_RECAPTCHA_LINK_COLOR=#0d6efd
-GODADDY_COLLECT_RECAPTCHA_LINK_TEXT_DECORATION=underline
+GODADDY_COLLECT_RECAPTCHA_TYPE=DEFAULT   # DEFAULT or TEXT
 
-# Poynt/GoDaddy services backend
-GODADDY_SERVICES_BASE_URL=https://services.poynt.net
-
-# One-time charge flow (nonce -> charge)
-GODADDY_PAYMENTS_CHARGE_NONCE_PATH=/businesses/{business_id}/cards/tokenize/charge
-GODADDY_PAYMENTS_CHARGE_SOURCE=nonce   # nonce or payment_token
-GODADDY_PAYMENTS_CHARGE_NONCE_ACTION=SALE   # SALE or AUTHORIZE
-GODADDY_PAYMENTS_CHARGE_NONCE_AUTH_ONLY=false
-GODADDY_STORE_ID=<store-id>
-
-# Recurring flow (nonce -> payment token -> charge token)
-GODADDY_PAYMENTS_CREATE_TOKEN_PATH=/businesses/{business_id}/cards/tokenize
-GODADDY_PAYMENTS_CHARGE_TOKEN_PATH=/businesses/{business_id}/cards/tokenize/charge
+# Webhooks. Without this, incoming webhooks are rejected (fails closed).
+GODADDY_PAYMENTS_WEBHOOK_SECRET=
 ```
 
-Environment variants:
+See [.env.example](.env.example) for the complete annotated list.
 
-- US production:
-  - SDK: https://collect.commerce.godaddy.com/sdk.js
-  - Services: https://services.poynt.net
-- OTE staging:
-  - SDK: https://collect.commerce.ote-godaddy.com/sdk.js
-  - Services: https://services-ote.poynt.net
+### How it works
 
-Flow implemented:
+```
+browser card fields (GoDaddy iframe) -> nonce -> Django
+Django: recalculate total from the database
+Django: sign a JWT with the private key -> POST /token -> accessToken
+Django: POST /businesses/{id}/cards/tokenize        (nonce -> paymentToken)
+Django: POST /businesses/{id}/cards/tokenize/charge (SALE)
+Django: create the Order only after the charge is confirmed
+```
 
-- One-time charge: collect nonce in checkout page -> server charges nonce -> order is created only on confirmed status.
-  - collect.getNonce is called with customer/shipping payload so stored checkout data can be sent directly with nonce creation.
-  - Server request body for charge follows Poynt schema: action, context.businessId/storeId, amounts, fundingSource.nonce, and optional receipt fields.
-- Recurring-ready gateway methods are available for:
-  - create payment token from nonce
-  - charge payment token
-- Optional token-charge checkout path:
-  - Set GODADDY_PAYMENTS_CHARGE_SOURCE=payment_token to run tokenize first and then charge fundingSource.cardToken.
-  - Tokenize response status/cvv/avs results are interpreted and attached to payment verification metadata for downstream decisions.
-- reCAPTCHA is explicitly enabled in collect.mount using enableReCaptcha: true.
-- Event listeners wired in checkout integration:
-  - ready: confirms Collect form readiness
-  - nonce: captures nonce payload and submits checkout
-  - error: displays structured provider error details (message/code/source/requestId)
-  - iframe_height_change: dynamically adjusts wrapper height to avoid clipping
-  - a same-origin telemetry endpoint logs non-PII listener diagnostics to audit logs for troubleshooting
+Authentication is the OAuth 2.0 JWT bearer assertion grant. Note that Poynt's
+token endpoint expects `grantType` (camelCase), and every API call carries
+`api-version: 1.2` plus a `Poynt-Request-Id` — which is also the idempotency
+key that makes safe retries possible.
 
-Notes:
+Guarantees:
 
-- The exact API paths for your tenant/environment must be set in the env vars above.
-- No PAN/CVV data is stored by this app; only provider references and metadata are persisted.
+- Card number, CVV and expiry never reach Django; only brand and last four are
+  stored.
+- The charged amount always comes from the database, never from the browser.
+- Duplicate submits cannot double-charge (session-issued key + unique DB
+  constraint + provider idempotency + order-level constraint).
+- A charge whose outcome is unknown is marked `ambiguous` and resolved by
+  querying GoDaddy — never by retrying the charge.
+
+### Commands
+
+```bash
+python manage.py check_payments_ready          # audit configuration
+python manage.py check_payments_ready --live   # also authenticate
+python manage.py reconcile_payments            # resolve unknown-outcome charges
+python manage.py test payments.tests_poynt     # 55 tests, all mocked
+```
+
+Reconciliation also runs automatically every two minutes via Celery beat.
 
 ---
 

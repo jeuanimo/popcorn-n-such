@@ -8,6 +8,8 @@ from .views import (
     ClearAllOrdersView,
     CustomerOrderDetailView,
     CustomerOrderListView,
+    PaymentFailedView,
+    PaymentPendingView,
     StaffOrderListView,
     SubscriptionsView,
     cancel_subscription_view,
@@ -33,5 +35,7 @@ urlpatterns = [
     path("checkout/", CheckoutView.as_view(), name="checkout"),
     path("checkout/review/", CheckoutReviewView.as_view(), name="checkout-review"),
     path("checkout/payment-return/", CheckoutPaymentReturnView.as_view(), name="checkout-payment-return"),
+    path("checkout/payment-pending/", PaymentPendingView.as_view(), name="payment-pending"),
+    path("checkout/payment-failed/", PaymentFailedView.as_view(), name="payment-failed"),
     path("checkout/complete/<str:order_number>/", CheckoutCompleteView.as_view(), name="checkout-complete"),
 ]
