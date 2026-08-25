@@ -1,7 +1,7 @@
 # Core
 Django>=5.0,<5.2
 dj-database-url==3.1.2
-python-dotenv==1.2.2
+python-dotenv==1.2.3
 psycopg[binary]==3.3.4
 Pillow==12.2.0
 
