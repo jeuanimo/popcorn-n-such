@@ -9,10 +9,12 @@ outcome handling that prevents double-charging after a network failure.
 
 from __future__ import annotations
 
+import time
 import uuid
 from decimal import Decimal
 from unittest.mock import patch
 
+import jwt
 import requests
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import rsa
@@ -1012,3 +1014,113 @@ class RefundTests(PoyntTestMixin, TestCase):
         self.assertEqual(
             mock_refund.call_args.kwargs["provider_transaction_id"], "txn-original"
         )
+
+
+# ---------------------------------------------------------------------------
+# Poynt merchant authorization callback (one-time provisioning, not checkout)
+# ---------------------------------------------------------------------------
+
+
+# A second keypair, distinct from _TEST_KEY, standing in for Poynt's own
+# platform signing key — the code JWT is signed with the "platform" key and
+# verified against its public half, never against our application's own key.
+_PLATFORM_KEY = rsa.generate_private_key(public_exponent=65537, key_size=2048)
+PLATFORM_PRIVATE_KEY_PEM = _PLATFORM_KEY.private_bytes(
+    serialization.Encoding.PEM,
+    serialization.PrivateFormat.PKCS8,
+    serialization.NoEncryption(),
+).decode()
+PLATFORM_PUBLIC_KEY_PEM = _PLATFORM_KEY.public_key().public_bytes(
+    serialization.Encoding.PEM, serialization.PublicFormat.SubjectPublicKeyInfo
+).decode()
+
+
+def _make_code_jwt(*, private_key_pem: str, issuer: str = "https://poynt.net", **extra_claims) -> str:
+    now = int(time.time())
+    claims = {
+        "iss": issuer,
+        "sub": "urn:aid:test-application",
+        "poynt.biz": "test-business-id",
+        "iat": now,
+        "exp": now + 300,
+        **extra_claims,
+    }
+    return jwt.encode(claims, private_key_pem, algorithm="RS256")
+
+
+class PoyntAuthorizeCallbackTests(TestCase):
+    def setUp(self):
+        super().setUp()
+        self.url = reverse("payments:poynt_authorize_callback")
+
+    def test_disabled_by_default_returns_403(self):
+        response = self.client.get(self.url, {"code": "irrelevant", "status": "granted"})
+        self.assertEqual(response.status_code, 403)
+
+    @override_settings(POYNT_AUTHORIZE_CALLBACK_ENABLED=True)
+    def test_missing_code_returns_400(self):
+        response = self.client.get(self.url, {"status": "granted"})
+        self.assertEqual(response.status_code, 400)
+        self.assertContains(response, "contact the site administrator", status_code=400, html=False)
+
+    @override_settings(POYNT_AUTHORIZE_CALLBACK_ENABLED=True)
+    def test_malformed_code_returns_400(self):
+        response = self.client.get(self.url, {"code": "not-a-jwt-at-all", "status": "granted"})
+        self.assertEqual(response.status_code, 400)
+
+    @override_settings(POYNT_AUTHORIZE_CALLBACK_ENABLED=True, POYNT_PLATFORM_PUBLIC_KEY=PLATFORM_PUBLIC_KEY_PEM)
+    def test_badly_signed_code_is_rejected_when_a_public_key_is_configured(self):
+        # Signed with the wrong key — must not verify against the configured
+        # platform public key.
+        code = _make_code_jwt(private_key_pem=TEST_PRIVATE_KEY_PEM)
+
+        response = self.client.get(self.url, {"code": code, "status": "granted"})
+
+        self.assertEqual(response.status_code, 400)
+
+    @override_settings(POYNT_AUTHORIZE_CALLBACK_ENABLED=True)
+    def test_success_without_a_configured_public_key_is_unverified(self):
+        """
+        With no POYNT_PLATFORM_PUBLIC_KEY set, the callback still decodes the
+        JWT (any signing key is accepted) and records the result as
+        unverified — never as if the signature had been checked.
+        """
+        code = _make_code_jwt(private_key_pem=TEST_PRIVATE_KEY_PEM)
+
+        with self.assertLogs("payments.authorize", level="INFO") as logs:
+            response = self.client.get(self.url, {"code": code, "status": "granted", "context": "onboard-1"})
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "close this window")
+        log_output = " ".join(logs.output)
+        self.assertIn("verified=False", log_output)
+        self.assertIn("test-business-id", log_output)
+        self.assertIn("onboard-1", log_output)
+
+    @override_settings(POYNT_AUTHORIZE_CALLBACK_ENABLED=True, POYNT_PLATFORM_PUBLIC_KEY=PLATFORM_PUBLIC_KEY_PEM)
+    def test_success_with_a_configured_public_key_is_verified(self):
+        code = _make_code_jwt(private_key_pem=PLATFORM_PRIVATE_KEY_PEM)
+
+        with self.assertLogs("payments.authorize", level="INFO") as logs:
+            response = self.client.get(self.url, {"code": code, "status": "granted", "context": "onboard-2"})
+
+        self.assertEqual(response.status_code, 200)
+        log_output = " ".join(logs.output)
+        self.assertIn("verified=True", log_output)
+        self.assertIn("test-business-id", log_output)
+
+    @override_settings(POYNT_AUTHORIZE_CALLBACK_ENABLED=True, POYNT_PLATFORM_PUBLIC_KEY=PLATFORM_PUBLIC_KEY_PEM)
+    def test_business_id_is_logged_but_never_rendered(self):
+        code = _make_code_jwt(private_key_pem=PLATFORM_PRIVATE_KEY_PEM)
+
+        with self.assertLogs("payments.authorize", level="INFO") as logs:
+            response = self.client.get(self.url, {"code": code, "status": "granted"})
+
+        self.assertIn("test-business-id", " ".join(logs.output))
+        self.assertNotIn(b"test-business-id", response.content)
+        self.assertNotIn(b"urn:aid:test-application", response.content)
+
+    @override_settings(POYNT_AUTHORIZE_CALLBACK_ENABLED=True)
+    def test_post_is_rejected(self):
+        response = self.client.post(self.url, {"code": "whatever"})
+        self.assertEqual(response.status_code, 405)

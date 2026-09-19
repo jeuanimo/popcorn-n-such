@@ -272,6 +272,27 @@ GODADDY_PAYMENTS_REFUND_PATH = os.getenv("GODADDY_PAYMENTS_REFUND_PATH", "/v1/pa
 GODADDY_PAYMENTS_TIMEOUT_SECONDS = os.getenv("GODADDY_PAYMENTS_TIMEOUT_SECONDS", "15")
 GODADDY_PAYMENTS_ALLOWED_REDIRECT_HOSTS = os.getenv("GODADDY_PAYMENTS_ALLOWED_REDIRECT_HOSTS", "")
 
+# --- Poynt merchant authorization callback (one-time provisioning) -----------
+# Captures a merchant's businessId during onboarding via Poynt's OAuth
+# authorization redirect. Not part of checkout — see docs/PAYMENTS.md.
+#
+# Read directly from os.getenv, like the endpoint paths above, and NOT through
+# core/runtime_settings.get_runtime_setting(): that lookup is staff-editable at
+# runtime (env > database > Django setting), and this flag gates an endpoint
+# that decodes an externally-supplied JWT. Letting a staff GUI or a stale
+# database row silently flip it on would leave the callback live long after
+# the onboarding window it was meant for, without anyone touching the
+# deployment config. It must only ever be turned on by deliberately setting
+# the environment variable, and turned back off the same way.
+POYNT_AUTHORIZE_CALLBACK_ENABLED = env_bool("POYNT_AUTHORIZE_CALLBACK_ENABLED", False)
+# Poynt's platform public key (PEM), used to verify the RS256 "code" JWT this
+# callback receives. Newlines may be written as the literal two characters
+# \n, same convention as GODADDY_POYNT_PRIVATE_KEY. Left blank, the JWT is
+# decoded without signature verification and the callback records that the
+# result is unverified — acceptable only for a brief, deliberate onboarding
+# window with POYNT_AUTHORIZE_CALLBACK_ENABLED also on.
+POYNT_PLATFORM_PUBLIC_KEY = os.getenv("POYNT_PLATFORM_PUBLIC_KEY", "").replace("\\n", "\n")
+
 SHIPPING_PROVIDER = os.getenv("SHIPPING_PROVIDER", "shippo")
 TAX_PROVIDER = os.getenv("TAX_PROVIDER", "manual")
 TAX_FALLBACK_PROVIDER = os.getenv("TAX_FALLBACK_PROVIDER", "manual")

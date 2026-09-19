@@ -65,10 +65,6 @@ def payment_webhook(request: HttpRequest, provider: str) -> HttpResponse:
     return JsonResponse({"ok": True, "signature_valid": signature_valid})
 
 
-def poynt_callback(request: HttpRequest) -> HttpResponse:
-    return HttpResponse("Poynt callback reached successfully.")
-
-
 @require_POST
 def collect_telemetry(request: HttpRequest) -> HttpResponse:
     try:

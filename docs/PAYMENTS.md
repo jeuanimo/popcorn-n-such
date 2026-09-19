@@ -420,3 +420,76 @@ Do not weaken these:
   the webhook route, which is a signed server-to-server callback.
 * Poynt endpoint paths stay pinned in settings, never runtime-editable.
 * The private key never leaves the server process.
+
+---
+
+## 13. Merchant authorization callback (one-time provisioning)
+
+`payments/views_authorize.py` implements `poynt_authorize_callback`, served at
+`/payments/poynt/callback/`. It is **not part of checkout** — it exists only
+to capture a merchant's `businessId` once, during onboarding, and is disabled
+by default.
+
+### When you need it
+
+Onboarding a new merchant through Poynt's OAuth authorization flow:
+
+```text
+https://poynt.net/applications/authorize?redirect_uri=<urlencoded-callback-url>&client_id=urn:aid:<application-uuid>
+```
+
+`redirect_uri` must be the URL-encoded form of
+`https://<your-site>/payments/poynt/callback/`, and `client_id` is
+`GODADDY_POYNT_APPLICATION_ID` in the `urn:aid:<uuid>` form the Poynt HQ portal
+shows. The merchant approves the request, and Poynt redirects the browser back
+to `redirect_uri` with `code`, `status`, and (if you sent one) `context` in the
+query string.
+
+`code` is an RS256 JWT. Its `sub` claim is the application id; its `poynt.biz`
+claim is the business id you're capturing. **`poynt.biz` supersedes the older
+`businessId` query parameter** some Poynt documentation still shows — this
+callback reads the JWT claim, not that parameter.
+
+### Procedure
+
+1. Get Poynt's platform public key, so the callback can verify the JWT's
+   signature rather than just decoding it:
+
+   ```bash
+   openssl s_client -connect poynt.net:443 </dev/null 2>/dev/null | openssl x509 -pubkey -noout
+   ```
+
+2. In the Render dashboard, set:
+   * `POYNT_PLATFORM_PUBLIC_KEY` — the PEM from step 1 (newlines as literal
+     `\n`, same convention as `GODADDY_POYNT_PRIVATE_KEY`).
+   * `POYNT_AUTHORIZE_CALLBACK_ENABLED=true`.
+3. Redeploy (or restart) so the new environment takes effect.
+4. Send the merchant the authorization URL above, or open it yourself if
+   you're capturing your own account's business id.
+5. After the redirect lands, read the result from the server logs — the
+   `payments.authorize` logger, at INFO — not from the page. The customer-
+   facing page only ever says "Authorization complete" or "Authorization did
+   not complete"; it never shows the application id, business id, or any
+   part of the JWT.
+6. **Set `POYNT_AUTHORIZE_CALLBACK_ENABLED` back to `false`** and redeploy.
+   This callback decodes an externally-supplied JWT and is meant to be live
+   for minutes, not left on.
+
+If `POYNT_PLATFORM_PUBLIC_KEY` is left blank, the callback still decodes the
+JWT — it just doesn't verify the signature, and logs the result as
+`verified=False`. Only use that for a quick manual test; run the real
+onboarding with the public key set.
+
+### Why these two settings are not runtime-overridable
+
+Unlike most staff-configurable settings, `POYNT_AUTHORIZE_CALLBACK_ENABLED` and
+`POYNT_PLATFORM_PUBLIC_KEY` are read directly from `os.getenv()` in
+`config/settings/base.py`, not through
+`core/runtime_settings.get_runtime_setting()`. That function is intentionally
+staff-editable at runtime (env var > database row > Django setting) — useful
+for things like carrier API keys, but wrong for a flag that gates an endpoint
+decoding an externally-supplied JWT. A stale database row or a staff GUI
+toggle could leave the callback live long after the onboarding window it was
+meant for, with no deployment change to point back to. Same reasoning as the
+Poynt endpoint paths in section 2: it must only change by deliberately
+touching the environment.
