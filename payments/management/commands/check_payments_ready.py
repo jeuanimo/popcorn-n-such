@@ -1,7 +1,7 @@
 """Pre-flight check for the payments configuration."""
 
 from django.conf import settings
-from django.core.management.base import BaseCommand
+from django.core.management.base import BaseCommand, CommandError
 
 from payments.gateways.poynt_auth import describe_configuration, is_configured
 
@@ -132,6 +132,9 @@ class Command(BaseCommand):
         self.stdout.write("")
         if failures:
             self.stdout.write(self.style.ERROR(f"{failures} blocking problem(s), {warnings} warning(s)."))
+            raise CommandError(
+                f"check_payments_ready found {failures} blocking problem(s) — see output above."
+            )
         elif warnings:
             self.stdout.write(self.style.WARNING(f"No blocking problems, {warnings} warning(s)."))
         else:

@@ -734,6 +734,41 @@ class CheckoutEndpointTests(PoyntTestMixin, TestCase):
         response = self.client.get(reverse("orders:checkout-review"))
         self.assertRedirects(response, reverse("orders:checkout"), fetch_redirect_response=False)
 
+    @override_settings(GODADDY_POYNT_PRIVATE_KEY="", GODADDY_POYNT_PRIVATE_KEY_PATH="")
+    @patch("orders.views.CheckoutReviewView._start_hosted_session")
+    @patch.object(GoDaddyPaymentGateway, "create_payment_session")
+    @patch("payments.checkout.charge_checkout")
+    def test_collect_disabled_does_not_fall_through_to_hosted_session(
+        self, mock_charge, mock_create_session, mock_start_hosted_session
+    ):
+        """
+        With Poynt Collect unusable (server credentials missing here), a
+        "godaddy" submission must stop immediately — never reach the legacy
+        hosted-redirect gateway, which needs settings that are never set in
+        this deployment and would otherwise raise ValueError.
+        """
+        self.client.login(username="buyer", password=TEST_PASSWORD)
+        self._prime_session()
+
+        response = self.client.post(
+            reverse("orders:checkout-review"),
+            {"payment_method": "godaddy", "poynt_nonce": "nonce-abc"},
+        )
+
+        mock_charge.assert_not_called()
+        mock_create_session.assert_not_called()
+        mock_start_hosted_session.assert_not_called()
+        self.assertEqual(Order.objects.count(), 0)
+        self.assertRedirects(response, reverse("orders:checkout-review"), fetch_redirect_response=False)
+
+        from django.contrib.messages import get_messages
+
+        message_text = " ".join(str(m) for m in get_messages(response.wsgi_request))
+        self.assertIn("Card payments are unavailable right now", message_text)
+        self.assertNotIn("GODADDY_PAYMENTS_BASE_URL", message_text)
+        self.assertNotIn("credentials", message_text)
+        self.assertNotIn("private", message_text.lower())
+
 
 # ---------------------------------------------------------------------------
 # Order ownership and access control

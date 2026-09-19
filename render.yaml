@@ -12,7 +12,9 @@ services:
     buildCommand: |
       pip install -r requirements.txt &&
       python manage.py collectstatic --noinput
-    preDeployCommand: python manage.py migrate --noinput
+    preDeployCommand: >-
+      python manage.py migrate --noinput &&
+      python manage.py check_payments_ready
     startCommand: >-
       gunicorn config.wsgi:application
       --bind 0.0.0.0:$PORT
@@ -49,6 +51,19 @@ services:
         value: WARNING
       - key: SITE_BASE_URL
         value: https://popcorn-n-such.onrender.com
+      # GoDaddy Payments (Poynt) — required for the checkout charge path.
+      # Values are set in the Render dashboard, never committed here. See
+      # docs/PAYMENTS.md for what each one is and where it comes from.
+      - key: GODADDY_POYNT_ENV
+        sync: false
+      - key: GODADDY_POYNT_APPLICATION_ID
+        sync: false
+      - key: GODADDY_POYNT_BUSINESS_ID
+        sync: false
+      - key: GODADDY_POYNT_STORE_ID
+        sync: false
+      - key: GODADDY_POYNT_PRIVATE_KEY
+        sync: false
       # Add remaining secrets via Render dashboard or render.yaml envVars:
       # CLOUDINARY_URL, PAYMENTS_WEBHOOK_SECRET, SHIPPO_API_KEY, SENTRY_DSN, etc.
       # See .env.example for the full list.
@@ -85,6 +100,18 @@ services:
         value: popcorn-n-such.onrender.com
       - key: SITE_BASE_URL
         value: https://popcorn-n-such.onrender.com
+      # Needed here too: payments.tasks.reconcile_ambiguous_payments runs on
+      # this worker and calls the Poynt API to resolve ambiguous charges.
+      - key: GODADDY_POYNT_ENV
+        sync: false
+      - key: GODADDY_POYNT_APPLICATION_ID
+        sync: false
+      - key: GODADDY_POYNT_BUSINESS_ID
+        sync: false
+      - key: GODADDY_POYNT_STORE_ID
+        sync: false
+      - key: GODADDY_POYNT_PRIVATE_KEY
+        sync: false
 
   - type: worker
     name: popcorn-n-such-beat

@@ -17,7 +17,7 @@ from django.views.generic import DetailView, ListView, View
 
 from cart.models import Cart, CartItem
 from core.security import OwnerFilteredQuerysetMixin, RoleRequiredMixin
-from payments.gateways.poynt_auth import is_configured as poynt_is_configured
+from payments.gateways.poynt_auth import describe_configuration, is_configured as poynt_is_configured
 from payments.checkout import (
     PAYMENT_INTENT_SESSION_KEY,
     PaymentAlreadyInFlight,
@@ -469,6 +469,39 @@ class CheckoutReviewView(View):
     # from the database and the session, never from the POST body.
     # ------------------------------------------------------------------
 
+    @staticmethod
+    def _log_collect_unavailable(poynt_collect):
+        """
+        Log exactly which precondition blocked the Poynt Collect charge path.
+
+        Reports presence/absence of each credential, never a value — the
+        private key itself is never read by this class in the first place.
+        """
+        missing = []
+        if not poynt_collect["browser_ready"]:
+            if not poynt_collect["sdk_url"]:
+                missing.append("browser:sdk_url")
+            if not poynt_collect["business_id"]:
+                missing.append("browser:business_id")
+            if not poynt_collect["application_id"]:
+                missing.append("browser:application_id")
+        if not poynt_collect["server_ready"]:
+            config = describe_configuration()
+            for key, label in (
+                ("application_id_set", "server:application_id"),
+                ("business_id_set", "server:business_id"),
+                ("private_key_set", "server:private_key"),
+            ):
+                if not config[key]:
+                    missing.append(label)
+        logger.error(
+            "Refused card payment: Poynt Collect is not enabled "
+            "(browser_ready=%s, server_ready=%s, missing=%s)",
+            poynt_collect["browser_ready"],
+            poynt_collect["server_ready"],
+            ", ".join(missing) or "none set — check the godaddy_collect_enabled toggle",
+        )
+
     def _charge_and_create_order(self, request, *, service, summary, checkout_input, nonce, intent_key):
         """
         Charge the card, then create the order only if the charge is approved.
@@ -622,7 +655,12 @@ class CheckoutReviewView(View):
             return redirect(_CHECKOUT_REVIEW_URL)
 
         poynt_collect = self._poynt_collect_context()
-        if selected_payment_method == "godaddy" and poynt_collect["enabled"]:
+        if selected_payment_method == "godaddy":
+            if not poynt_collect["enabled"]:
+                self._log_collect_unavailable(poynt_collect)
+                messages.error(request, "Card payments are unavailable right now. Please try again shortly.")
+                return redirect(_CHECKOUT_REVIEW_URL)
+
             nonce = (request.POST.get("poynt_nonce") or "").strip()
             if not nonce:
                 messages.error(request, "Card details are required. Please enter your payment information.")

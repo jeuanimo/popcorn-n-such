@@ -91,6 +91,17 @@ The private key may be given inline with newlines written as the two characters
 `\n`, or as a path to a `.pem` file stored outside the repository. `*.pem`,
 `*.key` and `secrets/` are gitignored.
 
+> **Where the credentials actually live.** In production, `GODADDY_POYNT_ENV`,
+> `GODADDY_POYNT_APPLICATION_ID`, `GODADDY_POYNT_BUSINESS_ID`,
+> `GODADDY_POYNT_STORE_ID` and `GODADDY_POYNT_PRIVATE_KEY` are declared in
+> [render.yaml](../render.yaml) on both the `popcorn-n-such` web service and
+> the `popcorn-n-such-worker` service (the worker needs them too — it runs
+> `payments.tasks.reconcile_ambiguous_payments`). Every one of them is declared
+> with `sync: false`, so `render.yaml` only names the keys; the values are set
+> once in the Render dashboard and never committed to the repo. If a deploy has
+> never had these set in the dashboard, Poynt Collect stays disabled and card
+> payments are refused — see "Card form does not appear" below.
+
 > **Caution.** `core/runtime_settings.get_runtime_setting()` reads an environment
 > variable *before* the database and Django settings. An env var therefore wins
 > over anything set in the staff Operational Settings screen — and over
@@ -153,6 +164,15 @@ Outcomes:
 | Timeout / unknown | `payment_pending.html` | No — pending reconciliation |
 | Duplicate submit, first succeeded | Original receipt | No second order |
 | Duplicate submit, first in flight | "already being processed" | No |
+| Poynt Collect not enabled (missing/incomplete credentials, or the `godaddy_collect_enabled` toggle is off) | Review page + "Card payments are unavailable right now." | No |
+
+The last row matters operationally: a `"godaddy"` submission with Poynt Collect
+disabled stops in `CheckoutReviewView.post()` and is refused immediately. It
+never falls through to the legacy hosted-redirect gateway
+(`_start_hosted_session()`), which is unused in this deployment and would
+otherwise raise on a missing `GODADDY_PAYMENTS_BASE_URL`. The refusal is logged
+at `ERROR` with which precondition failed (`browser_ready` vs `server_ready`)
+and which credential names are missing — presence only, never a value.
 
 ---
 
@@ -258,15 +278,28 @@ authorization instead uses `POST .../transactions/{id}/void`.
 ## 9. Testing
 
 ```bash
-python manage.py test payments.tests_poynt      # 55 tests, all mocked
+python manage.py test payments.tests_poynt      # 56 tests, all mocked
 python manage.py check_payments_ready           # config audit
 python manage.py check_payments_ready --live    # also authenticates
 ```
 
 No test performs a real charge. Coverage includes successful checkout, declines,
 invalid/missing nonce, amount-manipulation attempts, duplicate POSTs, API errors
-and timeouts, reconciliation, refund authorization, CSRF enforcement, and
-assertions that no secret reaches the page or the logs.
+and timeouts, reconciliation, refund authorization, CSRF enforcement, a
+Poynt-Collect-disabled submission being refused before it can reach the legacy
+hosted-redirect path, and assertions that no secret reaches the page or the
+logs.
+
+`check_payments_ready` now exits non-zero when it finds a blocking problem
+(`CommandError`, not just printed output). [render.yaml](../render.yaml) runs
+it as part of the web service's `preDeployCommand`, after migrations and
+before the new version takes traffic, so a deploy with missing or incomplete
+Poynt credentials — or `DEBUG`/CSRF/CSP misconfiguration — fails the deploy
+instead of failing silently at the first customer's checkout. It is
+deliberately **not** run in `.github/workflows/ci.yml`: CI has no real Poynt
+credentials, so a credential check there would fail on every PR regardless of
+whether anything is actually wrong. `--live` is still opt-in only, since it
+makes a real network call to Poynt.
 
 ### Staging (OTE) checklist
 
@@ -350,7 +383,13 @@ as `\n`; check they were not collapsed into spaces.
 **Card form does not appear**
 `GODADDY_COLLECT_ENABLED`, the SDK URL, and both IDs must be set — and the
 server credentials must also be complete, since the page hides the form when a
-charge could not possibly succeed. Check the browser console for CSP violations.
+charge could not possibly succeed. Check the browser console for CSP
+violations. If a customer nonetheless submits the form (the Pay button is
+always rendered), the POST is refused server-side with a generic message and
+an `ERROR` log line naming the missing precondition — see the last row of the
+outcomes table in section 4. Run `python manage.py check_payments_ready` to
+see exactly what's missing; in production this should already have blocked the
+deploy (section 9).
 
 **Charge returns HTTP 404**
 Usually a Business ID that does not exist in the selected environment.
