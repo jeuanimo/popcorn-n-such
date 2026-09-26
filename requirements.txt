@@ -17,7 +17,7 @@ django-redis==5.4.0
 
 # Task queue
 celery[redis]==5.4.0
-django-celery-beat==2.7.0
+django-celery-beat==2.9.0
 
 # Media storage (Cloudinary)
 cloudinary==1.44.2
