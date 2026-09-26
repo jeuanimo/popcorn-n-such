@@ -27,4 +27,4 @@ django-cloudinary-storage==0.3.0
 PyJWT[crypto]==2.10.1
 
 # Error tracking
-sentry-sdk[django]==2.19.2
+sentry-sdk[django]==2.68.0
